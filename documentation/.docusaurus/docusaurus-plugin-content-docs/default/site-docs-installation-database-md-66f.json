@@ -1,0 +1,26 @@
+{
+  "id": "installation/database",
+  "title": "Configuration des bases de données",
+  "description": "Responsables : Thomas (DB utilisateurs), Pierre & Mathias (DB photos/vidéos)",
+  "source": "@site/docs/installation/database.md",
+  "sourceDirName": "installation",
+  "slug": "/installation/database",
+  "permalink": "/docs/installation/database",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "sidebar_position": 4
+  },
+  "sidebar": "installationSidebar",
+  "previous": {
+    "title": "Installation du back-end",
+    "permalink": "/docs/installation/back-end"
+  },
+  "next": {
+    "title": "Lancement avec Docker",
+    "permalink": "/docs/installation/docker"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "technique/front-end",
+  "title": "Documentation technique — Front-end",
+  "description": "Cette page décrit l'architecture technique du front-end InstaClone : structure des fichiers, routeur SPA, système de vues, couche API et conventions de code.",
+  "source": "@site/docs/technique/front-end.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/front-end",
+  "permalink": "/docs/technique/front-end",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Architecture globale",
+    "permalink": "/docs/technique/architecture"
+  },
+  "next": {
+    "title": "Configuration Apache",
+    "permalink": "/docs/technique/apache-config"
+  }
+}

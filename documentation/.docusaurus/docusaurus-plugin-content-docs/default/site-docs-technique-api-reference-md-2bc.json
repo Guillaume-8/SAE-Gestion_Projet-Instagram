@@ -1,0 +1,26 @@
+{
+  "id": "technique/api-reference",
+  "title": "Référence de l'API REST",
+  "description": "Responsable : Mathias (Responsable Back-End)",
+  "source": "@site/docs/technique/api-reference.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/api-reference",
+  "permalink": "/docs/technique/api-reference",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Documentation technique — Back-end",
+    "permalink": "/docs/technique/back-end"
+  },
+  "next": {
+    "title": "Schéma des bases de données",
+    "permalink": "/docs/technique/database-schema"
+  }
+}

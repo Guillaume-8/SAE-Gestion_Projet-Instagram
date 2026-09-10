@@ -1,0 +1,26 @@
+{
+  "id": "utilisateur/messagerie",
+  "title": "Messagerie",
+  "description": "Responsables : Yanis & Enes (Messagerie / Notification)",
+  "source": "@site/docs/utilisateur/messagerie.md",
+  "sourceDirName": "utilisateur",
+  "slug": "/utilisateur/messagerie",
+  "permalink": "/docs/utilisateur/messagerie",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  },
+  "sidebar": "utilisateurSidebar",
+  "previous": {
+    "title": "Interactions",
+    "permalink": "/docs/utilisateur/interactions"
+  },
+  "next": {
+    "title": "Filtres et retouche photo",
+    "permalink": "/docs/utilisateur/filtres"
+  }
+}

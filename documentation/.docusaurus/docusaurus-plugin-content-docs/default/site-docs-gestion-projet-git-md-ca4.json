@@ -1,0 +1,26 @@
+{
+  "id": "gestion-projet/git",
+  "title": "Convention Git",
+  "description": "Responsable : Yanis (Chef de Projet)",
+  "source": "@site/docs/gestion-projet/git.md",
+  "sourceDirName": "gestion-projet",
+  "slug": "/gestion-projet/git",
+  "permalink": "/docs/gestion-projet/git",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "gestionProjetSidebar",
+  "previous": {
+    "title": "Organisation Trello",
+    "permalink": "/docs/gestion-projet/trello"
+  },
+  "next": {
+    "title": "Utilisation de l'IA",
+    "permalink": "/docs/gestion-projet/ia-usage"
+  }
+}

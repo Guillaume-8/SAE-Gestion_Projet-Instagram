@@ -1,0 +1,26 @@
+{
+  "id": "technique/websockets",
+  "title": "WebSockets (messagerie temps réel)",
+  "description": "Responsables : Yanis & Enes",
+  "source": "@site/docs/technique/websockets.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/websockets",
+  "permalink": "/docs/technique/websockets",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 7,
+  "frontMatter": {
+    "sidebar_position": 7
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Schéma des bases de données",
+    "permalink": "/docs/technique/database-schema"
+  },
+  "next": {
+    "title": "Procédures de tests",
+    "permalink": "/docs/technique/tests"
+  }
+}

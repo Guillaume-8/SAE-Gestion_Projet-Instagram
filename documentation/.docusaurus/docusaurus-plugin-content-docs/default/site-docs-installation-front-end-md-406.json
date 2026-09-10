@@ -1,0 +1,26 @@
+{
+  "id": "installation/front-end",
+  "title": "Installation du front-end",
+  "description": "Cette page décrit comment installer et lancer la partie front-end d'InstaClone, servie par Apache.",
+  "source": "@site/docs/installation/front-end.md",
+  "sourceDirName": "installation",
+  "slug": "/installation/front-end",
+  "permalink": "/docs/installation/front-end",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "installationSidebar",
+  "previous": {
+    "title": "Prérequis",
+    "permalink": "/docs/installation/prerequis"
+  },
+  "next": {
+    "title": "Installation du back-end",
+    "permalink": "/docs/installation/back-end"
+  }
+}

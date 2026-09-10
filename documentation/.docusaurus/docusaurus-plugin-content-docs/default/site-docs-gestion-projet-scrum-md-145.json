@@ -1,0 +1,22 @@
+{
+  "id": "gestion-projet/scrum",
+  "title": "Organisation SCRUM",
+  "description": "Responsable : Yanis (Chef de Projet), Thomas (Scrum Master)",
+  "source": "@site/docs/gestion-projet/scrum.md",
+  "sourceDirName": "gestion-projet",
+  "slug": "/gestion-projet/scrum",
+  "permalink": "/docs/gestion-projet/scrum",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "gestionProjetSidebar",
+  "next": {
+    "title": "Organisation Trello",
+    "permalink": "/docs/gestion-projet/trello"
+  }
+}

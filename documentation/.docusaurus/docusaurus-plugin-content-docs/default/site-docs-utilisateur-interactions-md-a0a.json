@@ -1,0 +1,26 @@
+{
+  "id": "utilisateur/interactions",
+  "title": "Interactions",
+  "description": "Responsable : Eren (Front-End)",
+  "source": "@site/docs/utilisateur/interactions.md",
+  "sourceDirName": "utilisateur",
+  "slug": "/utilisateur/interactions",
+  "permalink": "/docs/utilisateur/interactions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "sidebar_position": 4
+  },
+  "sidebar": "utilisateurSidebar",
+  "previous": {
+    "title": "Publications",
+    "permalink": "/docs/utilisateur/publications"
+  },
+  "next": {
+    "title": "Messagerie",
+    "permalink": "/docs/utilisateur/messagerie"
+  }
+}

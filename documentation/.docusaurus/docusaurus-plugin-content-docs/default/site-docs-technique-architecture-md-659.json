@@ -1,0 +1,22 @@
+{
+  "id": "technique/architecture",
+  "title": "Architecture globale",
+  "description": "Vue d'ensemble",
+  "source": "@site/docs/technique/architecture.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/architecture",
+  "permalink": "/docs/technique/architecture",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "techniqueSidebar",
+  "next": {
+    "title": "Documentation technique — Front-end",
+    "permalink": "/docs/technique/front-end"
+  }
+}

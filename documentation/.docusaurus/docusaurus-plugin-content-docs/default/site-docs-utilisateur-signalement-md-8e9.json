@@ -1,0 +1,22 @@
+{
+  "id": "utilisateur/signalement",
+  "title": "Signalement et modération",
+  "description": "Responsable : Mathéo (Interface Admin)",
+  "source": "@site/docs/utilisateur/signalement.md",
+  "sourceDirName": "utilisateur",
+  "slug": "/utilisateur/signalement",
+  "permalink": "/docs/utilisateur/signalement",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 7,
+  "frontMatter": {
+    "sidebar_position": 7
+  },
+  "sidebar": "utilisateurSidebar",
+  "previous": {
+    "title": "Filtres et retouche photo",
+    "permalink": "/docs/utilisateur/filtres"
+  }
+}

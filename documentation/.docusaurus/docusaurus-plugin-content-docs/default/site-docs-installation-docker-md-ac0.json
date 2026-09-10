@@ -1,0 +1,26 @@
+{
+  "id": "installation/docker",
+  "title": "Lancement avec Docker",
+  "description": "Responsable : à définir",
+  "source": "@site/docs/installation/docker.md",
+  "sourceDirName": "installation",
+  "slug": "/installation/docker",
+  "permalink": "/docs/installation/docker",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  },
+  "sidebar": "installationSidebar",
+  "previous": {
+    "title": "Configuration des bases de données",
+    "permalink": "/docs/installation/database"
+  },
+  "next": {
+    "title": "Configuration SSL / Certificats",
+    "permalink": "/docs/installation/ssl"
+  }
+}

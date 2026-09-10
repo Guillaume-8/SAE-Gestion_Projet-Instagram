@@ -1,0 +1,22 @@
+{
+  "id": "installation/ssl",
+  "title": "Configuration SSL / Certificats",
+  "description": "Responsable : Guillaume (Certificats)",
+  "source": "@site/docs/installation/ssl.md",
+  "sourceDirName": "installation",
+  "slug": "/installation/ssl",
+  "permalink": "/docs/installation/ssl",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "sidebar_position": 6
+  },
+  "sidebar": "installationSidebar",
+  "previous": {
+    "title": "Lancement avec Docker",
+    "permalink": "/docs/installation/docker"
+  }
+}

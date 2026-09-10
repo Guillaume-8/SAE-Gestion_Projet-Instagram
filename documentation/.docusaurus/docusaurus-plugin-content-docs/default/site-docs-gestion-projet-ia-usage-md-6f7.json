@@ -1,0 +1,22 @@
+{
+  "id": "gestion-projet/ia-usage",
+  "title": "Utilisation de l'IA",
+  "description": "Responsable : Yanis (Chef de Projet)",
+  "source": "@site/docs/gestion-projet/ia-usage.md",
+  "sourceDirName": "gestion-projet",
+  "slug": "/gestion-projet/ia-usage",
+  "permalink": "/docs/gestion-projet/ia-usage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "sidebar_position": 4
+  },
+  "sidebar": "gestionProjetSidebar",
+  "previous": {
+    "title": "Convention Git",
+    "permalink": "/docs/gestion-projet/git"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "utilisateur/filtres",
+  "title": "Filtres et retouche photo",
+  "description": "Responsables : Tanguy & Jonathan (Retouche / Filtre)",
+  "source": "@site/docs/utilisateur/filtres.md",
+  "sourceDirName": "utilisateur",
+  "slug": "/utilisateur/filtres",
+  "permalink": "/docs/utilisateur/filtres",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "sidebar_position": 6
+  },
+  "sidebar": "utilisateurSidebar",
+  "previous": {
+    "title": "Messagerie",
+    "permalink": "/docs/utilisateur/messagerie"
+  },
+  "next": {
+    "title": "Signalement et modération",
+    "permalink": "/docs/utilisateur/signalement"
+  }
+}

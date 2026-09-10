@@ -1,0 +1,26 @@
+{
+  "id": "technique/back-end",
+  "title": "Documentation technique — Back-end",
+  "description": "Responsable : Mathias (Responsable Back-End)",
+  "source": "@site/docs/technique/back-end.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/back-end",
+  "permalink": "/docs/technique/back-end",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "sidebar_position": 4
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Configuration Apache",
+    "permalink": "/docs/technique/apache-config"
+  },
+  "next": {
+    "title": "Référence de l'API REST",
+    "permalink": "/docs/technique/api-reference"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "technique/tests",
+  "title": "Procédures de tests",
+  "description": "Responsable : Enes (Responsable Test)",
+  "source": "@site/docs/technique/tests.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/tests",
+  "permalink": "/docs/technique/tests",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 8,
+  "frontMatter": {
+    "sidebar_position": 8
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "WebSockets (messagerie temps réel)",
+    "permalink": "/docs/technique/websockets"
+  },
+  "next": {
+    "title": "Sécurité",
+    "permalink": "/docs/technique/securite"
+  }
+}

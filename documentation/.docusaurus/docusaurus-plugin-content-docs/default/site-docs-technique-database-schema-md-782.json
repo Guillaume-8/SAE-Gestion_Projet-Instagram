@@ -1,0 +1,26 @@
+{
+  "id": "technique/database-schema",
+  "title": "Schéma des bases de données",
+  "description": "Responsables : Thomas, Pierre, Mathias",
+  "source": "@site/docs/technique/database-schema.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/database-schema",
+  "permalink": "/docs/technique/database-schema",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "sidebar_position": 6
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Référence de l'API REST",
+    "permalink": "/docs/technique/api-reference"
+  },
+  "next": {
+    "title": "WebSockets (messagerie temps réel)",
+    "permalink": "/docs/technique/websockets"
+  }
+}

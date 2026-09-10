@@ -1,0 +1,26 @@
+{
+  "id": "gestion-projet/trello",
+  "title": "Organisation Trello",
+  "description": "Responsable : Yanis (Chef de Projet)",
+  "source": "@site/docs/gestion-projet/trello.md",
+  "sourceDirName": "gestion-projet",
+  "slug": "/gestion-projet/trello",
+  "permalink": "/docs/gestion-projet/trello",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "gestionProjetSidebar",
+  "previous": {
+    "title": "Organisation SCRUM",
+    "permalink": "/docs/gestion-projet/scrum"
+  },
+  "next": {
+    "title": "Convention Git",
+    "permalink": "/docs/gestion-projet/git"
+  }
+}

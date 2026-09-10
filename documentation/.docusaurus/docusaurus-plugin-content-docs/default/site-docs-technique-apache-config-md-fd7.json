@@ -1,0 +1,26 @@
+{
+  "id": "technique/apache-config",
+  "title": "Configuration Apache",
+  "description": "Cette page décrit la configuration du serveur Apache 2.4 utilisé par InstaClone : VirtualHost, HTTPS, reverse proxy vers le back-end Node.js et modules requis.",
+  "source": "@site/docs/technique/apache-config.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/apache-config",
+  "permalink": "/docs/technique/apache-config",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Documentation technique — Front-end",
+    "permalink": "/docs/technique/front-end"
+  },
+  "next": {
+    "title": "Documentation technique — Back-end",
+    "permalink": "/docs/technique/back-end"
+  }
+}

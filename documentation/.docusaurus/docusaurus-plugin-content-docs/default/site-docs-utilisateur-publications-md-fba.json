@@ -1,0 +1,26 @@
+{
+  "id": "utilisateur/publications",
+  "title": "Publications",
+  "description": "Responsable : Eren (Front-End), Pierre & Mathias (Back-End)",
+  "source": "@site/docs/utilisateur/publications.md",
+  "sourceDirName": "utilisateur",
+  "slug": "/utilisateur/publications",
+  "permalink": "/docs/utilisateur/publications",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "utilisateurSidebar",
+  "previous": {
+    "title": "Inscription et connexion",
+    "permalink": "/docs/utilisateur/inscription-connexion"
+  },
+  "next": {
+    "title": "Interactions",
+    "permalink": "/docs/utilisateur/interactions"
+  }
+}

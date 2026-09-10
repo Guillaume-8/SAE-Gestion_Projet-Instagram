@@ -1,0 +1,22 @@
+{
+  "id": "technique/securite",
+  "title": "Sécurité",
+  "description": "Responsable : Guillaume",
+  "source": "@site/docs/technique/securite.md",
+  "sourceDirName": "technique",
+  "slug": "/technique/securite",
+  "permalink": "/docs/technique/securite",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 9,
+  "frontMatter": {
+    "sidebar_position": 9
+  },
+  "sidebar": "techniqueSidebar",
+  "previous": {
+    "title": "Procédures de tests",
+    "permalink": "/docs/technique/tests"
+  }
+}
