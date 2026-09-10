@@ -7,24 +7,20 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="app-header">
+  <header class="app-header" id="app-header">
     <div class="header-container">
-      <h1 class="logo">InstaClone</h1>
+      <a href="#/feed" class="logo">InstaClone</a>
       <nav class="nav-menu">
-        <button id="btn-feed" class="btn-nav active">Fil</button>
-        <button id="btn-explore" class="btn-nav">Tendances</button>
-        <button id="btn-messages" class="btn-nav">Messages</button>
-        <button id="btn-profile" class="btn-nav">Profil</button>
+        <a href="#/feed" class="btn-nav" data-route="feed">Fil</a>
+        <a href="#/explore" class="btn-nav" data-route="explore">Tendances</a>
+        <a href="#/messages" class="btn-nav" data-route="messages">Messages</a>
+        <a href="#/profile" class="btn-nav" data-route="profile">Profil</a>
       </nav>
     </div>
   </header>
 
-  <main class="feed-container">
-    <section id="posts-container" class="posts-list">
-      <!-- Les publications seront injectées ici dynamiquement -->
-    </section>
-  </main>
+  <main id="app-view" class="app-view"></main>
 
-  <script type="module" src="js/feed.js"></script>
+  <script type="module" src="js/router.js"></script>
 </body>
 </html>

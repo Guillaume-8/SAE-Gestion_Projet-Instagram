@@ -1,5 +1,6 @@
 /**
  * @fileoverview Gestion de l'affichage du fil d'actualité et des interactions.
+ * Fonctionne comme une "vue" importée par le routeur SPA.
  */
 
 import {
@@ -8,7 +9,6 @@ import {
   toggleDislike,
   sharePost,
   reportPost,
-  getComments,
   addComment,
 } from './api.js';
 
@@ -123,20 +123,16 @@ async function handleLike(article, postId) {
   const isCurrentlyLiked = likeBtn.classList.contains('active');
   const newLikedState = !isCurrentlyLiked;
 
-  // Mise à jour optimiste de l'UI
   likeBtn.classList.toggle('active', newLikedState);
   likeBtn.disabled = true;
 
   try {
     const result = await toggleLike(postId, newLikedState);
-
-    // Mise à jour des compteurs
     article.querySelector('.like-count').textContent = result.likesCount;
     const dislikeBtn = article.querySelector('.btn-dislike');
     dislikeBtn.classList.toggle('active', result.disliked);
     article.querySelector('.dislike-count').textContent = result.dislikesCount;
   } catch (error) {
-    // Rollback en cas d'échec
     likeBtn.classList.toggle('active', isCurrentlyLiked);
     console.error('Erreur lors du like :', error);
   } finally {
@@ -154,20 +150,16 @@ async function handleDislike(article, postId) {
   const isCurrentlyDisliked = dislikeBtn.classList.contains('active');
   const newDislikedState = !isCurrentlyDisliked;
 
-  // Mise à jour optimiste de l'UI
   dislikeBtn.classList.toggle('active', newDislikedState);
   dislikeBtn.disabled = true;
 
   try {
     const result = await toggleDislike(postId, newDislikedState);
-
-    // Mise à jour des compteurs
     article.querySelector('.dislike-count').textContent = result.dislikesCount;
     const likeBtn = article.querySelector('.btn-like');
     likeBtn.classList.toggle('active', result.liked);
     article.querySelector('.like-count').textContent = result.likesCount;
   } catch (error) {
-    // Rollback en cas d'échec
     dislikeBtn.classList.toggle('active', isCurrentlyDisliked);
     console.error('Erreur lors du dislike :', error);
   } finally {
@@ -182,13 +174,9 @@ async function handleDislike(article, postId) {
 async function handleShare(postId) {
   try {
     const result = await sharePost(postId);
-
-    // Copier le lien dans le presse-papiers
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(result.shareUrl);
     }
-
-    // Notification visuelle temporaire
     showNotification('Lien copié dans le presse-papiers !');
   } catch (error) {
     console.error('Erreur lors du partage :', error);
@@ -209,7 +197,6 @@ async function handleReport(article, postId) {
     'Faux compte ou usurpation d\'identité',
   ];
 
-  // Construire la boîte de dialogue de signalement
   const overlay = document.createElement('div');
   overlay.className = 'report-overlay';
   overlay.innerHTML = `
@@ -289,12 +276,9 @@ async function handleAddComment(article, postId, text) {
 
   try {
     const newComment = await addComment(postId, text);
-
-    // Injecter le nouveau commentaire dans le DOM
     const commentHtml = createCommentElement(newComment);
     commentsList.insertAdjacentHTML('beforeend', commentHtml);
 
-    // Mettre à jour le compteur
     const currentCount = parseInt(countSpan.textContent, 10) || 0;
     const newCount = currentCount + 1;
     countSpan.textContent = newCount;
@@ -324,10 +308,8 @@ function showNotification(message, isError = false) {
   notif.textContent = message;
   document.body.appendChild(notif);
 
-  // Animation d'entrée
   requestAnimationFrame(() => notif.classList.add('toast-visible'));
 
-  // Disparition automatique après 3 secondes
   setTimeout(() => {
     notif.classList.remove('toast-visible');
     notif.addEventListener('transitionend', () => notif.remove(), {
@@ -347,31 +329,26 @@ function setupEventDelegation(container) {
 
     const postId = parseInt(article.dataset.postId, 10);
 
-    // Like
     if (event.target.closest('.btn-like')) {
       handleLike(article, postId);
       return;
     }
 
-    // Dislike
     if (event.target.closest('.btn-dislike')) {
       handleDislike(article, postId);
       return;
     }
 
-    // Partager
     if (event.target.closest('.btn-share')) {
       handleShare(postId);
       return;
     }
 
-    // Signaler
     if (event.target.closest('.btn-report')) {
       handleReport(article, postId);
       return;
     }
 
-    // Afficher/masquer les commentaires
     if (
       event.target.closest('.btn-comments-toggle') ||
       event.target.closest('.btn-view-comments')
@@ -380,22 +357,17 @@ function setupEventDelegation(container) {
       return;
     }
 
-    // Like/dislike sur un commentaire
     if (event.target.closest('.btn-comment-like')) {
-      const commentItem = event.target.closest('.comment-item');
       event.target.closest('.btn-comment-like').classList.toggle('active');
-      // TODO: brancher l'API commentaire quand elle sera prête
       return;
     }
 
     if (event.target.closest('.btn-comment-dislike')) {
       event.target.closest('.btn-comment-dislike').classList.toggle('active');
-      // TODO: brancher l'API commentaire quand elle sera prête
       return;
     }
   });
 
-  // Soumission du formulaire de commentaire (délégation sur submit)
   container.addEventListener('submit', (event) => {
     if (!event.target.classList.contains('comment-form')) return;
 
@@ -412,9 +384,17 @@ function setupEventDelegation(container) {
 }
 
 /**
- * Initialise et injecte les publications dans le DOM.
+ * Rend le squelette HTML de la vue Fil d'actualité.
+ * @return {string} HTML de la vue.
  */
-async function initFeed() {
+export function render() {
+  return `<div class="feed-container"><section id="posts-container" class="posts-list"></section></div>`;
+}
+
+/**
+ * Monte la vue : récupère les publications et installe les listeners.
+ */
+export async function mount() {
   const container = document.getElementById('posts-container');
   if (!container) return;
 
@@ -423,5 +403,3 @@ async function initFeed() {
 
   setupEventDelegation(container);
 }
-
-document.addEventListener('DOMContentLoaded', initFeed);
