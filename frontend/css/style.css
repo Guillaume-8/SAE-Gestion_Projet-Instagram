@@ -6,6 +6,7 @@
   --text-secondary: #8e8e8e;
   --accent-color: #0095f6;
   --danger-color: #ed4956;
+  --like-color: #ff3040;
 }
 
 * {
@@ -19,6 +20,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
 }
+
+/* ============ HEADER ============ */
 
 .app-header {
   background-color: var(--card-bg);
@@ -57,11 +60,15 @@ body {
   color: var(--accent-color);
 }
 
+/* ============ FEED ============ */
+
 .feed-container {
   max-width: 600px;
   margin: 24px auto;
   padding: 0 12px;
 }
+
+/* ============ POST CARD ============ */
 
 .post-card {
   background: var(--card-bg);
@@ -96,6 +103,8 @@ body {
   font-size: 0.95rem;
 }
 
+/* --- Bouton Signaler --- */
+
 .btn-report {
   background: none;
   border: none;
@@ -108,6 +117,14 @@ body {
   color: var(--danger-color);
 }
 
+.btn-report:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* --- Médias --- */
+
 .post-media-container img,
 .post-media-container video {
   width: 100%;
@@ -115,6 +132,8 @@ body {
   object-fit: cover;
   display: block;
 }
+
+/* ============ ACTIONS (Like / Dislike / Share / Comments) ============ */
 
 .post-actions {
   display: flex;
@@ -128,7 +147,53 @@ body {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
 }
+
+.action-btn:hover {
+  color: var(--text-secondary);
+}
+
+.action-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* État actif du bouton Like */
+.btn-like.active {
+  color: var(--like-color);
+}
+
+.btn-like.active .action-icon {
+  animation: pop 0.3s ease;
+}
+
+/* État actif du bouton Dislike */
+.btn-dislike.active {
+  color: var(--danger-color);
+}
+
+.btn-dislike.active .action-icon {
+  animation: pop 0.3s ease;
+}
+
+/* État actif des boutons de commentaire */
+.btn-comment-like.active,
+.btn-comment-dislike.active {
+  color: var(--accent-color);
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ============ POST BODY ============ */
 
 .post-body {
   padding: 0 16px 16px;
@@ -149,4 +214,220 @@ body {
   font-size: 0.75rem;
   color: var(--text-secondary);
   text-transform: uppercase;
+}
+
+/* --- Bouton "Voir les commentaires" --- */
+
+.btn-view-comments {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: block;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.btn-view-comments:hover {
+  color: var(--text-main);
+}
+
+/* ============ SECTION COMMENTAIRES ============ */
+
+.comments-section {
+  border-top: 1px solid var(--border-color);
+  padding: 12px 16px;
+}
+
+.comments-section.hidden {
+  display: none;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.comment-author {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.comment-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-comment-like,
+.btn-comment-dislike {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.btn-comment-like:hover,
+.btn-comment-dislike:hover {
+  opacity: 1;
+}
+
+/* --- Formulaire d'ajout de commentaire --- */
+
+.comment-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.comment-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  padding: 8px 0;
+  outline: none;
+}
+
+.comment-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.btn-send-comment {
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.btn-send-comment:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ============ DIALOGUE DE SIGNALEMENT ============ */
+
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.report-dialog {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.report-dialog h3 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.report-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.report-reason {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.report-reason input[type="radio"] {
+  accent-color: var(--accent-color);
+}
+
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-report-cancel,
+.btn-report-confirm {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-report-cancel {
+  background: transparent;
+  color: var(--text-main);
+}
+
+.btn-report-confirm {
+  background: var(--danger-color);
+  color: #fff;
+}
+
+.btn-report-confirm:hover {
+  opacity: 0.9;
+}
+
+/* ============ NOTIFICATIONS TOAST ============ */
+
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text-main);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.toast-notification.toast-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast-notification.toast-error {
+  background: var(--danger-color);
 }
