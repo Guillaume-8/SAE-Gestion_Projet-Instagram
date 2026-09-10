@@ -83,6 +83,7 @@ function buildProfileHtml(user) {
   `;
 }
 
+
 /**
  * Monte la vue : récupère les données et installe les listeners.
  */
