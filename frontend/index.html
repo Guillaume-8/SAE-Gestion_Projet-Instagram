@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InstaClone - BUT R&T</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InstaClone - BUT R&T</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <h1>InstaClone</h1>
-        <div class="nav-links">
-            <button id="btn-feed">Accueil</button>
-            <button id="btn-messages">Messages</button>
-            <button id="btn-profile">Profil</button>
-        </div>
-    </nav>
-    <main>
-        <section id="feed">
-            <h2>Fil d'actualité</h2>
-            <p>Serveur Apache opérationnel. En attente de l'API Node.js...</p>
-        </section>
-    </main>
-    <script src="js/main.js"></script>
+  <header class="app-header">
+    <div class="header-container">
+      <h1 class="logo">InstaClone</h1>
+      <nav class="nav-menu">
+        <button id="btn-feed" class="btn-nav active">Fil</button>
+        <button id="btn-explore" class="btn-nav">Tendances</button>
+        <button id="btn-messages" class="btn-nav">Messages</button>
+        <button id="btn-profile" class="btn-nav">Profil</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="feed-container">
+    <section id="posts-container" class="posts-list">
+      <!-- Les publications seront injectées ici dynamiquement -->
+    </section>
+  </main>
+
+  <script type="module" src="js/feed.js"></script>
 </body>
 </html>
