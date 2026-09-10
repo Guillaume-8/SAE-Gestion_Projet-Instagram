@@ -3,3 +3,9 @@ node_modules/
 *.log
 .DS_Store
 *:Zone.Identifier
+
+# Certificats et clés privées
+certs/
+*.pem
+*.key
+*.xdb
