@@ -43,9 +43,25 @@
     .chat-header-status { font-size: 11px; color: #a8a8a8; }
 
     .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .message-bubble { max-width: 65%; padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; align-self: flex-start; border-bottom-left-radius: 4px; word-break: break-word; }
-    .message-bubble.message-mine { background: #3797f0; align-self: flex-end; border-bottom-left-radius: 22px; border-bottom-right-radius: 4px; }
+    .message-container { position: relative; display: flex; flex-direction: column; max-width: 65%; margin-bottom: 4px; }
+    .message-container.mine { align-self: flex-end; }
+    .message-container.other { align-self: flex-start; }
+
+    .message-bubble { padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; word-break: break-word; position: relative; }
+    .message-container.other .message-bubble { border-bottom-left-radius: 4px; }
+    .message-container.mine .message-bubble { background: #3797f0; border-bottom-right-radius: 4px; }
     .message-time { font-size: 9px; opacity: 0.7; margin-top: 4px; display: block; }
+
+    .message-reactions { display: flex; gap: 4px; margin-top: -8px; margin-left: 10px; z-index: 2; flex-wrap: wrap; }
+    .message-container.mine .message-reactions { margin-left: 0; margin-right: 10px; align-self: flex-end; }
+    .reaction-badge { background: #121212; border: 1px solid #363636; border-radius: 12px; padding: 2px 6px; font-size: 11px; cursor: default; }
+
+    .message-actions { display: none; position: absolute; top: -15px; background: #262626; border: 1px solid #363636; border-radius: 16px; padding: 4px 8px; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; }
+    .message-container.other .message-actions { left: 0; }
+    .message-container.mine .message-actions { right: 0; }
+    .message-container:hover .message-actions { display: flex; }
+    .message-actions span { cursor: pointer; font-size: 16px; transition: transform 0.2s; }
+    .message-actions span:hover { transform: scale(1.2); }
 
     /* Saisie + Emojis */
     .chat-input-form { padding: 15px 20px; display: flex; background: #000; position: relative; }
@@ -55,7 +71,7 @@
     .btn-send-message { background: none; border: none; color: #0095f6; font-weight: 600; cursor: pointer; padding: 4px 8px; }
 
     /* Pop-up Emojis */
-    .emoji-picker { display: none; flex-direction: column; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 260px; z-index: 50; }
+    .emoji-picker { display: none; flex-direction: column; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 280px; z-index: 50; }
     .emoji-picker.active { display: flex; }
     
     .emoji-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #363636; padding-bottom: 8px; }
@@ -63,7 +79,7 @@
     .emoji-header button:hover { background: #454545; }
     .emoji-header span { font-size: 12px; font-weight: 600; color: #a8a8a8; }
     
-    .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
     .emoji-grid span { font-size: 22px; cursor: pointer; text-align: center; border-radius: 6px; padding: 4px; transition: background 0.2s; }
     .emoji-grid span:hover { background: #363636; }
     
@@ -303,10 +319,10 @@
     const box = document.getElementById('chat-messages');
     box.innerHTML = '';
     lastMessageDate = null;
-    messages.forEach(msg => appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message));
+    messages.forEach(msg => appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []));
   }
 
-  function appendMessage(sender, text, dateString) {
+  function appendMessage(idMessage, sender, text, dateString, reactions = []) {
     const currentUser = document.getElementById('currentUserInput').value.trim();
     const box = document.getElementById('chat-messages');
     const isMe = sender.toLowerCase() === currentUser.toLowerCase();
@@ -331,19 +347,61 @@
     lastMessageDate = dateObj;
 
     const div = document.createElement('div');
-    div.className = `message-bubble ${isMe ? 'message-mine' : ''}`;
+    div.className = `message-container ${isMe ? 'mine' : 'other'}`;
+    div.id = `msg-container-${idMessage}`;
     
     const timeStr = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
+    const reactCounts = {};
+    reactions.forEach(r => {
+      reactCounts[r.emoji] = (reactCounts[r.emoji] || 0) + 1;
+    });
+    const reactionsHtml = Object.keys(reactCounts).map(emoji => 
+      `<span class="reaction-badge">${emoji} ${reactCounts[emoji] > 1 ? reactCounts[emoji] : ''}</span>`
+    ).join('');
+
     div.innerHTML = `
-      <p>${escapeHtml(text)}</p>
-      <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
-        <span>${escapeHtml(sender)}</span>
-        <span>${timeStr}</span>
-      </span>
+      <div class="message-actions">
+        <span onclick="sendReaction(${idMessage}, '❤️')">❤️</span>
+        <span onclick="sendReaction(${idMessage}, '👍')">👍</span>
+        <span onclick="sendReaction(${idMessage}, '👎')">👎</span>
+        <span onclick="openEmojiPickerForReaction(${idMessage})">➕</span>
+      </div>
+      <div class="message-bubble">
+        <p>${escapeHtml(text)}</p>
+        <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
+          <span>${escapeHtml(sender)}</span>
+          <span>${timeStr}</span>
+        </span>
+      </div>
+      <div class="message-reactions" id="reactions-${idMessage}">
+        ${reactionsHtml}
+      </div>
     `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
+  }
+  
+  function sendReaction(idMessage, emoji) {
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    if (!currentUser || !currentConversationId) return;
+    
+    socket.emit('send_reaction', {
+      idMessage,
+      pseudonyme: currentUser,
+      emoji,
+      idGroupe: currentConversationId
+    });
+  }
+
+  let activeReactionMessageId = null;
+  function openEmojiPickerForReaction(idMessage) {
+    activeReactionMessageId = idMessage;
+    const picker = document.getElementById('emoji-picker');
+    picker.classList.add('active');
+    if (document.getElementById('emoji-grid').innerHTML === '') {
+      renderEmojiPage();
+    }
   }
 
   document.getElementById('chat-input-form').onsubmit = (e) => {
@@ -395,8 +453,14 @@
       const span = document.createElement('span');
       span.innerText = emoji;
       span.onclick = () => {
-        chatInput.value += emoji;
-        chatInput.focus();
+        if (activeReactionMessageId) {
+          sendReaction(activeReactionMessageId, emoji);
+          document.getElementById('emoji-picker').classList.remove('active');
+          activeReactionMessageId = null;
+        } else {
+          chatInput.value += emoji;
+          chatInput.focus();
+        }
       };
       emojiGrid.appendChild(span);
     });
@@ -426,6 +490,7 @@
   });
 
   emojiBtn.onclick = () => {
+    activeReactionMessageId = null;
     emojiPicker.classList.toggle('active');
     if (emojiPicker.classList.contains('active') && emojiGrid.innerHTML === '') {
       renderEmojiPage();
@@ -441,9 +506,29 @@
       
       if (msg.id_groupe === currentConversationId) {
         localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
-        appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message);
+        appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []);
       }
       renderConversationsList();
+    }
+  });
+
+  socket.on('receive_reaction', (data) => {
+    const { idMessage, pseudonyme, emoji } = data;
+    if (currentConversationId) {
+      const reactionsContainer = document.getElementById(`reactions-${idMessage}`);
+      if (reactionsContainer) {
+        let badge = Array.from(reactionsContainer.children).find(b => b.innerText.includes(emoji));
+        if (badge) {
+          const match = badge.innerText.match(/\d+/);
+          const count = match ? parseInt(match[0]) + 1 : 2;
+          badge.innerText = `${emoji} ${count}`;
+        } else {
+          const newBadge = document.createElement('span');
+          newBadge.className = 'reaction-badge';
+          newBadge.innerText = emoji;
+          reactionsContainer.appendChild(newBadge);
+        }
+      }
     }
   });
 

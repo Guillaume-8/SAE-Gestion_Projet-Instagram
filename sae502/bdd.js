@@ -12,6 +12,18 @@ async function getDb() {
     });
     // Active la prise en compte des clés étrangères
     await db.run('PRAGMA foreign_keys = ON;');
+    
+    // Création de la table Reaction_Message si elle n'existe pas
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS Reaction_Message(
+        id_reaction INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_message INT NOT NULL,
+        id_utilisateur INT NOT NULL,
+        emoji VARCHAR(10),
+        FOREIGN KEY(id_message) REFERENCES Message(id_message),
+        FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)
+      )
+    `);
   }
   return db;
 }
@@ -86,12 +98,12 @@ async function ajouterMessage(pseudonyme, idGroupe, contenu) {
 }
 
 /**
- * Récupère tous les messages d'un groupe avec le pseudonyme de l'expéditeur.
+ * Récupère tous les messages d'un groupe avec le pseudonyme de l'expéditeur et les réactions.
  */
 async function obtenirMessagesGroupe(idGroupe) {
   const database = await getDb();
 
-  return await database.all(
+  const messages = await database.all(
     `SELECT 
         m.id_message,
         m.contenu_message AS Contenu_message,
@@ -103,6 +115,20 @@ async function obtenirMessagesGroupe(idGroupe) {
      ORDER BY m.date_envoie ASC`,
     [idGroupe]
   );
+  
+  // Pour chaque message, récupérer les réactions
+  for (const msg of messages) {
+    const reactions = await database.all(
+      `SELECT r.emoji, u.pseudonyme 
+       FROM Reaction_Message r 
+       JOIN Utilisateur u ON r.id_utilisateur = u.id_utilisateur 
+       WHERE r.id_message = ?`,
+       [msg.id_message]
+    );
+    msg.reactions = reactions;
+  }
+  
+  return messages;
 }
 
 /**
@@ -138,6 +164,32 @@ async function supprimerConversationUtilisateur(idGroupe, pseudonyme) {
   }
 }
 
+/**
+ * Ajoute une réaction à un message
+ */
+async function ajouterReaction(idMessage, pseudonyme, emoji) {
+  const database = await getDb();
+  
+  const user = await database.get(
+    'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
+    [pseudonyme]
+  );
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  // Vérifier si l'utilisateur a déjà réagi avec cet emoji
+  const existing = await database.get(
+    'SELECT id_reaction FROM Reaction_Message WHERE id_message = ? AND id_utilisateur = ? AND emoji = ?',
+    [idMessage, user.id_utilisateur, emoji]
+  );
+
+  if (!existing) {
+    await database.run(
+      'INSERT INTO Reaction_Message (id_message, id_utilisateur, emoji) VALUES (?, ?, ?)',
+      [idMessage, user.id_utilisateur, emoji]
+    );
+  }
+}
+
 module.exports = {
   getDb,
   ajouterUtilisateur,
@@ -145,6 +197,7 @@ module.exports = {
   ajouterMessage,
   obtenirMessagesGroupe,
   obtenirMembresGroupe,
-  supprimerConversationUtilisateur
+  supprimerConversationUtilisateur,
+  ajouterReaction
 };
 
