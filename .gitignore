@@ -1,0 +1,3 @@
+*.db
+*.sqbpro
+node_modules/
