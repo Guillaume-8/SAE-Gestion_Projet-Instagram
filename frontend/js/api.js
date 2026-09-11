@@ -9,6 +9,7 @@ import {
   MOCK_CONVERSATIONS,
   MOCK_TRENDING_POSTS,
   MOCK_HASHTAGS,
+  MOCK_SAVED_POSTS,
 } from './mock-data.js';
 
 const USE_MOCK = true;
@@ -37,12 +38,26 @@ export async function getFeedPosts() {
 }
 
 /**
+ * Récupère les publications enregistrées de l'utilisateur.
+ * @return {Promise<Array<Object>>} Liste des publications enregistrées.
+ */
+export async function getSavedPosts() {
+  if (USE_MOCK) {
+    return Promise.resolve(structuredClone(MOCK_SAVED_POSTS));
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/me/saved`);
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de récupération des publications enregistrées :', error);
+    return [];
+  }
+}
+
+/**
  * Crée une nouvelle publication.
  * @param {Object} postData Données de la publication.
- * @param {File} postData.mediaFile Fichier média (image ou vidéo).
- * @param {string} postData.mediaType Type de média ('image' ou 'video').
- * @param {string} postData.caption Légende de la publication.
- * @param {string} postData.visibility Visibilité ('public' ou 'friends').
  * @return {Promise<Object>} La publication créée.
  */
 export async function createPost(postData) {
@@ -65,13 +80,11 @@ export async function createPost(postData) {
     MOCK_POSTS.unshift(newPost);
     return Promise.resolve(newPost);
   }
-
   try {
     const formData = new FormData();
     formData.append('media', postData.mediaFile);
     formData.append('caption', postData.caption);
     formData.append('visibility', postData.visibility);
-
     const response = await fetch(`${API_BASE_URL}/posts`, {
       method: 'POST',
       body: formData,
@@ -276,7 +289,7 @@ export async function addComment(postId, text) {
 
 /**
  * Connecte un utilisateur.
- * @param {string} username Nom d'utilisateur ou email.
+ * @param {string} username Nom d'utilisateur.
  * @param {string} password Mot de passe.
  * @return {Promise<Object>} Utilisateur connecté.
  */
@@ -406,7 +419,7 @@ export async function getHashtags() {
 // ============================================================
 
 /**
- * Récupère la liste des conversations de l'utilisateur.
+ * Récupère la liste des conversations.
  * @return {Promise<Array<Object>>} Liste des conversations.
  */
 export async function getConversations() {

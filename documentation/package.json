@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "typedoc": "^0.28.20"
+  },
+  "scripts": {
+    "docs:code": "typedoc --out docs/code-reference js/"
+  }
+}

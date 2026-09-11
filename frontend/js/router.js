@@ -9,10 +9,11 @@ import { render as renderProfile, mount as mountProfile } from './views/profile.
 import { render as renderExplore, mount as mountExplore } from './views/explore.js';
 import { render as renderMessages, mount as mountMessages } from './views/messages.js';
 import { render as renderPublish, mount as mountPublish } from './views/publish.js';
+import { render as renderSettings, mount as mountSettings } from './views/settings.js';
+import { render as renderSaved, mount as mountSaved } from './views/saved.js';
 
 /**
  * Table des routes enregistrées.
- * Chaque entrée contient une fonction render() (HTML) et mount() (event listeners).
  * @type {Object<string, {render: Function, mount: Function, hideHeader: boolean}>}
  */
 const ROUTES = {
@@ -23,6 +24,8 @@ const ROUTES = {
   '#/explore': {render: renderExplore, mount: mountExplore, hideHeader: false},
   '#/publish': {render: renderPublish, mount: mountPublish, hideHeader: false},
   '#/messages': {render: renderMessages, mount: mountMessages, hideHeader: false},
+  '#/settings': {render: renderSettings, mount: mountSettings, hideHeader: false},
+  '#/saved': {render: renderSaved, mount: mountSaved, hideHeader: false},
 };
 
 /**
@@ -33,13 +36,12 @@ const DEFAULT_ROUTE = '#/login';
 
 /**
  * Met à jour la classe active sur les liens de navigation.
- * @param {string} currentRoute Route actuelle (ex: '#/feed').
+ * @param {string} currentRoute Route actuelle.
  */
 function updateActiveNav(currentRoute) {
-  const navLinks = document.querySelectorAll('.btn-nav');
+  const navLinks = document.querySelectorAll('.nav-menu .btn-nav');
   navLinks.forEach((link) => {
-    const linkRoute = link.getAttribute('href');
-    if (linkRoute === currentRoute) {
+    if (link.getAttribute('href') === currentRoute) {
       link.classList.add('active');
     } else {
       link.classList.remove('active');
@@ -48,8 +50,8 @@ function updateActiveNav(currentRoute) {
 }
 
 /**
- * Navigue vers la route demandée, injecte le HTML et monte les listeners.
- * @param {string} hash Hash de l'URL (ex: '#/feed').
+ * Navigue vers la route demandée.
+ * @param {string} hash Hash de l'URL.
  */
 async function navigate(hash) {
   const route = ROUTES[hash] || ROUTES[DEFAULT_ROUTE];

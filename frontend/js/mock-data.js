@@ -75,6 +75,12 @@ export const MOCK_HASHTAGS = [
   {tag: '#docker', count: 15},
 ];
 
+export const MOCK_SAVED_POSTS = [
+  {id: 1, mediaUrl: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300', isVideo: false, author: 'matheo_rt', likesCount: 45},
+  {id: 2, mediaUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=300', isVideo: false, author: 'pierre_rt', likesCount: 89},
+  {id: 3, mediaUrl: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=300', isVideo: false, author: 'jonathan_rt', likesCount: 95},
+];
+
 export const MOCK_CONVERSATIONS = [
   {
     id: 1,

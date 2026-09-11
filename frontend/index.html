@@ -5,23 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>InstaClone - BUT R&T</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Appliquer le thème sauvegardé avant le rendu (évite le flash blanc)
+    const savedTheme = localStorage.getItem('instaclone-theme');
+    if (savedTheme) {
+      document.documentElement.dataset.theme = savedTheme;
+    }
+  </script>
 </head>
 <body>
   <header class="app-header" id="app-header">
     <div class="header-container">
       <a href="#/feed" class="logo">InstaClone</a>
-      <nav class="nav-menu">
-        <a href="#/feed" class="btn-nav" data-route="feed">Fil</a>
-        <a href="#/explore" class="btn-nav" data-route="explore">Tendances</a>
-        <a href="#/publish" class="btn-nav" data-route="publish">Publier</a>
-        <a href="#/messages" class="btn-nav" data-route="messages">Messages</a>
-        <a href="#/profile" class="btn-nav" data-route="profile">Profil</a>
-      </nav>
+      <div class="header-right">
+        <nav class="nav-menu">
+          <a href="#/feed" class="btn-nav" data-route="feed">Fil</a>
+          <a href="#/explore" class="btn-nav" data-route="explore">Tendances</a>
+          <a href="#/publish" class="btn-nav" data-route="publish">Publier</a>
+          <a href="#/messages" class="btn-nav" data-route="messages">Messages</a>
+          <a href="#/profile" class="btn-nav" data-route="profile">Profil</a>
+        </nav>
+
+        <button class="btn-hamburger" id="btn-hamburger" title="Menu" aria-label="Menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
     </div>
   </header>
 
   <main id="app-view" class="app-view"></main>
 
+  <script type="module" src="js/menu.js"></script>
   <script type="module" src="js/router.js"></script>
 </body>
 </html>
