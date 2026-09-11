@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Messages</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #000; color: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
+
+    .messages-page { display: flex; width: 980px; height: 90vh; background: #000; border: 1px solid #262626; border-radius: 12px; overflow: hidden; position: relative; }
+
+    /* Sidebar Conversations */
+    .conversations-sidebar { width: 340px; border-right: 1px solid #262626; display: flex; flex-direction: column; background: #050505; }
+    .sidebar-header { padding: 15px; border-bottom: 1px solid #262626; display: flex; justify-content: space-between; align-items: center; }
+    .sidebar-header h2 { font-size: 18px; font-weight: 700; }
+    .btn-new-message { background: none; border: none; font-size: 18px; cursor: pointer; color: white; }
+
+    .user-profile-box { padding: 10px 15px; border-bottom: 1px solid #262626; background: #121212; display: flex; flex-direction: column; gap: 4px; }
+    .user-profile-box label { font-size: 10px; color: #a8a8a8; text-transform: uppercase; font-weight: 600; }
+    .user-profile-box input { background: #262626; border: 1px solid #363636; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; outline: none; }
+
+    .conversations-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .conversation-item { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #121212; gap: 12px; transition: background 0.2s; position: relative; }
+    .conversation-item:hover { background: #121212; }
+    .conversation-item.active { background: #262626; }
+    
+    .conv-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+    .conv-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .conv-name { font-weight: 600; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .conv-preview { font-size: 12px; color: #a8a8a8; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    
+    .btn-delete-conv { background: none; border: none; color: #ed4956; cursor: pointer; font-size: 14px; padding: 4px; display: none; }
+    .conversation-item:hover .btn-delete-conv { display: block; }
+
+    /* Zone Chat */
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: #000; position: relative; }
+    .chat-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #a8a8a8; gap: 8px; }
+    .chat-empty-icon { font-size: 40px; }
+
+    .chat-header { padding: 15px 20px; border-bottom: 1px solid #262626; display: flex; align-items: center; gap: 12px; }
+    .chat-header-avatar { width: 36px; height: 36px; border-radius: 50%; }
+    .chat-header-name { font-weight: 600; font-size: 14px; display: block; }
+    .chat-header-status { font-size: 11px; color: #a8a8a8; }
+
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .message-bubble { max-width: 65%; padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; align-self: flex-start; border-bottom-left-radius: 4px; word-break: break-word; }
+    .message-bubble.message-mine { background: #3797f0; align-self: flex-end; border-bottom-left-radius: 22px; border-bottom-right-radius: 4px; }
+    .message-time { font-size: 9px; opacity: 0.7; margin-top: 4px; display: block; }
+
+    /* Saisie + Emojis */
+    .chat-input-form { padding: 15px 20px; display: flex; background: #000; position: relative; }
+    .chat-input-wrapper { display: flex; flex: 1; align-items: center; background: #121212; border: 1px solid #262626; border-radius: 22px; padding: 4px 12px; gap: 8px; }
+    .chat-input-wrapper input { flex: 1; background: transparent; border: none; color: white; outline: none; padding: 8px 0; font-size: 14px; }
+    .btn-emoji { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; }
+    .btn-send-message { background: none; border: none; color: #0095f6; font-weight: 600; cursor: pointer; padding: 4px 8px; }
+
+    /* Pop-up Emojis */
+    .emoji-picker { display: none; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 220px; grid-template-columns: repeat(5, 1fr); gap: 8px; z-index: 50; }
+    .emoji-picker.active { display: grid; }
+    .emoji-picker span { font-size: 20px; cursor: pointer; text-align: center; border-radius: 6px; padding: 4px; transition: background 0.2s; }
+    .emoji-picker span:hover { background: #363636; }
+
+    /* Modale */
+    .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; }
+    .modal-content { background: #262626; width: 360px; border-radius: 12px; overflow: hidden; border: 1px solid #363636; }
+    .modal-header { padding: 15px; border-bottom: 1px solid #363636; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .modal-close { cursor: pointer; font-size: 20px; color: #a8a8a8; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .modal-body input { background: #121212; border: 1px solid #363636; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; }
+    .btn-primary { background: #0095f6; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: #363636; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div class="messages-page">
+  <aside class="conversations-sidebar">
+    <div class="sidebar-header">
+      <h2>Messages</h2>
+      <button class="btn-new-message" id="btn-new-message" title="Nouveau message">✏️</button>
+    </div>
+
+    <div class="user-profile-box">
+      <label>Ton Pseudonyme</label>
+      <input type="text" id="currentUserInput" value="Enes">
+    </div>
+
+    <div class="conversations-list" id="conversations-list">
+      <span style="padding:15px; font-size:12px; color:#a8a8a8;">Aucune conversation</span>
+    </div>
+  </aside>
+
+  <section class="chat-area" id="chat-area">
+    <div class="chat-empty" id="chat-empty">
+      <div class="chat-empty-icon">💬</div>
+      <p style="font-weight:600;">Vos messages</p>
+      <span style="font-size:12px;">Sélectionnez une conversation pour commencer à discuter.</span>
+    </div>
+
+    <div id="active-chat" style="display:none; flex-direction:column; height:100%;">
+      <div class="chat-header">
+        <img src="" alt="" class="chat-header-avatar" id="chat-header-avatar">
+        <div class="chat-header-info">
+          <span class="chat-header-name" id="chat-header-name">Discussion</span>
+          <span class="chat-header-status" id="chat-header-status">En ligne</span>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chat-messages"></div>
+
+      <!-- Menu déroulant Emojis -->
+      <div class="emoji-picker" id="emoji-picker">
+        <span>😀</span><span>😂</span><span>😍</span><span>🔥</span><span>👍</span>
+        <span>❤️</span><span>🎉</span><span>😎</span><span>🙌</span><span>💩</span>
+        <span>🥺</span><span>💀</span><span>✨</span><span>👀</span><span>💯</span>
+      </div>
+
+      <form class="chat-input-form" id="chat-input-form">
+        <div class="chat-input-wrapper">
+          <button type="button" class="btn-emoji" id="btn-emoji" title="Ajouter un émoji">😊</button>
+          <input type="text" id="chat-input" placeholder="Écrivez un message..." autocomplete="off">
+          <button type="submit" class="btn-send-message">Envoyer</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="modal-overlay" id="modal-new-chat">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Nouveau message</span>
+        <span class="modal-close" id="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <label style="font-size:11px; color:#a8a8a8;">DM (1-à-1)</label>
+        <input type="text" id="target-user-input" placeholder="Pseudo du destinataire">
+        <button id="btn-start-dm" class="btn-primary">Démarrer le DM</button>
+        
+        <hr style="border-color:#363636; margin: 5px 0;">
+
+        <label style="font-size:11px; color:#a8a8a8;">Groupe (3+)</label>
+        <input type="text" id="group-members-input" placeholder="Membres (ex: Lucas, Ines)">
+        <button id="btn-start-group" class="btn-secondary">Créer le groupe</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let currentConversationId = null;
+  let conversationsData = [];
+  let lastMessageDate = null;
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+  }
+
+  function getConvDisplayName(conv) {
+    const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+
+    if (conv.type === 'DM' && Array.isArray(conv.members)) {
+      const other = conv.members.find(m => m.toLowerCase() !== myPseudo);
+      if (other) return other;
+    }
+    return conv.name || `Groupe #${conv.id}`;
+  }
+
+  function getConvAvatar(conv) {
+    const name = getConvDisplayName(conv);
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+  }
+
+  function renderConversationsList() {
+    const listContainer = document.getElementById('conversations-list');
+    if (conversationsData.length === 0) {
+      listContainer.innerHTML = '<span style="padding:15px; font-size:12px; color:#a8a8a8;">Aucune conversation</span>';
+      return;
+    }
+
+    listContainer.innerHTML = conversationsData.map(conv => {
+      const displayName = getConvDisplayName(conv);
+      const avatarUrl = getConvAvatar(conv);
+
+      return `
+        <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-conv-id="${conv.id}">
+          <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="conv-avatar">
+          <div class="conv-info">
+            <span class="conv-name">${escapeHtml(displayName)}</span>
+            <span class="conv-preview">${escapeHtml(conv.lastMessage || '')}</span>
+          </div>
+          <button class="btn-delete-conv" title="Supprimer">🗑️</button>
+        </div>
+      `;
+    }).join('');
+
+    listContainer.querySelectorAll('.conversation-item').forEach(item => {
+      const id = parseInt(item.dataset.convId, 10);
+      
+      item.onclick = (e) => {
+        if (!e.target.classList.contains('btn-delete-conv')) {
+          openConversation(id);
+        }
+      };
+
+      const btnDelete = item.querySelector('.btn-delete-conv');
+      if (btnDelete) {
+        btnDelete.onclick = async (e) => {
+          e.stopPropagation();
+          await supprimerConversation(id);
+        };
+      }
+    });
+  }
+
+  async function supprimerConversation(convId) {
+    const myPseudo = document.getElementById('currentUserInput').value.trim();
+    if (!confirm("Voulez-vous supprimer cette conversation ?")) return;
+
+    const res = await fetch(`/api/conversations/${convId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pseudonyme: myPseudo })
+    });
+
+    if (res.ok) {
+      conversationsData = conversationsData.filter(c => c.id !== convId);
+      if (currentConversationId === convId) {
+        currentConversationId = null;
+        document.getElementById('active-chat').style.display = 'none';
+        document.getElementById('chat-empty').style.display = 'flex';
+      }
+      renderConversationsList();
+    }
+  }
+
+  async function openConversation(convId) {
+    const conv = conversationsData.find(c => c.id === convId);
+    if (!conv) return;
+
+    currentConversationId = convId;
+
+    const displayName = getConvDisplayName(conv);
+    const avatarUrl = getConvAvatar(conv);
+
+    document.getElementById('chat-empty').style.display = 'none';
+    document.getElementById('active-chat').style.display = 'flex';
+
+    document.getElementById('chat-header-name').innerText = displayName;
+    document.getElementById('chat-header-status').innerText = `ID Groupe: ${conv.id}`;
+    document.getElementById('chat-header-avatar').src = avatarUrl;
+
+    renderConversationsList();
+
+    socket.emit('join_group', convId);
+
+    const res = await fetch(`/api/messages/${convId}`);
+    const messages = await res.json();
+
+    const box = document.getElementById('chat-messages');
+    box.innerHTML = '';
+    lastMessageDate = null;
+    messages.forEach(msg => appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message));
+  }
+
+  function appendMessage(sender, text, dateString) {
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    const box = document.getElementById('chat-messages');
+    const isMe = sender.toLowerCase() === currentUser.toLowerCase();
+
+    const dateObj = dateString ? new Date(dateString) : new Date();
+
+    if (lastMessageDate) {
+      const diffHours = (dateObj - lastMessageDate) / (1000 * 60 * 60);
+      if (diffHours >= 2) {
+        const separator = document.createElement('div');
+        separator.style.textAlign = 'center';
+        separator.style.margin = '15px 0';
+        separator.style.color = '#a8a8a8';
+        separator.style.fontSize = '12px';
+        separator.style.fontWeight = 'bold';
+        
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        separator.innerText = dateObj.toLocaleDateString('fr-FR', options);
+        box.appendChild(separator);
+      }
+    }
+    lastMessageDate = dateObj;
+
+    const div = document.createElement('div');
+    div.className = `message-bubble ${isMe ? 'message-mine' : ''}`;
+    
+    const timeStr = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    div.innerHTML = `
+      <p>${escapeHtml(text)}</p>
+      <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
+        <span>${escapeHtml(sender)}</span>
+        <span>${timeStr}</span>
+      </span>
+    `;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  document.getElementById('chat-input-form').onsubmit = (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+
+    if (!text || !currentConversationId) return;
+
+    socket.emit('send_message', {
+      pseudonyme: currentUser,
+      idGroupe: currentConversationId,
+      contenu: text
+    });
+
+    input.value = '';
+    document.getElementById('emoji-picker').classList.remove('active');
+  };
+
+  // Gestion du menu Emoji
+  const emojiBtn = document.getElementById('btn-emoji');
+  const emojiPicker = document.getElementById('emoji-picker');
+  const chatInput = document.getElementById('chat-input');
+
+  emojiBtn.onclick = () => {
+    emojiPicker.classList.toggle('active');
+  };
+
+  emojiPicker.querySelectorAll('span').forEach(emojiSpan => {
+    emojiSpan.onclick = () => {
+      chatInput.value += emojiSpan.innerText;
+      chatInput.focus();
+    };
+  });
+
+  socket.on('receive_message', (msg) => {
+    if (msg.id_groupe === currentConversationId) {
+      appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message);
+    }
+  });
+
+  socket.on('group_created', (newConv) => {
+    const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+    const isMember = Array.isArray(newConv.members) && 
+                     newConv.members.some(m => m.toLowerCase() === myPseudo);
+
+    if (isMember && !conversationsData.some(c => c.id === newConv.id)) {
+      conversationsData.unshift(newConv);
+      renderConversationsList();
+    }
+  });
+
+  // Modale
+  const modal = document.getElementById('modal-new-chat');
+  document.getElementById('btn-new-message').onclick = () => modal.style.display = 'flex';
+  document.getElementById('modal-close').onclick = () => modal.style.display = 'none';
+
+  document.getElementById('btn-start-dm').onclick = async () => {
+    const myPseudo = document.getElementById('currentUserInput').value.trim();
+    const target = document.getElementById('target-user-input').value.trim();
+    if (!target) return;
+
+    const res = await fetch('/api/dm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pseudo1: myPseudo, pseudo2: target })
+    });
+    const data = await res.json();
+
+    if (!conversationsData.some(c => c.id === data.conv.id)) {
+      conversationsData.unshift(data.conv);
+    }
+
+    modal.style.display = 'none';
+    openConversation(data.idGroupe);
+  };
+
+  document.getElementById('btn-start-group').onclick = async () => {
+    const myPseudo = document.getElementById('currentUserInput').value.trim();
+    const input = document.getElementById('group-members-input').value.trim();
+    if (!input) return;
+
+    const membres = input.split(',').map(m => m.trim());
+    const res = await fetch('/api/groupe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ createur: myPseudo, membres })
+    });
+    const data = await res.json();
+
+    if (!conversationsData.some(c => c.id === data.conv.id)) {
+      conversationsData.unshift(data.conv);
+    }
+
+    modal.style.display = 'none';
+    openConversation(data.idGroupe);
+  };
+
+  async function chargerConversations() {
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    if (!currentUser) return;
+
+    const res = await fetch(`/api/conversations/${encodeURIComponent(currentUser)}`);
+    conversationsData = await res.json();
+    
+    renderConversationsList();
+
+    if (currentConversationId) {
+      const conv = conversationsData.find(c => c.id === currentConversationId);
+      if (conv) {
+        document.getElementById('chat-header-name').innerText = getConvDisplayName(conv);
+        document.getElementById('chat-header-avatar').src = getConvAvatar(conv);
+      }
+    }
+  }
+
+  document.getElementById('currentUserInput').addEventListener('change', chargerConversations);
+  window.addEventListener('DOMContentLoaded', chargerConversations);
+</script>
+</body>
+</html>
