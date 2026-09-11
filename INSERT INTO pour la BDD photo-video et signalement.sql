@@ -66,6 +66,12 @@ INSERT INTO Message (contenu_message, date_envoie, id_expediteur, id_groupe) VAL
 ('Quelqu un a des nouvelles d une vraie adaptation animée pour Gyro et Johnny ?', '2026-06-15 21:00:00', 3, 3),
 ('J ai analysé l alter de Bakugo, on peut optimiser ses gantelets.', '2026-08-16 10:30:00', 4, 5);
 
+
+--- Insert pour la table Reaction_Msg ---
+INSERT INTO Reaction_Msg (id_utilisateur, id_message, type_reaction, date_reaction) VALUES
+(1, 2, 'coeur', '2026-05-10 09:10:00'),
+(4, 1, 'pouce_haut', '2026-05-02 18:35:00');
+
 --- Insert pour la table Contient_Tag ---
 INSERT INTO Contient_Tag (id_publication, id_hashtag) VALUES
 (1, 1),
