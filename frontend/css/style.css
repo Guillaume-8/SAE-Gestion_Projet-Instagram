@@ -348,7 +348,7 @@ body {
   padding: 24px;
   width: 400px;
   max-width: 90vw;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 
 .report-dialog h3 {
@@ -423,7 +423,7 @@ body {
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 0.9rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   z-index: 2000;
   opacity: 0;
   transition: transform 0.3s ease, opacity 0.3s ease;
@@ -457,7 +457,7 @@ body {
   width: 380px;
   max-width: 100%;
   text-align: center;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
 
 .login-logo {
@@ -682,7 +682,7 @@ body {
   top: 8px;
   right: 8px;
   font-size: 1rem;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
 /* ============ EXPLORE / TENDANCES ============ */
@@ -795,7 +795,7 @@ body {
 .explore-tile-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0,0,0,0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -809,6 +809,294 @@ body {
 
 .explore-tile:hover .explore-tile-overlay {
   opacity: 1;
+}
+
+/* ============ PUBLICATION (CRÉER UN POST) ============ */
+
+.publish-page {
+  display: flex;
+  justify-content: center;
+  padding: 24px 20px;
+}
+
+.publish-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 600px;
+  max-width: 100%;
+  padding: 28px 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.publish-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* --- Zone d'upload --- */
+
+.upload-zone {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  margin-bottom: 16px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent-color);
+  background: rgba(0, 149, 246, 0.02);
+}
+
+.upload-zone.drag-over {
+  border-color: var(--accent-color);
+  background: rgba(0, 149, 246, 0.05);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-icon {
+  font-size: 3rem;
+}
+
+.upload-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.upload-subtext {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.upload-formats {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.upload-preview {
+  width: 100%;
+}
+
+.upload-preview img,
+.upload-preview video {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.btn-change-media {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background 0.15s ease;
+}
+
+.btn-change-media:hover {
+  background: var(--bg-color);
+}
+
+/* --- Formulaire --- */
+
+.publish-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.publish-form .form-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.publish-caption {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.publish-caption:focus {
+  border-color: var(--accent-color);
+}
+
+.char-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.publish-hashtags {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.publish-hashtags:focus {
+  border-color: var(--accent-color);
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* --- Visibilité --- */
+
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.visibility-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.visibility-option:hover {
+  border-color: var(--accent-color);
+}
+
+.visibility-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--accent-color);
+}
+
+.visibility-option input[type="radio"]:checked + .visibility-label {
+  color: var(--accent-color);
+}
+
+.visibility-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.visibility-icon {
+  font-size: 1.2rem;
+}
+
+.visibility-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.visibility-text strong {
+  font-size: 0.9rem;
+}
+
+.visibility-text small {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* --- Filtres placeholder --- */
+
+.filters-placeholder {
+  background: var(--bg-color);
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.filters-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --- Boutons publier / annuler --- */
+
+.publish-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-cancel {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: background 0.15s ease;
+}
+
+.btn-cancel:hover {
+  background: var(--bg-color);
+}
+
+.btn-publish {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 32px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-publish:hover {
+  opacity: 0.9;
+}
+
+.btn-publish:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.publish-error {
+  color: var(--danger-color);
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 /* ============ MESSAGES ============ */
@@ -872,7 +1160,7 @@ body {
 }
 
 .conversation-item.unread {
-  background: rgba(0, 149, 246, 0.04);
+  background: rgba(0,149,246,0.04);
 }
 
 .conv-avatar {
@@ -1112,5 +1400,17 @@ body {
   .explore-grid,
   .profile-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .publish-card {
+    padding: 20px 16px;
+  }
+
+  .publish-actions {
+    flex-direction: column;
+  }
+
+  .publish-actions button {
+    width: 100%;
   }
 }

@@ -37,6 +37,54 @@ export async function getFeedPosts() {
 }
 
 /**
+ * Crée une nouvelle publication.
+ * @param {Object} postData Données de la publication.
+ * @param {File} postData.mediaFile Fichier média (image ou vidéo).
+ * @param {string} postData.mediaType Type de média ('image' ou 'video').
+ * @param {string} postData.caption Légende de la publication.
+ * @param {string} postData.visibility Visibilité ('public' ou 'friends').
+ * @return {Promise<Object>} La publication créée.
+ */
+export async function createPost(postData) {
+  if (USE_MOCK) {
+    const newPost = {
+      id: Date.now(),
+      author: MOCK_USER.username,
+      avatar: MOCK_USER.avatar,
+      mediaUrl: postData.mediaFile
+        ? URL.createObjectURL(postData.mediaFile)
+        : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600',
+      isVideo: postData.mediaType === 'video',
+      caption: postData.caption,
+      likesCount: 0,
+      dislikesCount: 0,
+      visibility: postData.visibility,
+      comments: [],
+      createdAt: 'À l\'instant',
+    };
+    MOCK_POSTS.unshift(newPost);
+    return Promise.resolve(newPost);
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('media', postData.mediaFile);
+    formData.append('caption', postData.caption);
+    formData.append('visibility', postData.visibility);
+
+    const response = await fetch(`${API_BASE_URL}/posts`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de la création de publication :', error);
+    throw error;
+  }
+}
+
+/**
  * Bascule le statut "j'aime" d'une publication.
  * @param {number} postId Identifiant de la publication.
  * @param {boolean} liked État souhaité.
