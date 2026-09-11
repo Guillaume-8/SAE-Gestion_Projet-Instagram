@@ -97,13 +97,22 @@ app.get('/api/conversations/:pseudonyme', async (req, res) => {
     const conversations = await Promise.all(
       groupes.map(async (g) => {
         const members = await bdd.obtenirMembresGroupe(g.id);
+        const lastMsg = await db.get(
+          `SELECT m.contenu_message, m.date_envoie, u.pseudonyme 
+           FROM Message m 
+           JOIN Utilisateur u ON m.id_expediteur = u.id_utilisateur 
+           WHERE m.id_groupe = ? 
+           ORDER BY m.date_envoie DESC LIMIT 1`, 
+           [g.id]
+        );
         return {
           id: g.id,
           name: g.name,
           type: members.length === 2 ? 'DM' : 'GROUPE',
           members: members,
-          lastMessage: 'Discussion démarrée',
-          lastTime: 'Aujourd\'hui'
+          lastMessage: lastMsg ? lastMsg.contenu_message : 'Discussion démarrée',
+          lastMessageSender: lastMsg ? lastMsg.pseudonyme : null,
+          lastMessageDate: lastMsg ? lastMsg.date_envoie : null
         };
       })
     );
