@@ -55,10 +55,17 @@
     .btn-send-message { background: none; border: none; color: #0095f6; font-weight: 600; cursor: pointer; padding: 4px 8px; }
 
     /* Pop-up Emojis */
-    .emoji-picker { display: none; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 220px; grid-template-columns: repeat(5, 1fr); gap: 8px; z-index: 50; }
-    .emoji-picker.active { display: grid; }
-    .emoji-picker span { font-size: 20px; cursor: pointer; text-align: center; border-radius: 6px; padding: 4px; transition: background 0.2s; }
-    .emoji-picker span:hover { background: #363636; }
+    .emoji-picker { display: none; flex-direction: column; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 260px; z-index: 50; }
+    .emoji-picker.active { display: flex; }
+    
+    .emoji-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #363636; padding-bottom: 8px; }
+    .emoji-header button { background: #363636; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .emoji-header button:hover { background: #454545; }
+    .emoji-header span { font-size: 12px; font-weight: 600; color: #a8a8a8; }
+    
+    .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .emoji-grid span { font-size: 22px; cursor: pointer; text-align: center; border-radius: 6px; padding: 4px; transition: background 0.2s; }
+    .emoji-grid span:hover { background: #363636; }
 
     /* Modale */
     .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; }
@@ -110,9 +117,14 @@
 
       <!-- Menu déroulant Emojis -->
       <div class="emoji-picker" id="emoji-picker">
-        <span>😀</span><span>😂</span><span>😍</span><span>🔥</span><span>👍</span>
-        <span>❤️</span><span>🎉</span><span>😎</span><span>🙌</span><span>💩</span>
-        <span>🥺</span><span>💀</span><span>✨</span><span>👀</span><span>💯</span>
+        <div class="emoji-header">
+          <button type="button" id="emoji-prev">&lt;</button>
+          <span id="emoji-page-info">1/1</span>
+          <button type="button" id="emoji-next">&gt;</button>
+        </div>
+        <div class="emoji-grid" id="emoji-grid">
+          <!-- Injecté via JS -->
+        </div>
       </div>
 
       <form class="chat-input-form" id="chat-input-form">
@@ -342,21 +354,66 @@
     document.getElementById('emoji-picker').classList.remove('active');
   };
 
-  // Gestion du menu Emoji
+  // Gestion du menu Emoji avec pagination
   const emojiBtn = document.getElementById('btn-emoji');
   const emojiPicker = document.getElementById('emoji-picker');
   const chatInput = document.getElementById('chat-input');
+  const emojiGrid = document.getElementById('emoji-grid');
+  const emojiPrev = document.getElementById('emoji-prev');
+  const emojiNext = document.getElementById('emoji-next');
+  const emojiPageInfo = document.getElementById('emoji-page-info');
+
+  const allEmojis = [
+    "😀","😃","😄","😁","😆","😅","😂","🤣","🥲","🥹","☺️","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😮‍💨","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🫣","🤗","🫡","🤔","🫢","🤭","🤫","🤥","😶","😶‍🌫️","😐","😑","😬","🫨","🫠","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","😵‍💫","🫥","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😹","😻","😼","😽","🙀","😿","😾",
+    "🫶","👐","🤲","🙌","👏","🤝","👍","👎","👊","✊","🤛","🤜","🤞","✌️","🫰","🤟","🤘","👌","🤌","🤏","🫳","🫴","👈","👉","👆","👇","☝️","✋","🤚","🖐️","🖖","👋","🤙","🫲","🫱","💪","🦾","🖕","✍️","🙏","🫵","🦶","🦵","🦿","💄","💋","👄","🫦","🦷","👅","👂","🦻","👃","👣","👁️","👀","🫀","🫁","🧠","🗣️","👤","👥","🫂",
+    "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞","🐜","🪰","🪲","🪳","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🦭","🐊","🐅","🐆","🦓","🦍","🦧","🦣","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🦬","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🦙","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🪶","🐓","🦃","🦤","🦚","🦜","🦢","🦩","🕊️","🐇","🦝","🦨","🦡","🦫","🦦","🦥","🐁","🐀","🐿️","🦔","🐾","🐉","🐲",
+    "🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🫘","🍯","🥛","🍼","🫖","☕","🍵","🧃","🥤","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴","🍽️","🥣","🥡","🥢","🧂",
+    "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","☮️","✝️","☪️","🕉️","☸️","✡️","🔯","🕎","☯️","☦️","🛐","⛎","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","🆔","⚛️","🉑","☢️","☣️","📴","📳","🈶","🈚","🈸","🈺","🈷️","✴️","🆚","💮","🉐","㊙️","㊗️","🈴","🈵","🈹","🈲","🅰️","🅱️","🆎","🆑","🅾️","🆘","❌","⭕","🛑","⛔","📛","🚫","💯","💢","♨️","🚷","🚯","🚳","🚱","🔞","📵","🚭","❗","❕","❓","❔","‼️","⁉️","🔅","🔆","〽️","⚠️","🚸","🔱","⚜️","🔰","♻️","✅","🈯","💹","❇️","✳️","❎","🌐","💠","Ⓜ️","🌀","💤","🏧","🚾","♿","🅿️","🛗","🈳","🈂️","🛂","🛃","🛄","🛅","🚹","🚺","🚼","⚧️","🚻","🚮","🎦","📶","🈁","🆖","🆗","🆙","🆒","🆕","🆓","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","🔢","#️⃣","*️⃣","⏏️","▶️","⏸️","⏯️","⏹️","⏺️","⏭️","⏮️","⏩","⏪","⏫","⏬","◀️","🔼","🔽","➡️","⬅️","⬆️","⬇️","↗️","↘️","↙️","↖️","↕️","↔️","↪️","↩️","⤴️","⤵️","🔀","🔁","🔂","🔄","🔃","🎵","🎶","➕","➖","➗","✖️","🟰","♾️","💲","💱","™️","©️","®️","〰️","➰","➿","🔚","🔙","🔛","🔝","🔜","✔️","☑️","🔘","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤","🔺","🔻","🔸","🔹","🔶","🔷","🔳","🔲","▪️","▫️","◾","◽","◼️","◻️","🟥","🟧","🟨","🟩","🟦","🟪","⬛","⬜","🟫","🔈","🔇","🔉","🔊","🔔","🔕","📣","📢","👁️‍🗨️","💬","💭","🗯️","♠️","♣️","♥️","♦️","🃏","🎴","🀄","🕐","🕑","🕒","🕓","🕔","🕕","🕖","🕗","🕘","🕙","🕚","🕛","🕜","🕝","🕞","🕟","🕠","🕡","🕢","🕣","🕤","🕥","🕦","🕧","🚩","🏁","🏴‍☠️","🏳️‍🌈","🏳️‍⚧️"
+  ];
+
+  const EMOJIS_PER_PAGE = 30;
+  let currentEmojiPage = 0;
+  const totalEmojiPages = Math.ceil(allEmojis.length / EMOJIS_PER_PAGE);
+
+  function renderEmojiPage() {
+    emojiGrid.innerHTML = '';
+    const start = currentEmojiPage * EMOJIS_PER_PAGE;
+    const end = start + EMOJIS_PER_PAGE;
+    const pageEmojis = allEmojis.slice(start, end);
+
+    pageEmojis.forEach(emoji => {
+      const span = document.createElement('span');
+      span.innerText = emoji;
+      span.onclick = () => {
+        chatInput.value += emoji;
+        chatInput.focus();
+      };
+      emojiGrid.appendChild(span);
+    });
+
+    emojiPageInfo.innerText = `${currentEmojiPage + 1}/${totalEmojiPages}`;
+  }
+
+  emojiPrev.onclick = () => {
+    if (currentEmojiPage > 0) {
+      currentEmojiPage--;
+      renderEmojiPage();
+    }
+  };
+
+  emojiNext.onclick = () => {
+    if (currentEmojiPage < totalEmojiPages - 1) {
+      currentEmojiPage++;
+      renderEmojiPage();
+    }
+  };
 
   emojiBtn.onclick = () => {
     emojiPicker.classList.toggle('active');
+    if (emojiPicker.classList.contains('active') && emojiGrid.innerHTML === '') {
+      renderEmojiPage();
+    }
   };
-
-  emojiPicker.querySelectorAll('span').forEach(emojiSpan => {
-    emojiSpan.onclick = () => {
-      chatInput.value += emojiSpan.innerText;
-      chatInput.focus();
-    };
-  });
 
   socket.on('receive_message', (msg) => {
     const conv = conversationsData.find(c => c.id === msg.id_groupe);
