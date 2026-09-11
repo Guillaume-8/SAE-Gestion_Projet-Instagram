@@ -151,6 +151,7 @@
   const socket = io();
   let currentConversationId = null;
   let conversationsData = [];
+  let lastMessageDate = null;
 
   function escapeHtml(text) {
     const div = document.createElement('div');
@@ -261,19 +262,45 @@
 
     const box = document.getElementById('chat-messages');
     box.innerHTML = '';
-    messages.forEach(msg => appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message));
+    lastMessageDate = null;
+    messages.forEach(msg => appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message));
   }
 
-  function appendMessage(sender, text) {
+  function appendMessage(sender, text, dateString) {
     const currentUser = document.getElementById('currentUserInput').value.trim();
     const box = document.getElementById('chat-messages');
     const isMe = sender.toLowerCase() === currentUser.toLowerCase();
 
+    const dateObj = dateString ? new Date(dateString) : new Date();
+
+    if (lastMessageDate) {
+      const diffHours = (dateObj - lastMessageDate) / (1000 * 60 * 60);
+      if (diffHours >= 2) {
+        const separator = document.createElement('div');
+        separator.style.textAlign = 'center';
+        separator.style.margin = '15px 0';
+        separator.style.color = '#a8a8a8';
+        separator.style.fontSize = '12px';
+        separator.style.fontWeight = 'bold';
+        
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        separator.innerText = dateObj.toLocaleDateString('fr-FR', options);
+        box.appendChild(separator);
+      }
+    }
+    lastMessageDate = dateObj;
+
     const div = document.createElement('div');
     div.className = `message-bubble ${isMe ? 'message-mine' : ''}`;
+    
+    const timeStr = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
     div.innerHTML = `
       <p>${escapeHtml(text)}</p>
-      <span class="message-time">${escapeHtml(sender)}</span>
+      <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
+        <span>${escapeHtml(sender)}</span>
+        <span>${timeStr}</span>
+      </span>
     `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
@@ -315,7 +342,7 @@
 
   socket.on('receive_message', (msg) => {
     if (msg.id_groupe === currentConversationId) {
-      appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message);
+      appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message);
     }
   });
 
