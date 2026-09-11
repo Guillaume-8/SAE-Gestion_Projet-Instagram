@@ -164,8 +164,8 @@ io.on('connection', (socket) => {
   socket.on('send_reaction', async (data) => {
     try {
       const { idMessage, pseudonyme, emoji, idGroupe } = data;
-      await bdd.ajouterReaction(idMessage, pseudonyme, emoji);
-      io.to(`group_${idGroupe}`).emit('receive_reaction', { idMessage, pseudonyme, emoji });
+      const action = await bdd.ajouterReaction(idMessage, pseudonyme, emoji);
+      io.to(`group_${idGroupe}`).emit('receive_reaction', { idMessage, pseudonyme, emoji, action });
     } catch (err) {
       console.error(err);
     }

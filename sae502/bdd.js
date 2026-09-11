@@ -182,11 +182,18 @@ async function ajouterReaction(idMessage, pseudonyme, emoji) {
     [idMessage, user.id_utilisateur, emoji]
   );
 
-  if (!existing) {
+  if (existing) {
+    await database.run(
+      'DELETE FROM Reaction_Message WHERE id_reaction = ?',
+      [existing.id_reaction]
+    );
+    return 'removed';
+  } else {
     await database.run(
       'INSERT INTO Reaction_Message (id_message, id_utilisateur, emoji) VALUES (?, ?, ?)',
       [idMessage, user.id_utilisateur, emoji]
     );
+    return 'added';
   }
 }
 
