@@ -97,18 +97,36 @@ app.get('/api/conversations/:pseudonyme', async (req, res) => {
     const conversations = await Promise.all(
       groupes.map(async (g) => {
         const members = await bdd.obtenirMembresGroupe(g.id);
+        const lastMsg = await db.get(
+          `SELECT m.contenu_message, m.date_envoie, u.pseudonyme 
+           FROM Message m 
+           JOIN Utilisateur u ON m.id_expediteur = u.id_utilisateur 
+           WHERE m.id_groupe = ? 
+           ORDER BY m.date_envoie DESC LIMIT 1`, 
+           [g.id]
+        );
         return {
           id: g.id,
           name: g.name,
           type: members.length === 2 ? 'DM' : 'GROUPE',
           members: members,
-          lastMessage: 'Discussion démarrée',
-          lastTime: 'Aujourd\'hui'
+          lastMessage: lastMsg ? lastMsg.contenu_message : 'Discussion démarrée',
+          lastMessageSender: lastMsg ? lastMsg.pseudonyme : null,
+          lastMessageDate: lastMsg ? lastMsg.date_envoie : null
         };
       })
     );
 
     res.json(conversations);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/utilisateurs', async (req, res) => {
+  try {
+    const utilisateurs = await bdd.obtenirTousLesUtilisateurs();
+    res.json(utilisateurs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -135,16 +153,28 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     try {
       const { pseudonyme, idGroupe, contenu } = data;
-      await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
 
       const msg = {
+        id_message: idMessage,
         Pseudonyme_utilisateur: pseudonyme,
         id_groupe: idGroupe,
         Contenu_message: contenu,
-        Date_message: new Date()
+        Date_message: new Date(),
+        reactions: []
       };
 
       io.to(`group_${idGroupe}`).emit('receive_message', msg);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  socket.on('send_reaction', async (data) => {
+    try {
+      const { idMessage, pseudonyme, emoji, idGroupe } = data;
+      const action = await bdd.ajouterReaction(idMessage, pseudonyme, emoji);
+      io.to(`group_${idGroupe}`).emit('receive_reaction', { idMessage, pseudonyme, emoji, action });
     } catch (err) {
       console.error(err);
     }

@@ -43,9 +43,25 @@
     .chat-header-status { font-size: 11px; color: #a8a8a8; }
 
     .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .message-bubble { max-width: 65%; padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; align-self: flex-start; border-bottom-left-radius: 4px; word-break: break-word; }
-    .message-bubble.message-mine { background: #3797f0; align-self: flex-end; border-bottom-left-radius: 22px; border-bottom-right-radius: 4px; }
+    .message-container { position: relative; display: flex; flex-direction: column; max-width: 65%; margin-bottom: 4px; }
+    .message-container.mine { align-self: flex-end; }
+    .message-container.other { align-self: flex-start; }
+
+    .message-bubble { padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; word-break: break-word; position: relative; }
+    .message-container.other .message-bubble { border-bottom-left-radius: 4px; }
+    .message-container.mine .message-bubble { background: #3797f0; border-bottom-right-radius: 4px; }
     .message-time { font-size: 9px; opacity: 0.7; margin-top: 4px; display: block; }
+
+    .message-reactions { display: flex; gap: 4px; margin-top: -8px; margin-left: 10px; z-index: 2; flex-wrap: wrap; }
+    .message-container.mine .message-reactions { margin-left: 0; margin-right: 10px; align-self: flex-end; }
+    .reaction-badge { background: #121212; border: 1px solid #363636; border-radius: 12px; padding: 2px 6px; font-size: 11px; cursor: default; }
+
+    .message-actions { display: none; position: absolute; top: -15px; background: #262626; border: 1px solid #363636; border-radius: 16px; padding: 4px 8px; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; }
+    .message-container.other .message-actions { left: 0; }
+    .message-container.mine .message-actions { right: 0; }
+    .message-container:hover .message-actions { display: flex; }
+    .message-actions span { cursor: pointer; font-size: 16px; transition: transform 0.2s; }
+    .message-actions span:hover { transform: scale(1.2); }
 
     /* Saisie + Emojis */
     .chat-input-form { padding: 15px 20px; display: flex; background: #000; position: relative; }
@@ -55,20 +71,36 @@
     .btn-send-message { background: none; border: none; color: #0095f6; font-weight: 600; cursor: pointer; padding: 4px 8px; }
 
     /* Pop-up Emojis */
-    .emoji-picker { display: none; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 220px; grid-template-columns: repeat(5, 1fr); gap: 8px; z-index: 50; }
-    .emoji-picker.active { display: grid; }
-    .emoji-picker span { font-size: 20px; cursor: pointer; text-align: center; border-radius: 6px; padding: 4px; transition: background 0.2s; }
-    .emoji-picker span:hover { background: #363636; }
+    .emoji-picker { display: none; flex-direction: column; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 280px; z-index: 50; }
+    .emoji-picker.active { display: flex; }
+    
+    .emoji-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #363636; padding-bottom: 8px; }
+    .emoji-header button { background: #363636; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .emoji-header button:hover { background: #454545; }
+    .emoji-header span { font-size: 12px; font-weight: 600; color: #a8a8a8; }
+    
+    .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+    .emoji-grid span { font-size: 22px; cursor: pointer; text-align: center; border-radius: 6px; padding: 4px; transition: background 0.2s; }
+    .emoji-grid span:hover { background: #363636; }
+    
+    .emoji-categories { display: flex; justify-content: space-around; align-items: center; margin-top: 8px; border-top: 1px solid #363636; padding-top: 8px; }
+    .emoji-categories span { font-size: 16px; cursor: pointer; padding: 4px; border-radius: 6px; transition: background 0.2s; }
+    .emoji-categories span:hover { background: #363636; }
 
     /* Modale */
     .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; }
-    .modal-content { background: #262626; width: 360px; border-radius: 12px; overflow: hidden; border: 1px solid #363636; }
+    .modal-content { background: #262626; width: 360px; border-radius: 12px; overflow: visible; border: 1px solid #363636; }
     .modal-header { padding: 15px; border-bottom: 1px solid #363636; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
     .modal-close { cursor: pointer; font-size: 20px; color: #a8a8a8; }
     .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-body input { background: #121212; border: 1px solid #363636; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-primary { background: #0095f6; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
     .btn-secondary { background: #363636; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    
+    .users-dropdown { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #121212; border: 1px solid #363636; border-radius: 6px; max-height: 120px; overflow-y: auto; z-index: 10; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px; }
+    .users-dropdown-item { padding: 8px 12px; font-size: 13px; color: white; cursor: pointer; border-bottom: 1px solid #262626; }
+    .users-dropdown-item:hover { background: #262626; }
+    .users-dropdown-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -77,7 +109,7 @@
   <aside class="conversations-sidebar">
     <div class="sidebar-header">
       <h2>Messages</h2>
-      <button class="btn-new-message" id="btn-new-message" title="Nouveau message">✏️</button>
+      <button class="btn-new-message" id="btn-new-message" title="Nouveau message">+</button>
     </div>
 
     <div class="user-profile-box">
@@ -110,9 +142,20 @@
 
       <!-- Menu déroulant Emojis -->
       <div class="emoji-picker" id="emoji-picker">
-        <span>😀</span><span>😂</span><span>😍</span><span>🔥</span><span>👍</span>
-        <span>❤️</span><span>🎉</span><span>😎</span><span>🙌</span><span>💩</span>
-        <span>🥺</span><span>💀</span><span>✨</span><span>👀</span><span>💯</span>
+        <div class="emoji-header">
+          <button type="button" id="emoji-prev">&lt;</button>
+          <span id="emoji-page-info">1/1</span>
+          <button type="button" id="emoji-next">&gt;</button>
+        </div>
+        <div class="emoji-grid" id="emoji-grid">
+          <!-- Injecté via JS -->
+        </div>
+        <div class="emoji-categories">
+          <span data-page="0" title="Smileys & Personnes">😀</span>
+          <span data-page="3" title="Animaux & Nature">🐶</span>
+          <span data-page="7" title="Nourriture & Boissons">🍔</span>
+          <span data-page="11" title="Symboles & Objets">❤️</span>
+        </div>
       </div>
 
       <form class="chat-input-form" id="chat-input-form">
@@ -132,14 +175,20 @@
         <span class="modal-close" id="modal-close">&times;</span>
       </div>
       <div class="modal-body">
-        <label style="font-size:11px; color:#a8a8a8;">DM (1-à-1)</label>
-        <input type="text" id="target-user-input" placeholder="Pseudo du destinataire">
+        <label style="font-size:11px; color:#a8a8a8;">DM (1 personne)</label>
+        <div style="position: relative; display: flex; flex-direction: column;">
+          <input type="text" id="target-user-input" placeholder="Pseudo du destinataire" autocomplete="off" style="width: 100%; box-sizing: border-box;">
+          <div id="users-dropdown-dm" class="users-dropdown"></div>
+        </div>
         <button id="btn-start-dm" class="btn-primary">Démarrer le DM</button>
         
         <hr style="border-color:#363636; margin: 5px 0;">
 
         <label style="font-size:11px; color:#a8a8a8;">Groupe (3+)</label>
-        <input type="text" id="group-members-input" placeholder="Membres (ex: Lucas, Ines)">
+        <div style="position: relative; display: flex; flex-direction: column;">
+          <input type="text" id="group-members-input" placeholder="Membres (ex: Lucas, Ines)" autocomplete="off" style="width: 100%; box-sizing: border-box;">
+          <div id="users-dropdown-group" class="users-dropdown"></div>
+        </div>
         <button id="btn-start-group" class="btn-secondary">Créer le groupe</button>
       </div>
     </div>
@@ -176,6 +225,8 @@
 
   function renderConversationsList() {
     const listContainer = document.getElementById('conversations-list');
+    const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+    
     if (conversationsData.length === 0) {
       listContainer.innerHTML = '<span style="padding:15px; font-size:12px; color:#a8a8a8;">Aucune conversation</span>';
       return;
@@ -185,12 +236,27 @@
       const displayName = getConvDisplayName(conv);
       const avatarUrl = getConvAvatar(conv);
 
+      const isUnread = conv.lastMessageSender 
+        && conv.lastMessageSender.toLowerCase() !== myPseudo
+        && (!localStorage.getItem(`read_date_${conv.id}`) || new Date(conv.lastMessageDate) > new Date(localStorage.getItem(`read_date_${conv.id}`)));
+      
+      const unreadClass = isUnread ? 'font-weight: 700; color: #fff;' : '';
+      
+      let dateDisplay = '';
+      if (conv.lastMessageDate) {
+        const d = new Date(conv.lastMessageDate);
+        dateDisplay = d.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      }
+
       return `
         <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-conv-id="${conv.id}">
           <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="conv-avatar">
           <div class="conv-info">
             <span class="conv-name">${escapeHtml(displayName)}</span>
-            <span class="conv-preview">${escapeHtml(conv.lastMessage || '')}</span>
+            <span class="conv-preview" style="${unreadClass}">
+              ${conv.lastMessageSender ? escapeHtml(conv.lastMessageSender) + ': ' : ''}${escapeHtml(conv.lastMessage || '')}
+              ${dateDisplay ? `<br><small style="font-size:10px; opacity:0.6;">${dateDisplay}</small>` : ''}
+            </span>
           </div>
           <button class="btn-delete-conv" title="Supprimer">🗑️</button>
         </div>
@@ -250,9 +316,10 @@
     document.getElementById('active-chat').style.display = 'flex';
 
     document.getElementById('chat-header-name').innerText = displayName;
-    document.getElementById('chat-header-status').innerText = `ID Groupe: ${conv.id}`;
+    document.getElementById('chat-header-status').innerText = 'En ligne';
     document.getElementById('chat-header-avatar').src = avatarUrl;
 
+    localStorage.setItem(`read_date_${convId}`, new Date().toISOString());
     renderConversationsList();
 
     socket.emit('join_group', convId);
@@ -263,10 +330,10 @@
     const box = document.getElementById('chat-messages');
     box.innerHTML = '';
     lastMessageDate = null;
-    messages.forEach(msg => appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message));
+    messages.forEach(msg => appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []));
   }
 
-  function appendMessage(sender, text, dateString) {
+  function appendMessage(idMessage, sender, text, dateString, reactions = []) {
     const currentUser = document.getElementById('currentUserInput').value.trim();
     const box = document.getElementById('chat-messages');
     const isMe = sender.toLowerCase() === currentUser.toLowerCase();
@@ -291,19 +358,62 @@
     lastMessageDate = dateObj;
 
     const div = document.createElement('div');
-    div.className = `message-bubble ${isMe ? 'message-mine' : ''}`;
+    div.className = `message-container ${isMe ? 'mine' : 'other'}`;
+    div.id = `msg-container-${idMessage}`;
     
     const timeStr = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
+    const reactCounts = {};
+    reactions.forEach(r => {
+      reactCounts[r.emoji] = (reactCounts[r.emoji] || 0) + 1;
+    });
+    const reactionsHtml = Object.keys(reactCounts).map(emoji => 
+      `<span class="reaction-badge">${emoji} ${reactCounts[emoji] > 1 ? reactCounts[emoji] : ''}</span>`
+    ).join('');
+
     div.innerHTML = `
-      <p>${escapeHtml(text)}</p>
-      <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
-        <span>${escapeHtml(sender)}</span>
-        <span>${timeStr}</span>
-      </span>
+      ${isMe ? '' : `
+      <div class="message-actions">
+        <span onclick="sendReaction(${idMessage}, '❤️')">❤️</span>
+        <span onclick="sendReaction(${idMessage}, '👍')">👍</span>
+        <span onclick="sendReaction(${idMessage}, '👎')">👎</span>
+        <span onclick="openEmojiPickerForReaction(${idMessage})">➕</span>
+      </div>`}
+      <div class="message-bubble">
+        <p>${escapeHtml(text)}</p>
+        <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
+          <span>${escapeHtml(sender)}</span>
+          <span>${timeStr}</span>
+        </span>
+      </div>
+      <div class="message-reactions" id="reactions-${idMessage}">
+        ${reactionsHtml}
+      </div>
     `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
+  }
+  
+  function sendReaction(idMessage, emoji) {
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    if (!currentUser || !currentConversationId) return;
+    
+    socket.emit('send_reaction', {
+      idMessage,
+      pseudonyme: currentUser,
+      emoji,
+      idGroupe: currentConversationId
+    });
+  }
+
+  let activeReactionMessageId = null;
+  function openEmojiPickerForReaction(idMessage) {
+    activeReactionMessageId = idMessage;
+    const picker = document.getElementById('emoji-picker');
+    picker.classList.add('active');
+    if (document.getElementById('emoji-grid').innerHTML === '') {
+      renderEmojiPage();
+    }
   }
 
   document.getElementById('chat-input-form').onsubmit = (e) => {
@@ -324,25 +434,128 @@
     document.getElementById('emoji-picker').classList.remove('active');
   };
 
-  // Gestion du menu Emoji
+  // Gestion du menu Emoji avec pagination
   const emojiBtn = document.getElementById('btn-emoji');
   const emojiPicker = document.getElementById('emoji-picker');
   const chatInput = document.getElementById('chat-input');
+  const emojiGrid = document.getElementById('emoji-grid');
+  const emojiPrev = document.getElementById('emoji-prev');
+  const emojiNext = document.getElementById('emoji-next');
+  const emojiPageInfo = document.getElementById('emoji-page-info');
 
-  emojiBtn.onclick = () => {
-    emojiPicker.classList.toggle('active');
+  const allEmojis = [
+    "😀","😃","😄","😁","😆","😅","😂","🤣","🥲","🥹","☺️","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😮‍💨","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🫣","🤗","🫡","🤔","🫢","🤭","🤫","🤥","😶","😶‍🌫️","😐","😑","😬","🫨","🫠","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","😵‍💫","🫥","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😹","😻","😼","😽","🙀","😿","😾",
+    "🫶","👐","🤲","🙌","👏","🤝","👍","👎","👊","✊","🤛","🤜","🤞","✌️","🫰","🤟","🤘","👌","🤌","🤏","🫳","🫴","👈","👉","👆","👇","☝️","✋","🤚","🖐️","🖖","👋","🤙","🫲","🫱","💪","🦾","🖕","✍️","🙏","🫵","🦶","🦵","🦿","💄","💋","👄","🫦","🦷","👅","👂","🦻","👃","👣","👁️","👀","🫀","🫁","🧠","🗣️","👤","👥","🫂",
+    "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞","🐜","🪰","🪲","🪳","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🦭","🐊","🐅","🐆","🦓","🦍","🦧","🦣","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🦬","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🦙","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🪶","🐓","🦃","🦤","🦚","🦜","🦢","🦩","🕊️","🐇","🦝","🦨","🦡","🦫","🦦","🦥","🐁","🐀","🐿️","🦔","🐾","🐉","🐲",
+    "🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🫘","🍯","🥛","🍼","🫖","☕","🍵","🧃","🥤","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴","🍽️","🥣","🥡","🥢","🧂",
+    "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","☮️","✝️","☪️","🕉️","☸️","✡️","🔯","🕎","☯️","☦️","🛐","⛎","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","🆔","⚛️","🉑","☢️","☣️","📴","📳","🈶","🈚","🈸","🈺","🈷️","✴️","🆚","💮","🉐","㊙️","㊗️","🈴","🈵","🈹","🈲","🅰️","🅱️","🆎","🆑","🅾️","🆘","❌","⭕","🛑","⛔","📛","🚫","💯","💢","♨️","🚷","🚯","🚳","🚱","🔞","📵","🚭","❗","❕","❓","❔","‼️","⁉️","🔅","🔆","〽️","⚠️","🚸","🔱","⚜️","🔰","♻️","✅","🈯","💹","❇️","✳️","❎","🌐","💠","Ⓜ️","🌀","💤","🏧","🚾","♿","🅿️","🛗","🈳","🈂️","🛂","🛃","🛄","🛅","🚹","🚺","🚼","⚧️","🚻","🚮","🎦","📶","🈁","🆖","🆗","🆙","🆒","🆕","🆓","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","🔢","#️⃣","*️⃣","⏏️","▶️","⏸️","⏯️","⏹️","⏺️","⏭️","⏮️","⏩","⏪","⏫","⏬","◀️","🔼","🔽","➡️","⬅️","⬆️","⬇️","↗️","↘️","↙️","↖️","↕️","↔️","↪️","↩️","⤴️","⤵️","🔀","🔁","🔂","🔄","🔃","🎵","🎶","➕","➖","➗","✖️","🟰","♾️","💲","💱","™️","©️","®️","〰️","➰","➿","🔚","🔙","🔛","🔝","🔜","✔️","☑️","🔘","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤","🔺","🔻","🔸","🔹","🔶","🔷","🔳","🔲","▪️","▫️","◾","◽","◼️","◻️","🟥","🟧","🟨","🟩","🟦","🟪","⬛","⬜","🟫","🔈","🔇","🔉","🔊","🔔","🔕","📣","📢","👁️‍🗨️","💬","💭","🗯️","♠️","♣️","♥️","♦️","🃏","🎴","🀄","🕐","🕑","🕒","🕓","🕔","🕕","🕖","🕗","🕘","🕙","🕚","🕛","🕜","🕝","🕞","🕟","🕠","🕡","🕢","🕣","🕤","🕥","🕦","🕧","🚩","🏁","🏴‍☠️","🏳️‍🌈","🏳️‍⚧️"
+  ];
+
+  const EMOJIS_PER_PAGE = 30;
+  let currentEmojiPage = 0;
+  const totalEmojiPages = Math.ceil(allEmojis.length / EMOJIS_PER_PAGE);
+
+  function renderEmojiPage() {
+    emojiGrid.innerHTML = '';
+    const start = currentEmojiPage * EMOJIS_PER_PAGE;
+    const end = start + EMOJIS_PER_PAGE;
+    const pageEmojis = allEmojis.slice(start, end);
+
+    pageEmojis.forEach(emoji => {
+      const span = document.createElement('span');
+      span.innerText = emoji;
+      span.onclick = () => {
+        if (activeReactionMessageId) {
+          sendReaction(activeReactionMessageId, emoji);
+          document.getElementById('emoji-picker').classList.remove('active');
+          activeReactionMessageId = null;
+        } else {
+          chatInput.value += emoji;
+          chatInput.focus();
+        }
+      };
+      emojiGrid.appendChild(span);
+    });
+
+    emojiPageInfo.innerText = `${currentEmojiPage + 1}/${totalEmojiPages}`;
+  }
+
+  emojiPrev.onclick = () => {
+    if (currentEmojiPage > 0) {
+      currentEmojiPage--;
+      renderEmojiPage();
+    }
   };
 
-  emojiPicker.querySelectorAll('span').forEach(emojiSpan => {
-    emojiSpan.onclick = () => {
-      chatInput.value += emojiSpan.innerText;
-      chatInput.focus();
+  emojiNext.onclick = () => {
+    if (currentEmojiPage < totalEmojiPages - 1) {
+      currentEmojiPage++;
+      renderEmojiPage();
+    }
+  };
+
+  document.querySelectorAll('.emoji-categories span').forEach(catBtn => {
+    catBtn.onclick = () => {
+      currentEmojiPage = parseInt(catBtn.dataset.page, 10);
+      renderEmojiPage();
     };
   });
 
+  emojiBtn.onclick = () => {
+    activeReactionMessageId = null;
+    emojiPicker.classList.toggle('active');
+    if (emojiPicker.classList.contains('active') && emojiGrid.innerHTML === '') {
+      renderEmojiPage();
+    }
+  };
+
   socket.on('receive_message', (msg) => {
-    if (msg.id_groupe === currentConversationId) {
-      appendMessage(msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message);
+    const conv = conversationsData.find(c => c.id === msg.id_groupe);
+    if (conv) {
+      conv.lastMessage = msg.Contenu_message;
+      conv.lastMessageSender = msg.Pseudonyme_utilisateur;
+      conv.lastMessageDate = msg.Date_message;
+      
+      if (msg.id_groupe === currentConversationId) {
+        localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
+        appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []);
+      }
+      renderConversationsList();
+    }
+  });
+
+  socket.on('receive_reaction', (data) => {
+    const { idMessage, pseudonyme, emoji, action } = data;
+    if (currentConversationId) {
+      const reactionsContainer = document.getElementById(`reactions-${idMessage}`);
+      if (reactionsContainer) {
+        let badge = Array.from(reactionsContainer.children).find(b => b.innerText.includes(emoji));
+        
+        if (action === 'added') {
+          if (badge) {
+            const match = badge.innerText.match(/\d+/);
+            const count = match ? parseInt(match[0]) + 1 : 2;
+            badge.innerText = `${emoji} ${count}`;
+          } else {
+            const newBadge = document.createElement('span');
+            newBadge.className = 'reaction-badge';
+            newBadge.innerText = emoji;
+            reactionsContainer.appendChild(newBadge);
+          }
+        } else if (action === 'removed') {
+          if (badge) {
+            const match = badge.innerText.match(/\d+/);
+            const count = match ? parseInt(match[0]) : 1;
+            if (count > 2) {
+              badge.innerText = `${emoji} ${count - 1}`;
+            } else if (count === 2) {
+              badge.innerText = `${emoji}`;
+            } else {
+              badge.remove();
+            }
+          }
+        }
+      }
     }
   });
 
@@ -359,7 +572,80 @@
 
   // Modale
   const modal = document.getElementById('modal-new-chat');
-  document.getElementById('btn-new-message').onclick = () => modal.style.display = 'flex';
+  
+  let allDbUsers = [];
+  async function fetchDbUsers() {
+    try {
+      const res = await fetch('/api/utilisateurs');
+      allDbUsers = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function setupUsersDropdown(inputId, dropdownId, multi) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    
+    const showDropdown = () => {
+      const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+      dropdown.innerHTML = '';
+      
+      let currentSelected = [];
+      if (multi) {
+        currentSelected = input.value.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+      }
+      
+      const availableUsers = allDbUsers.filter(u => {
+        const lowerU = u.toLowerCase();
+        return lowerU !== myPseudo && !currentSelected.includes(lowerU);
+      });
+      
+      if (availableUsers.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 8px 12px; font-size: 11px; color: #a8a8a8;">Aucun utilisateur</div>';
+      } else {
+        availableUsers.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'users-dropdown-item';
+          item.innerText = u;
+          item.onmousedown = (e) => { // onmousedown s'exécute avant le blur de l'input
+            e.preventDefault();
+            if (multi) {
+              let current = input.value.split(',').map(s => s.trim()).filter(s => s);
+              if (current.length < 10) {
+                if (!current.includes(u)) {
+                  current.push(u);
+                  input.value = current.join(', ') + (current.length < 9 ? ', ' : '');
+                }
+              } else {
+                alert("Limite de 10 utilisateurs atteinte.");
+              }
+            } else {
+              input.value = u;
+            }
+            dropdown.style.display = 'none'; // On ferme le menu après la sélection
+          };
+          dropdown.appendChild(item);
+        });
+      }
+      dropdown.style.display = 'flex';
+    };
+    
+    input.addEventListener('focus', showDropdown);
+    input.addEventListener('click', showDropdown);
+
+    input.addEventListener('blur', () => {
+      dropdown.style.display = 'none';
+    });
+  }
+
+  setupUsersDropdown('target-user-input', 'users-dropdown-dm', false);
+  setupUsersDropdown('group-members-input', 'users-dropdown-group', true);
+
+  document.getElementById('btn-new-message').onclick = () => {
+    modal.style.display = 'flex';
+    fetchDbUsers();
+  };
   document.getElementById('modal-close').onclick = () => modal.style.display = 'none';
 
   document.getElementById('btn-start-dm').onclick = async () => {
