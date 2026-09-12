@@ -89,13 +89,18 @@
 
     /* Modale */
     .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; }
-    .modal-content { background: #262626; width: 360px; border-radius: 12px; overflow: hidden; border: 1px solid #363636; }
+    .modal-content { background: #262626; width: 360px; border-radius: 12px; overflow: visible; border: 1px solid #363636; }
     .modal-header { padding: 15px; border-bottom: 1px solid #363636; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
     .modal-close { cursor: pointer; font-size: 20px; color: #a8a8a8; }
     .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .modal-body input { background: #121212; border: 1px solid #363636; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-primary { background: #0095f6; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
     .btn-secondary { background: #363636; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    
+    .users-dropdown { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #121212; border: 1px solid #363636; border-radius: 6px; max-height: 120px; overflow-y: auto; z-index: 10; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px; }
+    .users-dropdown-item { padding: 8px 12px; font-size: 13px; color: white; cursor: pointer; border-bottom: 1px solid #262626; }
+    .users-dropdown-item:hover { background: #262626; }
+    .users-dropdown-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -170,14 +175,20 @@
         <span class="modal-close" id="modal-close">&times;</span>
       </div>
       <div class="modal-body">
-        <label style="font-size:11px; color:#a8a8a8;">DM (1-à-1)</label>
-        <input type="text" id="target-user-input" placeholder="Pseudo du destinataire">
+        <label style="font-size:11px; color:#a8a8a8;">DM (1 personne)</label>
+        <div style="position: relative; display: flex; flex-direction: column;">
+          <input type="text" id="target-user-input" placeholder="Pseudo du destinataire" autocomplete="off" style="width: 100%; box-sizing: border-box;">
+          <div id="users-dropdown-dm" class="users-dropdown"></div>
+        </div>
         <button id="btn-start-dm" class="btn-primary">Démarrer le DM</button>
         
         <hr style="border-color:#363636; margin: 5px 0;">
 
         <label style="font-size:11px; color:#a8a8a8;">Groupe (3+)</label>
-        <input type="text" id="group-members-input" placeholder="Membres (ex: Lucas, Ines)">
+        <div style="position: relative; display: flex; flex-direction: column;">
+          <input type="text" id="group-members-input" placeholder="Membres (ex: Lucas, Ines)" autocomplete="off" style="width: 100%; box-sizing: border-box;">
+          <div id="users-dropdown-group" class="users-dropdown"></div>
+        </div>
         <button id="btn-start-group" class="btn-secondary">Créer le groupe</button>
       </div>
     </div>
@@ -305,7 +316,7 @@
     document.getElementById('active-chat').style.display = 'flex';
 
     document.getElementById('chat-header-name').innerText = displayName;
-    document.getElementById('chat-header-status').innerText = `ID Groupe: ${conv.id}`;
+    document.getElementById('chat-header-status').innerText = 'En ligne';
     document.getElementById('chat-header-avatar').src = avatarUrl;
 
     localStorage.setItem(`read_date_${convId}`, new Date().toISOString());
@@ -561,7 +572,80 @@
 
   // Modale
   const modal = document.getElementById('modal-new-chat');
-  document.getElementById('btn-new-message').onclick = () => modal.style.display = 'flex';
+  
+  let allDbUsers = [];
+  async function fetchDbUsers() {
+    try {
+      const res = await fetch('/api/utilisateurs');
+      allDbUsers = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function setupUsersDropdown(inputId, dropdownId, multi) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    
+    const showDropdown = () => {
+      const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+      dropdown.innerHTML = '';
+      
+      let currentSelected = [];
+      if (multi) {
+        currentSelected = input.value.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+      }
+      
+      const availableUsers = allDbUsers.filter(u => {
+        const lowerU = u.toLowerCase();
+        return lowerU !== myPseudo && !currentSelected.includes(lowerU);
+      });
+      
+      if (availableUsers.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 8px 12px; font-size: 11px; color: #a8a8a8;">Aucun utilisateur</div>';
+      } else {
+        availableUsers.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'users-dropdown-item';
+          item.innerText = u;
+          item.onmousedown = (e) => { // onmousedown s'exécute avant le blur de l'input
+            e.preventDefault();
+            if (multi) {
+              let current = input.value.split(',').map(s => s.trim()).filter(s => s);
+              if (current.length < 10) {
+                if (!current.includes(u)) {
+                  current.push(u);
+                  input.value = current.join(', ') + (current.length < 9 ? ', ' : '');
+                }
+              } else {
+                alert("Limite de 10 utilisateurs atteinte.");
+              }
+            } else {
+              input.value = u;
+            }
+            dropdown.style.display = 'none'; // On ferme le menu après la sélection
+          };
+          dropdown.appendChild(item);
+        });
+      }
+      dropdown.style.display = 'flex';
+    };
+    
+    input.addEventListener('focus', showDropdown);
+    input.addEventListener('click', showDropdown);
+
+    input.addEventListener('blur', () => {
+      dropdown.style.display = 'none';
+    });
+  }
+
+  setupUsersDropdown('target-user-input', 'users-dropdown-dm', false);
+  setupUsersDropdown('group-members-input', 'users-dropdown-group', true);
+
+  document.getElementById('btn-new-message').onclick = () => {
+    modal.style.display = 'flex';
+    fetchDbUsers();
+  };
   document.getElementById('modal-close').onclick = () => modal.style.display = 'none';
 
   document.getElementById('btn-start-dm').onclick = async () => {

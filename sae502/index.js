@@ -123,6 +123,15 @@ app.get('/api/conversations/:pseudonyme', async (req, res) => {
   }
 });
 
+app.get('/api/utilisateurs', async (req, res) => {
+  try {
+    const utilisateurs = await bdd.obtenirTousLesUtilisateurs();
+    res.json(utilisateurs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/conversations/:idGroupe', async (req, res) => {
   try {
     const { idGroupe } = req.params;

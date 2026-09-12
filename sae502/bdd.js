@@ -197,6 +197,15 @@ async function ajouterReaction(idMessage, pseudonyme, emoji) {
   }
 }
 
+/**
+ * Récupère tous les utilisateurs
+ */
+async function obtenirTousLesUtilisateurs() {
+  const database = await getDb();
+  const users = await database.all('SELECT pseudonyme FROM Utilisateur');
+  return users.map(u => u.pseudonyme);
+}
+
 module.exports = {
   getDb,
   ajouterUtilisateur,
@@ -205,6 +214,7 @@ module.exports = {
   obtenirMessagesGroupe,
   obtenirMembresGroupe,
   supprimerConversationUtilisateur,
-  ajouterReaction
+  ajouterReaction,
+  obtenirTousLesUtilisateurs
 };
 
