@@ -1,0 +1,249 @@
+/**
+ * @fileoverview Modal pour afficher les détails d'une publication.
+ */
+
+import { toggleLike, toggleDislike, sharePost, republishPost, reportPost, getPostById } from './api.js';
+
+/**
+ * Échappe les caractères HTML.
+ * @param {string} text Texte à échapper.
+ * @return {string} Texte échappé.
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+
+/**
+ * Ouvre le modal avec les détails d'une publication.
+ * @param {Object} post Données de la publication.
+ */
+export function showPostModal(post) {
+  // Crée le HTML du modal
+  const modalHtml = `
+    <div class="post-modal-overlay" id="post-modal-overlay">
+      <div class="post-modal-content" id="post-modal-content">
+        <button class="post-modal-close" id="post-modal-close" title="Fermer">✕</button>
+        
+        <div class="post-modal-body">
+          <div class="post-modal-media">
+            ${post.isVideo 
+              ? `<video controls src="${post.mediaUrl}" class="modal-media"></video>`
+              : `<img src="${post.mediaUrl}" alt="Publication" class="modal-media">`
+            }
+          </div>
+          
+          <div class="post-modal-sidebar">
+            <div class="post-modal-header">
+              <img src="${post.avatar}" alt="${escapeHtml(post.author)}" class="modal-avatar">
+              <span class="modal-author">${escapeHtml(post.author)}</span>
+            </div>
+            
+            <div class="post-modal-caption">
+              <p>${escapeHtml(post.caption)}</p>
+            </div>
+            
+            <div class="post-modal-comments" id="post-modal-comments">
+              ${post.comments.map(comment => `
+                <div class="modal-comment" data-comment-id="${comment.id}">
+                  <span class="comment-author">${escapeHtml(comment.author)}</span>
+                  <span class="comment-text">${escapeHtml(comment.text)}</span>
+                  <div class="comment-actions">
+                    <button class="btn-comment-like" data-comment-id="${comment.id}" title="J'aime">👍</button>
+                    <button class="btn-comment-dislike" data-comment-id="${comment.id}" title="Je n'aime pas">👎</button>
+                    <button class="btn-comment-report" data-comment-id="${comment.id}" title="Signaler">🚩</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="post-modal-actions">
+              <button class="btn-modal-like" data-post-id="${post.id}" title="J'aime">
+                ❤️ <span class="modal-like-count">${post.likesCount}</span>
+              </button>
+              <button class="btn-modal-dislike" data-post-id="${post.id}" title="Je n'aime pas">
+                👎 <span class="modal-dislike-count">${post.dislikesCount}</span>
+              </button>
+              <button class="btn-modal-republish" data-post-id="${post.id}" title="Republier">
+                🔄 Republier
+              </button>
+              <button class="btn-modal-report" data-post-id="${post.id}" title="Signaler">
+                🚩 Signaler
+              </button>
+            </div>
+            
+            <div class="post-modal-meta">
+              <span>${escapeHtml(post.createdAt)}</span>
+              <span>${post.visibility}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Ajoute le modal au DOM
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // Fonction pour mettre à jour le modal avec les données fraîches
+  async function updateModalData() {
+    try {
+      const freshPost = await getPostById(post.id);
+      post = freshPost;
+      
+      // Mettre à jour les compteurs
+      const likeCountSpan = document.querySelector('.modal-like-count');
+      const dislikeCountSpan = document.querySelector('.modal-dislike-count');
+      if (likeCountSpan) likeCountSpan.textContent = post.likesCount;
+      if (dislikeCountSpan) dislikeCountSpan.textContent = post.dislikesCount;
+      
+      // Mettre à jour les états des boutons like/dislike
+      const likeBtn = document.querySelector('.btn-modal-like');
+      const dislikeBtn = document.querySelector('.btn-modal-dislike');
+      if (likeBtn) likeBtn.classList.toggle('active', post.liked);
+      if (dislikeBtn) dislikeBtn.classList.toggle('active', post.disliked);
+      
+      // Mettre à jour les commentaires
+      const commentsContainer = document.getElementById('post-modal-comments');
+      if (commentsContainer) {
+        commentsContainer.innerHTML = post.comments.map(comment => `
+          <div class="modal-comment" data-comment-id="${comment.id}">
+            <span class="comment-author">${escapeHtml(comment.author)}</span>
+            <span class="comment-text">${escapeHtml(comment.text)}</span>
+            <div class="comment-actions">
+              <button class="btn-comment-like" data-comment-id="${comment.id}" title="J'aime">👍</button>
+              <button class="btn-comment-dislike" data-comment-id="${comment.id}" title="Je n'aime pas">👎</button>
+              <button class="btn-comment-report" data-comment-id="${comment.id}" title="Signaler">🚩</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du modal:', error);
+    }
+  }
+  
+  // Fermer le modal au clic sur le fond
+  const overlay = document.getElementById('post-modal-overlay');
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closePostModal();
+    }
+  });
+  
+  // Fermer le modal au clic sur le bouton X
+  document.getElementById('post-modal-close').addEventListener('click', closePostModal);
+  
+  // Fermer au clavier (Escape)
+  document.addEventListener('keydown', handleEscapeKey);
+  
+  // Event listeners pour les boutons d'actions
+  document.getElementById('post-modal-content').addEventListener('click', async (e) => {
+    const likeBtn = e.target.closest('.btn-modal-like');
+    const dislikeBtn = e.target.closest('.btn-modal-dislike');
+    const republishBtn = e.target.closest('.btn-modal-republish');
+    const reportBtn = e.target.closest('.btn-modal-report');
+    const commentLikeBtn = e.target.closest('.btn-comment-like');
+    const commentDislikeBtn = e.target.closest('.btn-comment-dislike');
+    const commentReportBtn = e.target.closest('.btn-comment-report');
+    
+    if (likeBtn) {
+      try {
+        const newLikeState = !post.liked;
+        await toggleLike(post.id, newLikeState);
+        await updateModalData();
+      } catch (error) {
+        console.error('Erreur like:', error);
+      }
+    }
+    
+    if (dislikeBtn) {
+      try {
+        const newDislikeState = !post.disliked;
+        await toggleDislike(post.id, newDislikeState);
+        await updateModalData();
+      } catch (error) {
+        console.error('Erreur dislike:', error);
+      }
+    }
+    
+    if (republishBtn) {
+      try {
+        await republishPost(post.id);
+        alert('Publication republié avec succès !');
+        await updateModalData();
+      } catch (error) {
+        console.error('Erreur republication:', error);
+      }
+    }
+    
+    if (reportBtn) {
+      try {
+        await reportPost(post.id, 'Signalement depuis le modal');
+        alert('Publication signalée!');
+      } catch (error) {
+        console.error('Erreur signalement:', error);
+      }
+    }
+    
+    // Actions sur les commentaires
+    if (commentLikeBtn) {
+      const commentId = parseInt(commentLikeBtn.dataset.commentId);
+      const comment = post.comments.find(c => c.id === commentId);
+      if (comment) {
+        comment.liked = !comment.liked;
+        if (comment.liked) {
+          comment.likesCount = (comment.likesCount || 0) + 1;
+          commentLikeBtn.style.opacity = '1';
+        } else {
+          comment.likesCount = Math.max(0, (comment.likesCount || 1) - 1);
+          commentLikeBtn.style.opacity = '0.6';
+        }
+      }
+    }
+    
+    if (commentDislikeBtn) {
+      const commentId = parseInt(commentDislikeBtn.dataset.commentId);
+      const comment = post.comments.find(c => c.id === commentId);
+      if (comment) {
+        comment.disliked = !comment.disliked;
+        if (comment.disliked) {
+          comment.dislikesCount = (comment.dislikesCount || 0) + 1;
+          commentDislikeBtn.style.opacity = '1';
+        } else {
+          comment.dislikesCount = Math.max(0, (comment.dislikesCount || 1) - 1);
+          commentDislikeBtn.style.opacity = '0.6';
+        }
+      }
+    }
+    
+    if (commentReportBtn) {
+      const commentId = parseInt(commentReportBtn.dataset.commentId);
+      await reportPost(post.id, `Signalement de commentaire #${commentId}`);
+      alert('Commentaire signalé!');
+    }
+  });
+}
+
+/**
+ * Ferme le modal.
+ */
+export function closePostModal() {
+  const modal = document.getElementById('post-modal-overlay');
+  if (modal) {
+    modal.remove();
+    // Nettoyer l'écouteur de clavier
+    document.removeEventListener('keydown', handleEscapeKey);
+  }
+}
+
+/**
+ * Gestionnaire pour la touche Escape.
+ * @param {KeyboardEvent} event Événement clavier.
+ */
+function handleEscapeKey(event) {
+  if (event.key === 'Escape') {
+    closePostModal();
+  }
+}

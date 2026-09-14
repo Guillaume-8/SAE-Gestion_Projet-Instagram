@@ -3,6 +3,7 @@
  */
 
 import { getTrendingPosts, getHashtags } from '../api.js';
+import { showPostModal } from '../post-modal.js';
 
 /**
  * Rend le squelette HTML de la vue Explorer.
@@ -83,34 +84,63 @@ export async function mount() {
       getHashtags(),
     ]);
 
+    // Affichage des hashtags
     hashtagsList.innerHTML = hashtags.map(createHashtagHtml).join('');
+
+    // Affichage des publications tendance
     grid.innerHTML = trendingPosts.map(createTrendingThumbHtml).join('');
 
+    // Fonction pour filtrer les posts par hashtag ou recherche
+    const filterPosts = (query) => {
+      const tiles = grid.querySelectorAll('.explore-tile');
+      query = query.toLowerCase().trim();
+
+      tiles.forEach((tile) => {
+        const postId = parseInt(tile.dataset.postId);
+        const post = trendingPosts.find((p) => p.id === postId);
+        if (!post) return;
+
+        // Vérifier si le post correspond à la requête
+        const authorMatch = post.author.toLowerCase().includes(query);
+        const captionMatch = post.caption.toLowerCase().includes(query);
+        const hashtagMatch = query.startsWith('#') 
+          ? post.caption.includes(query)
+          : false;
+
+        tile.style.display = 
+          (query === '' || authorMatch || captionMatch || hashtagMatch) ? '' : 'none';
+      });
+    };
+
+    // Clic sur un hashtag → filtrage
     hashtagsList.querySelectorAll('.hashtag-chip').forEach((chip) => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const tag = chip.dataset.tag;
         if (searchInput) {
           searchInput.value = tag;
+          filterPosts(tag);
         }
       });
     });
 
+    // Clic sur une publication → ouvrir le détail
     grid.querySelectorAll('.explore-tile').forEach((tile) => {
+      tile.style.cursor = 'pointer';
       tile.addEventListener('click', () => {
-        // TODO: ouvrir la publication en mode détail
+        const postId = parseInt(tile.dataset.postId);
+        const post = trendingPosts.find((p) => p.id === postId);
+        if (post) {
+          showPostModal(post);
+        }
       });
     });
 
+    // Recherche en temps réel (par auteur, caption ou hashtag)
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.trim().toLowerCase();
-        const tiles = grid.querySelectorAll('.explore-tile');
-        tiles.forEach((tile) => {
-          const author = tile.querySelector('.explore-tile-overlay span:last-child');
-          const authorText = author ? author.textContent.toLowerCase() : '';
-          tile.style.display = authorText.includes(query) ? '' : 'none';
-        });
+        const query = e.target.value.trim();
+        filterPosts(query);
       });
     }
   } catch (error) {

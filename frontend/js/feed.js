@@ -1,6 +1,6 @@
 /**
- * @fileoverview Vue du fil d'actualité : affichage des publications
- * et interactions (like, dislike, partage, signalement, commentaires).
+ * @fileoverview Gestion de l'affichage du fil d'actualité et des interactions.
+ * Fonctionne comme une "vue" importée par le routeur SPA.
  */
 
 import {
@@ -8,9 +8,11 @@ import {
   toggleLike,
   toggleDislike,
   sharePost,
+  republishPost,
   reportPost,
   addComment,
 } from './api.js';
+import { showPostModal } from './post-modal.js';
 
 /**
  * Échappe les caractères HTML pour éviter les injections XSS.
@@ -46,8 +48,8 @@ function createCommentElement(comment) {
  */
 function createPostElement(post) {
   const mediaHtml = post.isVideo
-    ? `<video controls src="${post.mediaUrl}"></video>`
-    : `<img src="${post.mediaUrl}" alt="Publication de ${escapeHtml(post.author)}">`;
+    ? `<video controls src="${post.mediaUrl}" class="post-media-clickable" data-post-id="${post.id}"></video>`
+    : `<img src="${post.mediaUrl}" alt="Publication de ${post.author}" class="post-media-clickable" data-post-id="${post.id}">`;
 
   const commentsHtml = post.comments.map(createCommentElement).join('');
   const commentsCount = post.comments.length;
@@ -59,7 +61,7 @@ function createPostElement(post) {
     <article class="post-card" data-post-id="${post.id}">
       <header class="post-header">
         <div class="post-user">
-          <img src="${post.avatar}" alt="${escapeHtml(post.author)}" class="avatar">
+          <img src="${post.avatar}" alt="${post.author}" class="avatar">
           <span class="username">${escapeHtml(post.author)}</span>
         </div>
         <button class="btn-report" title="Signaler la publication">Signaler</button>
@@ -78,7 +80,7 @@ function createPostElement(post) {
           <span class="action-icon">👎</span>
           <span class="dislike-count">${post.dislikesCount}</span>
         </button>
-        <button class="action-btn btn-share" title="Partager">↗ Partager</button>
+        <button class="action-btn btn-republish" title="Republier">🔄 Republier</button>
         <button class="action-btn btn-comments-toggle" title="Commentaires">
           💬 <span class="comments-count">${commentsCount}</span>
         </button>
@@ -92,7 +94,7 @@ function createPostElement(post) {
         <button class="btn-view-comments">
           Voir les ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}
         </button>
-        <time class="post-time">${escapeHtml(post.createdAt)}</time>
+        <time class="post-time">${post.createdAt}</time>
       </div>
 
       <section class="comments-section hidden">
@@ -115,7 +117,7 @@ function createPostElement(post) {
 
 /**
  * Gère le clic sur le bouton "J'aime" d'une publication.
- * @param {HTMLElement} article Élément article de la publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
  * @param {number} postId Identifiant de la publication.
  */
 async function handleLike(article, postId) {
@@ -142,7 +144,7 @@ async function handleLike(article, postId) {
 
 /**
  * Gère le clic sur le bouton "Je n'aime pas" d'une publication.
- * @param {HTMLElement} article Élément article de la publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
  * @param {number} postId Identifiant de la publication.
  */
 async function handleDislike(article, postId) {
@@ -168,25 +170,22 @@ async function handleDislike(article, postId) {
 }
 
 /**
- * Gère le clic sur le bouton "Partager" d'une publication.
+ * Gère le clic sur le bouton "Republier" d'une publication.
  * @param {number} postId Identifiant de la publication.
  */
-async function handleShare(postId) {
+async function handleRepublish(postId) {
   try {
-    const result = await sharePost(postId);
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(result.shareUrl);
-    }
-    showNotification('Lien copié dans le presse-papiers !');
+    await republishPost(postId);
+    showNotification('Publication republié avec succès ! ✓');
   } catch (error) {
-    console.error('Erreur lors du partage :', error);
-    showNotification('Échec du partage', true);
+    console.error('Erreur lors de la republication :', error);
+    showNotification('Échec de la republication', true);
   }
 }
 
 /**
  * Gère le clic sur le bouton "Signaler" d'une publication.
- * @param {HTMLElement} article Élément article de la publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
  * @param {number} postId Identifiant de la publication.
  */
 async function handleReport(article, postId) {
@@ -194,7 +193,7 @@ async function handleReport(article, postId) {
     'Contenu inapproprié',
     'Spam ou arnaque',
     'Harcèlement ou discours haineux',
-    "Faux compte ou usurpation d'identité",
+    'Faux compte ou usurpation d\'identité',
   ];
 
   const overlay = document.createElement('div');
@@ -242,9 +241,8 @@ async function handleReport(article, postId) {
     try {
       await reportPost(postId, selectedReason);
       showNotification('Publication signalée. Merci pour votre contribution.');
-      const reportBtn = article.querySelector('.btn-report');
-      reportBtn.textContent = 'Signalée ✓';
-      reportBtn.disabled = true;
+      article.querySelector('.btn-report').textContent = 'Signalée ✓';
+      article.querySelector('.btn-report').disabled = true;
     } catch (error) {
       console.error('Erreur lors du signalement :', error);
       showNotification('Échec du signalement', true);
@@ -254,7 +252,7 @@ async function handleReport(article, postId) {
 
 /**
  * Affiche ou masque la section des commentaires d'une publication.
- * @param {HTMLElement} article Élément article de la publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
  */
 function toggleComments(article) {
   const section = article.querySelector('.comments-section');
@@ -263,7 +261,7 @@ function toggleComments(article) {
 
 /**
  * Gère la soumission du formulaire d'ajout de commentaire.
- * @param {HTMLElement} article Élément article de la publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
  * @param {number} postId Identifiant de la publication.
  * @param {string} text Contenu du commentaire.
  */
@@ -291,8 +289,8 @@ async function handleAddComment(article, postId, text) {
 
     input.value = '';
   } catch (error) {
-    console.error("Erreur lors de l'ajout du commentaire :", error);
-    showNotification("Échec de l'ajout du commentaire", true);
+    console.error('Erreur lors de l\'ajout du commentaire :', error);
+    showNotification('Échec de l\'ajout du commentaire', true);
   } finally {
     form.querySelector('.btn-send-comment').disabled = false;
   }
@@ -340,8 +338,8 @@ function setupEventDelegation(container) {
       return;
     }
 
-    if (event.target.closest('.btn-share')) {
-      handleShare(postId);
+    if (event.target.closest('.btn-republish')) {
+      handleRepublish(postId);
       return;
     }
 
@@ -403,4 +401,15 @@ export async function mount() {
   container.innerHTML = posts.map(createPostElement).join('');
 
   setupEventDelegation(container);
+  
+  // Ajouter les event listeners pour ouvrir le modal
+  posts.forEach((post) => {
+    const mediaElements = document.querySelectorAll(`[data-post-id="${post.id}"].post-media-clickable`);
+    mediaElements.forEach((media) => {
+      media.style.cursor = 'pointer';
+      media.addEventListener('click', () => {
+        showPostModal(post);
+      });
+    });
+  });
 }

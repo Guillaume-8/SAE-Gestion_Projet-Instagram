@@ -11,6 +11,7 @@ import { render as renderMessages, mount as mountMessages } from './views/messag
 import { render as renderPublish, mount as mountPublish } from './views/publish.js';
 import { render as renderSettings, mount as mountSettings } from './views/settings.js';
 import { render as renderSaved, mount as mountSaved } from './views/saved.js';
+import { render as renderEditProfile, mount as mountEditProfile } from './views/edit-profile.js';
 
 /**
  * Table des routes enregistrées.
@@ -21,6 +22,7 @@ const ROUTES = {
   '#/': {render: renderFeed, mount: mountFeed, hideHeader: false},
   '#/login': {render: renderLogin, mount: mountLogin, hideHeader: true},
   '#/profile': {render: renderProfile, mount: mountProfile, hideHeader: false},
+  '#/edit-profile': {render: renderEditProfile, mount: mountEditProfile, hideHeader: false},
   '#/explore': {render: renderExplore, mount: mountExplore, hideHeader: false},
   '#/publish': {render: renderPublish, mount: mountPublish, hideHeader: false},
   '#/messages': {render: renderMessages, mount: mountMessages, hideHeader: false},

@@ -3,6 +3,7 @@
  */
 
 import { getCurrentUser } from '../api.js';
+import { showPostModal } from '../post-modal.js';
 
 /**
  * Échappe les caractères HTML.
@@ -51,7 +52,10 @@ function buildProfileHtml(user) {
       </div>
       <div class="profile-info">
         <div class="profile-top-row">
-          <h2 class="profile-username">${escapeHtml(user.username)}</h2>
+          <div class="profile-names">
+            <h2 class="profile-name">${escapeHtml(user.name)}</h2>
+            <h2 class="profile-username">${escapeHtml(user.username)}</h2>
+          </div>
           <button class="btn-edit-profile">Modifier le profil</button>
         </div>
         <div class="profile-stats">
@@ -73,7 +77,7 @@ function buildProfileHtml(user) {
         🔖 Enregistrés
       </button>
       <button class="profile-tab" data-tab="tagged">
-        🏷 Identifié
+        🏷é Identifié
       </button>
     </div>
 
@@ -81,22 +85,6 @@ function buildProfileHtml(user) {
       ${postsGrid}
     </div>
   `;
-}
-
-/**
- * Affiche un toast.
- * @param {string} message Message à afficher.
- */
-function showToast(message) {
-  const notif = document.createElement('div');
-  notif.className = 'toast-notification';
-  notif.textContent = message;
-  document.body.appendChild(notif);
-  requestAnimationFrame(() => notif.classList.add('toast-visible'));
-  setTimeout(() => {
-    notif.classList.remove('toast-visible');
-    notif.addEventListener('transitionend', () => notif.remove(), {once: true});
-  }, 3000);
 }
 
 /**
@@ -110,30 +98,38 @@ export async function mount() {
     const user = await getCurrentUser();
     container.innerHTML = buildProfileHtml(user);
 
+    // Onglets du profil
     const tabs = container.querySelectorAll('.profile-tab');
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
         tabs.forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
+        // TODO: charger le contenu de l'onglet quand l'API sera prête
       });
     });
 
+    // Bouton "Modifier le profil"
     const editBtn = container.querySelector('.btn-edit-profile');
     if (editBtn) {
       editBtn.addEventListener('click', () => {
-        showToast('Édition du profil — bientôt disponible !');
+        window.location.hash = '#/edit-profile';
       });
     }
 
+    // Thumbnails cliquables pour ouvrir le modal
     const thumbs = container.querySelectorAll('.profile-post-thumb');
     thumbs.forEach((thumb) => {
+      thumb.style.cursor = 'pointer';
       thumb.addEventListener('click', () => {
-        const postId = thumb.dataset.postId;
-        showToast('Ouverture de la publication #' + postId);
+        const postId = parseInt(thumb.dataset.postId);
+        const post = user.posts.find((p) => p.id === postId);
+        if (post) {
+          showPostModal(post);
+        }
       });
     });
   } catch (error) {
-    container.innerHTML = '<p class="error-message">Erreur lors du chargement du profil.</p>';
+    container.innerHTML = `<p class="error-message">Erreur lors du chargement du profil.</p>`;
     console.error('Erreur profil :', error);
   }
 }

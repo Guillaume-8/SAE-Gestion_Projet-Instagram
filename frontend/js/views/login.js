@@ -68,7 +68,7 @@ function toggleAuthMode() {
     inputEmail.placeholder = 'eren_rt';
     submitBtn.textContent = 'Se connecter';
     switchText.textContent = 'Pas de compte ?';
-    switchBtn.textContent = "S'inscrire";
+    switchBtn.textContent = 'S\'inscrire';
   } else {
     fieldName.hidden = false;
     inputEmail.placeholder = 'eren_rt';
@@ -100,7 +100,7 @@ async function handleAuthSubmit(event) {
       await loginUser(email, password);
     } else {
       if (!name) throw new Error('Veuillez saisir votre nom');
-      await registerUser(name, email, password);
+      await registerUser(email, name, password, email);
     }
 
     window.location.hash = '#/feed';

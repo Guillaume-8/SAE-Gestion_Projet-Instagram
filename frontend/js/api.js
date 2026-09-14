@@ -15,6 +15,9 @@ import {
 const USE_MOCK = true;
 const API_BASE_URL = '/api';
 
+// Variable globale pour stocker l'utilisateur actuellement connecté
+let currentUser = structuredClone(MOCK_USER);
+
 // ============================================================
 //  FIL D'ACTUALITÉ
 // ============================================================
@@ -328,11 +331,13 @@ export async function loginUser(username, password) {
  * @param {string} password Mot de passe.
  * @return {Promise<Object>} Utilisateur créé.
  */
-export async function registerUser(username, email, password) {
+export async function registerUser(username, name, password, email) {
   if (USE_MOCK) {
-    if (!username || !email || !password) {
+    if (!username || !name || !password) {
       throw new Error('Veuillez remplir tous les champs');
     }
+    currentUser.username = username;
+    currentUser.avatar = MOCK_USER.avatar;
     return Promise.resolve({
       success: true,
       user: {id: Date.now(), username, avatar: MOCK_USER.avatar},
@@ -370,6 +375,100 @@ export async function getCurrentUser() {
     return await response.json();
   } catch (error) {
     console.error('Échec de récupération du profil :', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère un post spécifique par son ID (données fraîches).
+ * @param {number} postId Identifiant de la publication.
+ * @return {Promise<Object>} Les données fraîches du post.
+ */
+export async function getPostById(postId) {
+  if (USE_MOCK) {
+    const post = MOCK_POSTS.find((p) => p.id === postId);
+    if (!post) throw new Error('Publication introuvable');
+    return Promise.resolve(structuredClone(post));
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/posts/${postId}`);
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de récupération du post :', error);
+    throw error;
+  }
+}
+
+/**
+ * Republier une publication sur le profil de l'utilisateur actuel.
+ * @param {number} postId Identifiant de la publication à republier.
+ * @return {Promise<Object>} La nouvelle publication créée.
+ */
+export async function republishPost(postId) {
+  if (USE_MOCK) {
+    const originalPost = MOCK_POSTS.find((p) => p.id === postId);
+    if (!originalPost) throw new Error('Publication introuvable');
+    const newPost = {
+      id: Date.now(),
+      author: currentUser.username,
+      avatar: currentUser.avatar,
+      mediaUrl: originalPost.mediaUrl,
+      isVideo: originalPost.isVideo,
+      caption: '🔄 Republié de ' + originalPost.author + ': ' + originalPost.caption,
+      likesCount: 0,
+      dislikesCount: 0,
+      visibility: 'public',
+      comments: [],
+      createdAt: "À l'instant",
+    };
+    MOCK_POSTS.unshift(newPost);
+    currentUser.posts.unshift(structuredClone(newPost));
+    return Promise.resolve({
+      success: true,
+      post: newPost,
+    });
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/posts/${postId}/republish`, {
+      method: 'POST',
+    });
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de la republication :', error);
+    throw error;
+  }
+}
+
+/**
+ * Met à jour le profil de l'utilisateur connecté.
+ * @param {string} username Nouveau nom d'utilisateur.
+ * @param {string} avatar URL de la nouvelle photo de profil.
+ * @return {Promise<Object>} Utilisateur mis à jour.
+ */
+export async function updateProfile(username, avatar) {
+  if (USE_MOCK) {
+    if (!username || !avatar) {
+      throw new Error('Veuillez remplir tous les champs');
+    }
+    currentUser.username = username;
+    currentUser.avatar = avatar;
+    return Promise.resolve({
+      success: true,
+      user: structuredClone(currentUser),
+    });
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, avatar}),
+    });
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de mise à jour du profil :', error);
     throw error;
   }
 }
