@@ -19,7 +19,25 @@ function escapeHtml(text) {
  * Ouvre le modal avec les détails d'une publication.
  * @param {Object} post Données de la publication.
  */
-export function showPostModal(post) {
+export function showPostModal(partialPost) {
+  // Fetch full post data — profile/explore pass partial objects
+  // (id/mediaUrl only) that lack comments, caption, likesCount, etc.
+  // Falls back to the partial data if the fetch fails.
+  getPostById(partialPost.id)
+    .then((freshPost) => {
+      renderModal(freshPost);
+    })
+    .catch((error) => {
+      console.error('Impossible de récupérer le post complet:', error);
+      renderModal(partialPost);
+    });
+}
+
+/**
+ * Génère et insère le HTML du modal avec les données complètes du post.
+ * @param {Object} post Données complètes de la publication.
+ */
+function renderModal(post) {
   // Crée le HTML du modal
   const modalHtml = `
     <div class="post-modal-overlay" id="post-modal-overlay">
@@ -28,7 +46,7 @@ export function showPostModal(post) {
         
         <div class="post-modal-body">
           <div class="post-modal-media">
-            ${post.isVideo 
+            ${post.isVideo
               ? `<video controls src="${post.mediaUrl}" class="modal-media"></video>`
               : `<img src="${post.mediaUrl}" alt="Publication" class="modal-media">`
             }
@@ -36,16 +54,16 @@ export function showPostModal(post) {
           
           <div class="post-modal-sidebar">
             <div class="post-modal-header">
-              <img src="${post.avatar}" alt="${escapeHtml(post.author)}" class="modal-avatar">
-              <span class="modal-author">${escapeHtml(post.author)}</span>
+              <img src="${post.avatar || ''}" alt="${escapeHtml(post.author || '')}" class="modal-avatar">
+              <span class="modal-author">${escapeHtml(post.author || '')}</span>
             </div>
             
             <div class="post-modal-caption">
-              <p>${escapeHtml(post.caption)}</p>
+              <p>${escapeHtml(post.caption || '')}</p>
             </div>
             
             <div class="post-modal-comments" id="post-modal-comments">
-              ${post.comments.map(comment => `
+              ${(post.comments || []).map(comment => `
                 <div class="modal-comment" data-comment-id="${comment.id}">
                   <span class="comment-author">${escapeHtml(comment.author)}</span>
                   <span class="comment-text">${escapeHtml(comment.text)}</span>
@@ -60,10 +78,10 @@ export function showPostModal(post) {
             
             <div class="post-modal-actions">
               <button class="btn-modal-like" data-post-id="${post.id}" title="J'aime">
-                ❤️ <span class="modal-like-count">${post.likesCount}</span>
+                ❤️ <span class="modal-like-count">${post.likesCount || 0}</span>
               </button>
               <button class="btn-modal-dislike" data-post-id="${post.id}" title="Je n'aime pas">
-                👎 <span class="modal-dislike-count">${post.dislikesCount}</span>
+                👎 <span class="modal-dislike-count">${post.dislikesCount || 0}</span>
               </button>
               <button class="btn-modal-republish" data-post-id="${post.id}" title="Republier">
                 🔄 Republier
@@ -74,8 +92,8 @@ export function showPostModal(post) {
             </div>
             
             <div class="post-modal-meta">
-              <span>${escapeHtml(post.createdAt)}</span>
-              <span>${post.visibility}</span>
+              <span>${escapeHtml(post.createdAt || '')}</span>
+              <span>${post.visibility || ''}</span>
             </div>
           </div>
         </div>
@@ -107,7 +125,7 @@ export function showPostModal(post) {
       // Mettre à jour les commentaires
       const commentsContainer = document.getElementById('post-modal-comments');
       if (commentsContainer) {
-        commentsContainer.innerHTML = post.comments.map(comment => `
+        commentsContainer.innerHTML = (post.comments || []).map(comment => `
           <div class="modal-comment" data-comment-id="${comment.id}">
             <span class="comment-author">${escapeHtml(comment.author)}</span>
             <span class="comment-text">${escapeHtml(comment.text)}</span>

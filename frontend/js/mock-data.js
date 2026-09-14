@@ -37,6 +37,7 @@ export const MOCK_POSTS = [
 export const MOCK_USER = {
   id: 1,
   username: 'eren_rt',
+  name: 'Eren',
   avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
   bio: 'Responsable Front-End | BUT R&T 3ème année | SAÉ 5.02',
   postsCount: 6,

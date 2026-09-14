@@ -367,7 +367,7 @@ export async function registerUser(username, name, password, email) {
  */
 export async function getCurrentUser() {
   if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_USER));
+    return Promise.resolve(structuredClone(currentUser));
   }
   try {
     const response = await fetch(`${API_BASE_URL}/users/me`);
@@ -443,17 +443,22 @@ export async function republishPost(postId) {
 
 /**
  * Met à jour le profil de l'utilisateur connecté.
- * @param {string} username Nouveau nom d'utilisateur.
- * @param {string} avatar URL de la nouvelle photo de profil.
+ * @param {Object} profileData Données à mettre à jour.
+ * @param {string} profileData.username Nom d'utilisateur.
+ * @param {string=} profileData.name Nom complet.
+ * @param {string=} profileData.bio Biographie.
+ * @param {string} profileData.avatar URL ou data URL de la photo.
  * @return {Promise<Object>} Utilisateur mis à jour.
  */
-export async function updateProfile(username, avatar) {
+export async function updateProfile(profileData) {
   if (USE_MOCK) {
-    if (!username || !avatar) {
-      throw new Error('Veuillez remplir tous les champs');
+    if (!profileData.username || !profileData.avatar) {
+      throw new Error('Veuillez remplir tous les champs obligatoires');
     }
-    currentUser.username = username;
-    currentUser.avatar = avatar;
+    currentUser.username = profileData.username;
+    currentUser.avatar = profileData.avatar;
+    if (profileData.name !== undefined) currentUser.name = profileData.name;
+    if (profileData.bio !== undefined) currentUser.bio = profileData.bio;
     return Promise.resolve({
       success: true,
       user: structuredClone(currentUser),
@@ -463,7 +468,7 @@ export async function updateProfile(username, avatar) {
     const response = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username, avatar}),
+      body: JSON.stringify(profileData),
     });
     if (!response.ok) throw new Error(`Erreur: ${response.status}`);
     return await response.json();
