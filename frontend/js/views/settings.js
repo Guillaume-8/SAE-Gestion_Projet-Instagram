@@ -32,7 +32,6 @@ export function render() {
       <div class="settings-container">
         <h1 class="settings-title">Paramètres</h1>
 
-        <!-- Section : Comment vous utilisez InstaClone -->
         <section class="settings-section">
           <h2 class="settings-section-title">Comment vous utilisez InstaClone</h2>
 
@@ -49,7 +48,6 @@ export function render() {
           </button>
         </section>
 
-        <!-- Section : Ce que vous voyez -->
         <section class="settings-section">
           <h2 class="settings-section-title">Ce que vous voyez</h2>
 
@@ -66,7 +64,6 @@ export function render() {
           </button>
         </section>
 
-        <!-- Section : Média -->
         <section class="settings-section">
           <h2 class="settings-section-title">Média</h2>
 
@@ -77,7 +74,6 @@ export function render() {
           </button>
         </section>
 
-        <!-- Section : Support -->
         <section class="settings-section">
           <h2 class="settings-section-title">Support</h2>
 
@@ -100,7 +96,6 @@ export function render() {
           </button>
         </section>
 
-        <!-- Version -->
         <p class="settings-version">InstaClone v1.0.0 — SAÉ 5.02 BUT R&T</p>
       </div>
     </div>
@@ -129,7 +124,7 @@ function handleSettingsAction(action) {
       showToast('Paramètres de partage — bientôt disponible');
       break;
     case 'help':
-      showToast('Centre d\\'aide — bientôt disponible');
+      showToast("Centre d'aide — bientôt disponible");
       break;
     case 'contact':
       showToast('Contact — bientôt disponible');

@@ -75,7 +75,7 @@ export async function createPost(postData) {
       dislikesCount: 0,
       visibility: postData.visibility,
       comments: [],
-      createdAt: 'À l\'instant',
+      createdAt: "À l'instant",
     };
     MOCK_POSTS.unshift(newPost);
     return Promise.resolve(newPost);
@@ -263,8 +263,8 @@ export async function addComment(postId, text) {
     const newComment = {
       id: Date.now(),
       author: 'moi',
-      text,
-      createdAt: 'À l\'instant',
+      text: text,
+      createdAt: "À l'instant",
     };
     post.comments.push(newComment);
     return Promise.resolve(newComment);
@@ -278,7 +278,7 @@ export async function addComment(postId, text) {
     if (!response.ok) throw new Error(`Erreur: ${response.status}`);
     return await response.json();
   } catch (error) {
-    console.error('Échec de l\'ajout de commentaire :', error);
+    console.error("Échec de l'ajout de commentaire :", error);
     throw error;
   }
 }
@@ -347,7 +347,7 @@ export async function registerUser(username, email, password) {
     if (!response.ok) throw new Error(`Erreur: ${response.status}`);
     return await response.json();
   } catch (error) {
-    console.error('Échec de l\'inscription :', error);
+    console.error("Échec de l'inscription :", error);
     throw error;
   }
 }
@@ -449,8 +449,8 @@ export async function sendMessage(conversationId, text) {
     const newMessage = {
       id: Date.now(),
       sender: 'me',
-      text,
-      createdAt: 'À l\'instant',
+      text: text,
+      createdAt: "À l'instant",
     };
     conv.messages.push(newMessage);
     return Promise.resolve(newMessage);
@@ -467,7 +467,7 @@ export async function sendMessage(conversationId, text) {
     if (!response.ok) throw new Error(`Erreur: ${response.status}`);
     return await response.json();
   } catch (error) {
-    console.error('Échec de l\'envoi du message :', error);
+    console.error("Échec de l'envoi du message :", error);
     throw error;
   }
 }

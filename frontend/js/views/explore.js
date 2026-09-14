@@ -83,32 +83,25 @@ export async function mount() {
       getHashtags(),
     ]);
 
-    // Affichage des hashtags
     hashtagsList.innerHTML = hashtags.map(createHashtagHtml).join('');
-
-    // Affichage des publications tendance
     grid.innerHTML = trendingPosts.map(createTrendingThumbHtml).join('');
 
-    // Clic sur un hashtag → filtrage (placeholder)
     hashtagsList.querySelectorAll('.hashtag-chip').forEach((chip) => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const tag = chip.dataset.tag;
         if (searchInput) {
           searchInput.value = tag;
-          // TODO: filtrer les publications par hashtag
         }
       });
     });
 
-    // Clic sur une publication → ouvrir le détail (placeholder)
     grid.querySelectorAll('.explore-tile').forEach((tile) => {
       tile.addEventListener('click', () => {
         // TODO: ouvrir la publication en mode détail
       });
     });
 
-    // Recherche en temps réel (placeholder)
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         const query = e.target.value.trim().toLowerCase();

@@ -1,6 +1,6 @@
 /**
- * @fileoverview Gestion de l'affichage du fil d'actualité et des interactions.
- * Fonctionne comme une "vue" importée par le routeur SPA.
+ * @fileoverview Vue du fil d'actualité : affichage des publications
+ * et interactions (like, dislike, partage, signalement, commentaires).
  */
 
 import {
@@ -47,7 +47,7 @@ function createCommentElement(comment) {
 function createPostElement(post) {
   const mediaHtml = post.isVideo
     ? `<video controls src="${post.mediaUrl}"></video>`
-    : `<img src="${post.mediaUrl}" alt="Publication de ${post.author}">`;
+    : `<img src="${post.mediaUrl}" alt="Publication de ${escapeHtml(post.author)}">`;
 
   const commentsHtml = post.comments.map(createCommentElement).join('');
   const commentsCount = post.comments.length;
@@ -59,7 +59,7 @@ function createPostElement(post) {
     <article class="post-card" data-post-id="${post.id}">
       <header class="post-header">
         <div class="post-user">
-          <img src="${post.avatar}" alt="${post.author}" class="avatar">
+          <img src="${post.avatar}" alt="${escapeHtml(post.author)}" class="avatar">
           <span class="username">${escapeHtml(post.author)}</span>
         </div>
         <button class="btn-report" title="Signaler la publication">Signaler</button>
@@ -92,7 +92,7 @@ function createPostElement(post) {
         <button class="btn-view-comments">
           Voir les ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}
         </button>
-        <time class="post-time">${post.createdAt}</time>
+        <time class="post-time">${escapeHtml(post.createdAt)}</time>
       </div>
 
       <section class="comments-section hidden">
@@ -115,7 +115,7 @@ function createPostElement(post) {
 
 /**
  * Gère le clic sur le bouton "J'aime" d'une publication.
- * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {HTMLElement} article Élément article de la publication.
  * @param {number} postId Identifiant de la publication.
  */
 async function handleLike(article, postId) {
@@ -142,7 +142,7 @@ async function handleLike(article, postId) {
 
 /**
  * Gère le clic sur le bouton "Je n'aime pas" d'une publication.
- * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {HTMLElement} article Élément article de la publication.
  * @param {number} postId Identifiant de la publication.
  */
 async function handleDislike(article, postId) {
@@ -186,7 +186,7 @@ async function handleShare(postId) {
 
 /**
  * Gère le clic sur le bouton "Signaler" d'une publication.
- * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {HTMLElement} article Élément article de la publication.
  * @param {number} postId Identifiant de la publication.
  */
 async function handleReport(article, postId) {
@@ -194,7 +194,7 @@ async function handleReport(article, postId) {
     'Contenu inapproprié',
     'Spam ou arnaque',
     'Harcèlement ou discours haineux',
-    'Faux compte ou usurpation d\'identité',
+    "Faux compte ou usurpation d'identité",
   ];
 
   const overlay = document.createElement('div');
@@ -242,8 +242,9 @@ async function handleReport(article, postId) {
     try {
       await reportPost(postId, selectedReason);
       showNotification('Publication signalée. Merci pour votre contribution.');
-      article.querySelector('.btn-report').textContent = 'Signalée ✓';
-      article.querySelector('.btn-report').disabled = true;
+      const reportBtn = article.querySelector('.btn-report');
+      reportBtn.textContent = 'Signalée ✓';
+      reportBtn.disabled = true;
     } catch (error) {
       console.error('Erreur lors du signalement :', error);
       showNotification('Échec du signalement', true);
@@ -253,7 +254,7 @@ async function handleReport(article, postId) {
 
 /**
  * Affiche ou masque la section des commentaires d'une publication.
- * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {HTMLElement} article Élément article de la publication.
  */
 function toggleComments(article) {
   const section = article.querySelector('.comments-section');
@@ -262,7 +263,7 @@ function toggleComments(article) {
 
 /**
  * Gère la soumission du formulaire d'ajout de commentaire.
- * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {HTMLElement} article Élément article de la publication.
  * @param {number} postId Identifiant de la publication.
  * @param {string} text Contenu du commentaire.
  */
@@ -290,8 +291,8 @@ async function handleAddComment(article, postId, text) {
 
     input.value = '';
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du commentaire :', error);
-    showNotification('Échec de l\'ajout du commentaire', true);
+    console.error("Erreur lors de l'ajout du commentaire :", error);
+    showNotification("Échec de l'ajout du commentaire", true);
   } finally {
     form.querySelector('.btn-send-comment').disabled = false;
   }

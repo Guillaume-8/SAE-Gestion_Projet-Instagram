@@ -9,17 +9,6 @@ let selectedMediaType = null;
 let mediaPreviewUrl = null;
 
 /**
- * Échappe les caractères HTML.
- * @param {string} text Texte à échapper.
- * @return {string} Texte échappé.
- */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
-}
-
-/**
  * Rend le squelette HTML de la vue Publication.
  * @return {string} HTML de la vue.
  */
@@ -29,7 +18,6 @@ export function render() {
       <div class="publish-card">
         <h2 class="publish-title">Créer une publication</h2>
 
-        <!-- Zone d'upload -->
         <div class="upload-zone" id="upload-zone">
           <div class="upload-placeholder" id="upload-placeholder">
             <span class="upload-icon">📷</span>
@@ -37,18 +25,13 @@ export function render() {
             <p class="upload-subtext">ou cliquez pour parcourir</p>
             <p class="upload-formats">Formats : JPG, PNG, GIF, MP4, WebM (max 50 Mo)</p>
           </div>
-          <div class="upload-preview hidden" id="upload-preview">
-            <!-- Le média preview sera injecté ici -->
-          </div>
+          <div class="upload-preview hidden" id="upload-preview"></div>
           <input type="file" id="file-input" accept="image/*,video/*" hidden>
         </div>
 
-        <!-- Bouton changer de média (masqué tant que rien n'est sélectionné) -->
         <button class="btn-change-media hidden" id="btn-change-media">Changer le média</button>
 
-        <!-- Formulaire de publication -->
         <form class="publish-form" id="publish-form">
-          <!-- Légende -->
           <div class="form-field">
             <label for="publish-caption">Légende</label>
             <textarea
@@ -60,7 +43,6 @@ export function render() {
             <span class="char-count"><span id="char-count">0</span>/2200</span>
           </div>
 
-          <!-- Hashtags -->
           <div class="form-field">
             <label for="publish-hashtags">Hashtags</label>
             <input
@@ -72,7 +54,6 @@ export function render() {
             <span class="field-hint">Séparez les hashtags par des espaces</span>
           </div>
 
-          <!-- Visibilité -->
           <div class="form-field">
             <label>Visibilité</label>
             <div class="visibility-options">
@@ -99,7 +80,6 @@ export function render() {
             </div>
           </div>
 
-          <!-- Filtres / retouche (placeholder pour Tanguy & Jonathan) -->
           <div class="form-field">
             <label>Filtres et retouche</label>
             <div class="filters-placeholder" id="filters-placeholder">
@@ -110,10 +90,8 @@ export function render() {
             </div>
           </div>
 
-          <!-- Message d'erreur -->
           <p class="publish-error" id="publish-error" hidden></p>
 
-          <!-- Boutons -->
           <div class="publish-actions">
             <button type="button" class="btn-cancel" id="btn-cancel-publish">Annuler</button>
             <button type="submit" class="btn-publish" id="btn-publish" disabled>
@@ -139,14 +117,12 @@ function handleFileSelect(file) {
 
   errorEl.hidden = true;
 
-  // Valider le type
   if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
     errorEl.textContent = 'Format non supporté. Utilisez une image ou une vidéo.';
     errorEl.hidden = false;
     return;
   }
 
-  // Valider la taille (50 Mo max)
   const maxSize = 50 * 1024 * 1024;
   if (file.size > maxSize) {
     errorEl.textContent = 'Le fichier dépasse 50 Mo.';
@@ -157,17 +133,15 @@ function handleFileSelect(file) {
   selectedFile = file;
   selectedMediaType = file.type.startsWith('video/') ? 'video' : 'image';
 
-  // Révoquer l'ancienne URL d'aperçu
   if (mediaPreviewUrl) {
     URL.revokeObjectURL(mediaPreviewUrl);
   }
   mediaPreviewUrl = URL.createObjectURL(file);
 
-  // Construire l'aperçu
   if (selectedMediaType === 'video') {
-    preview.innerHTML = `<video controls src="${mediaPreviewUrl}"></video>`;
+    preview.innerHTML = '<video controls src="' + mediaPreviewUrl + '"></video>';
   } else {
-    preview.innerHTML = `<img src="${mediaPreviewUrl}" alt="Aperçu de la publication">`;
+    preview.innerHTML = '<img src="' + mediaPreviewUrl + '" alt="Aperçu de la publication">';
   }
 
   placeholder.classList.add('hidden');
@@ -201,63 +175,13 @@ function resetMediaSelection() {
 }
 
 /**
- * Gère la soumission du formulaire de publication.
- */
-async function handlePublishSubmit() {
-  const caption = document.getElementById('publish-caption').value.trim();
-  const hashtags = document.getElementById('publish-hashtags').value.trim();
-  const visibility = document.querySelector(
-    'input[name="visibility"]:checked',
-  ).value;
-  const errorEl = document.getElementById('publish-error');
-  const publishBtn = document.getElementById('btn-publish');
-
-  // Construire la légende complète avec hashtags
-  let fullCaption = caption;
-  if (hashtags) {
-    fullCaption = `${caption} ${hashtags}`.trim();
-  }
-
-  errorEl.hidden = true;
-  publishBtn.disabled = true;
-  publishBtn.textContent = 'Publication...';
-
-  try {
-    await createPost({
-      mediaFile: selectedFile,
-      mediaType: selectedMediaType,
-      caption: fullCaption,
-      visibility,
-    });
-
-    // Notification de succès
-    showNotification('Publication créée avec succès !');
-
-    // Réinitialiser le formulaire
-    document.getElementById('publish-form').reset();
-    document.getElementById('char-count').textContent = '0';
-    resetMediaSelection();
-
-    // Rediriger vers le fil d'actualité
-    setTimeout(() => {
-      window.location.hash = '#/feed';
-    }, 1200);
-  } catch (error) {
-    errorEl.textContent = error.message || 'Erreur lors de la publication.';
-    errorEl.hidden = false;
-    publishBtn.disabled = false;
-    publishBtn.textContent = 'Publier';
-  }
-}
-
-/**
  * Affiche une notification toast.
  * @param {string} message Message à afficher.
  * @param {boolean} isError Indique s'il s'agit d'une erreur.
  */
 function showNotification(message, isError = false) {
   const notif = document.createElement('div');
-  notif.className = `toast-notification${isError ? ' toast-error' : ''}`;
+  notif.className = 'toast-notification' + (isError ? ' toast-error' : '');
   notif.textContent = message;
   document.body.appendChild(notif);
 
@@ -272,6 +196,52 @@ function showNotification(message, isError = false) {
 }
 
 /**
+ * Gère la soumission du formulaire de publication.
+ */
+async function handlePublishSubmit() {
+  const caption = document.getElementById('publish-caption').value.trim();
+  const hashtags = document.getElementById('publish-hashtags').value.trim();
+  const visibility = document.querySelector(
+    'input[name="visibility"]:checked',
+  ).value;
+  const errorEl = document.getElementById('publish-error');
+  const publishBtn = document.getElementById('btn-publish');
+
+  let fullCaption = caption;
+  if (hashtags) {
+    fullCaption = (caption + ' ' + hashtags).trim();
+  }
+
+  errorEl.hidden = true;
+  publishBtn.disabled = true;
+  publishBtn.textContent = 'Publication...';
+
+  try {
+    await createPost({
+      mediaFile: selectedFile,
+      mediaType: selectedMediaType,
+      caption: fullCaption,
+      visibility: visibility,
+    });
+
+    showNotification('Publication créée avec succès !');
+
+    document.getElementById('publish-form').reset();
+    document.getElementById('char-count').textContent = '0';
+    resetMediaSelection();
+
+    setTimeout(() => {
+      window.location.hash = '#/feed';
+    }, 1200);
+  } catch (error) {
+    errorEl.textContent = error.message || 'Erreur lors de la publication.';
+    errorEl.hidden = false;
+    publishBtn.disabled = false;
+    publishBtn.textContent = 'Publier';
+  }
+}
+
+/**
  * Monte la vue : installe les event listeners.
  */
 export function mount() {
@@ -283,20 +253,16 @@ export function mount() {
   const caption = document.getElementById('publish-caption');
   const charCount = document.getElementById('char-count');
 
-  // Clic sur la zone d'upload → ouvrir le sélecteur de fichier
   uploadZone.addEventListener('click', (e) => {
-    // Ne pas déclencher si on clique sur la preview
     if (e.target.closest('#upload-preview')) return;
     fileInput.click();
   });
 
-  // Changement de fichier via l'input
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) handleFileSelect(file);
   });
 
-  // Drag & drop
   uploadZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadZone.classList.add('drag-over');
@@ -313,18 +279,15 @@ export function mount() {
     if (file) handleFileSelect(file);
   });
 
-  // Bouton changer de média
   changeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     fileInput.click();
   });
 
-  // Compteur de caractères
   caption.addEventListener('input', () => {
     charCount.textContent = caption.value.length;
   });
 
-  // Bouton annuler
   cancelBtn.addEventListener('click', () => {
     document.getElementById('publish-form').reset();
     charCount.textContent = '0';
@@ -332,7 +295,6 @@ export function mount() {
     window.location.hash = '#/feed';
   });
 
-  // Soumission du formulaire
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     handlePublishSubmit();

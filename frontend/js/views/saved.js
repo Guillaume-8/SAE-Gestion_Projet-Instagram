@@ -63,12 +63,10 @@ export async function mount() {
 
     grid.innerHTML = posts.map(createSavedTileHtml).join('');
 
-    // Clic sur une publication enregistrée
     grid.querySelectorAll('.saved-tile').forEach((tile) => {
       tile.addEventListener('click', () => {
-        // TODO: ouvrir la publication en mode détail
         const postId = tile.dataset.postId;
-        console.info(`[DEV] Ouverture de la publication #${postId}`);
+        console.info('[DEV] Ouverture de la publication #' + postId);
       });
     });
   } catch (error) {

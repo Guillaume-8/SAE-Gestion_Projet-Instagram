@@ -105,18 +105,18 @@ export const MOCK_CONVERSATIONS = [
     messages: [
       {id: 1, sender: 'them', text: 'Le certificat SSL est presque prêt', createdAt: '13:10'},
       {id: 2, sender: 'me', text: 'Super, je switch du temporaire quand ?', createdAt: '13:15'},
-      {id: 3, sender: 'them', text: 'Dès que j\'ai validé avec le prof', createdAt: '13:16'},
+      {id: 3, sender: 'them', text: "Dès que j'ai validé avec le prof", createdAt: '13:16'},
     ],
   },
   {
     id: 3,
     name: 'mathias_rt',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
-    lastMessage: 'L\'API REST renvoie les posts correctement',
+    lastMessage: "L'API REST renvoie les posts correctement",
     lastTime: 'Hier',
     unread: false,
     messages: [
-      {id: 1, sender: 'them', text: 'L\'API REST renvoie les posts correctement', createdAt: 'Hier 18:30'},
+      {id: 1, sender: 'them', text: "L'API REST renvoie les posts correctement", createdAt: 'Hier 18:30'},
       {id: 2, sender: 'me', text: 'Parfait, je teste le fetch ce soir', createdAt: 'Hier 18:35'},
     ],
   },

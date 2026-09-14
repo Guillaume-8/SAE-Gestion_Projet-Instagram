@@ -39,7 +39,7 @@ export function render() {
         <div class="chat-empty">
           <div class="chat-empty-icon">💬</div>
           <p>Vos messages</p>
-          <span>Selectionnez une conversation pour commencer à discuter.</span>
+          <span>Sélectionnez une conversation pour commencer à discuter.</span>
         </div>
       </section>
     </div>
@@ -52,9 +52,7 @@ export function render() {
  * @return {string} HTML de l'élément.
  */
 function createConversationItemHtml(conv) {
-  const unreadBadge = conv.unread
-    ? '<span class="unread-badge"></span>'
-    : '';
+  const unreadBadge = conv.unread ? '<span class="unread-badge"></span>' : '';
 
   return `
     <div class="conversation-item${conv.unread ? ' unread' : ''}" data-conv-id="${conv.id}">
@@ -120,7 +118,6 @@ function openConversation(convId) {
 
   currentConversationId = convId;
 
-  // Marquer comme lu
   conv.unread = false;
   const item = document.querySelector(`.conversation-item[data-conv-id="${convId}"]`);
   if (item) {
@@ -129,17 +126,14 @@ function openConversation(convId) {
     if (badge) badge.remove();
   }
 
-  // Injecter le chat
   const chatArea = document.getElementById('chat-area');
   chatArea.innerHTML = buildChatHtml(conv);
 
-  // Scroll en bas
   const messagesContainer = document.getElementById('chat-messages');
   if (messagesContainer) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
-  // Formulaire d'envoi de message
   const form = document.getElementById('chat-input-form');
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -154,7 +148,6 @@ function openConversation(convId) {
       try {
         const newMessage = await sendMessage(convId, text);
 
-        // Injecter le nouveau message
         const bubbleHtml = `
           <div class="message-bubble message-mine">
             <p>${escapeHtml(newMessage.text)}</p>
@@ -165,7 +158,7 @@ function openConversation(convId) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         input.value = '';
       } catch (error) {
-        console.error('Erreur d\'envoi de message :', error);
+        console.error("Erreur d'envoi de message :", error);
       } finally {
         sendBtn.disabled = false;
       }
@@ -190,7 +183,6 @@ export async function mount() {
 
     listContainer.innerHTML = conversationsData.map(createConversationItemHtml).join('');
 
-    // Clic sur une conversation
     listContainer.querySelectorAll('.conversation-item').forEach((item) => {
       item.addEventListener('click', () => {
         const convId = parseInt(item.dataset.convId, 10);
@@ -198,7 +190,6 @@ export async function mount() {
       });
     });
 
-    // Ouvrir automatiquement la première conversation
     if (conversationsData.length > 0) {
       openConversation(conversationsData[0].id);
     }

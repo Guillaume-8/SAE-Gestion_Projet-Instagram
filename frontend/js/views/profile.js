@@ -73,7 +73,7 @@ function buildProfileHtml(user) {
         🔖 Enregistrés
       </button>
       <button class="profile-tab" data-tab="tagged">
-        🏷é Identifié
+        🏷 Identifié
       </button>
     </div>
 
@@ -83,6 +83,21 @@ function buildProfileHtml(user) {
   `;
 }
 
+/**
+ * Affiche un toast.
+ * @param {string} message Message à afficher.
+ */
+function showToast(message) {
+  const notif = document.createElement('div');
+  notif.className = 'toast-notification';
+  notif.textContent = message;
+  document.body.appendChild(notif);
+  requestAnimationFrame(() => notif.classList.add('toast-visible'));
+  setTimeout(() => {
+    notif.classList.remove('toast-visible');
+    notif.addEventListener('transitionend', () => notif.remove(), {once: true});
+  }, 3000);
+}
 
 /**
  * Monte la vue : récupère les données et installe les listeners.
@@ -95,42 +110,30 @@ export async function mount() {
     const user = await getCurrentUser();
     container.innerHTML = buildProfileHtml(user);
 
-    // Onglets du profil
     const tabs = container.querySelectorAll('.profile-tab');
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
         tabs.forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
-        // TODO: charger le contenu de l'onglet quand l'API sera prête
       });
     });
 
-    // Bouton "Modifier le profil"
     const editBtn = container.querySelector('.btn-edit-profile');
     if (editBtn) {
       editBtn.addEventListener('click', () => {
-        // TODO: ouvrir un modal d'édition de profil
-        const event = new CustomEvent('show-notification', {
-          detail: {message: 'Édition du profil — bientôt disponible !'},
-        });
-        document.dispatchEvent(event);
+        showToast('Édition du profil — bientôt disponible !');
       });
     }
 
-    // Thumbnails cliquables
     const thumbs = container.querySelectorAll('.profile-post-thumb');
     thumbs.forEach((thumb) => {
       thumb.addEventListener('click', () => {
-        // TODO: ouvrir la publication en détail
         const postId = thumb.dataset.postId;
-        const event = new CustomEvent('show-notification', {
-          detail: {message: `Ouverture de la publication #${postId}`},
-        });
-        document.dispatchEvent(event);
+        showToast('Ouverture de la publication #' + postId);
       });
     });
   } catch (error) {
-    container.innerHTML = `<p class="error-message">Erreur lors du chargement du profil.</p>`;
+    container.innerHTML = '<p class="error-message">Erreur lors du chargement du profil.</p>';
     console.error('Erreur profil :', error);
   }
 }
