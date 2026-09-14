@@ -1,0 +1,31 @@
+Salut l'équipe !
+
+Ma partie "Administration et Modération" est terminée et testée (fichiers admin.html, adminRoutes.js, admin.test.js).
+Pour que mon code s'intègre parfaitement au vôtre sans faire crasher le projet global, voici les 4 modifications exactes à faire de votre côté :
+
+1. CORRECTION DU SCRIPT SQL (CRITIQUE) :
+Dans le script de création de la BDD, vous avez utilisé la syntaxe MySQL (`AUTO_INCREMENT`). Mais comme notre serveur Node.js est configuré pour SQLite (dans bdd.js), le code va planter.
+-> ACTION : Remplacez absolument tous les `AUTO_INCREMENT` par `AUTOINCREMENT` (sans le tiret du bas) dans la création des tables.
+
+2. AJOUTS DES COLONNES DANS LA BDD :
+Ma partie gère la sécurité (middleware admin), le masquage automatique et la suppression logique (soft-delete). 
+-> ACTION : Ajoutez ces colonnes dans votre script SQL :
+- Dans la table `Utilisateur` : Ajoutez -> `role VARCHAR(20) DEFAULT 'user',`
+- Dans la table `Publication` : Ajoutez -> `is_hidden BOOLEAN DEFAULT 0,` et `is_deleted BOOLEAN DEFAULT 0,`
+
+3. INTÉGRATION DANS LE SERVEUR (index.js) :
+Pour que mes routes et mon tableau de bord soient accessibles, il faut les lier au serveur principal.
+-> ACTION : Dans le fichier `index.js`, ajoutez ces lignes juste après vos `app.use(...)` (vers la ligne 19) :
+
+const adminRoutes = require('./adminRoutes.js');
+app.use('/api/admin', adminRoutes);
+app.get('/admin', (req, res) => {
+    res.sendFile(__dirname + '/admin.html');
+});
+
+4. INSTALLATION DES OUTILS DE TEST :
+Le professeur exige un Test Runner. J'ai rédigé le fichier admin.test.js.
+-> ACTION : Le responsable de l'environnement (celui qui a le package.json sur le main) doit taper cette commande dans son terminal pour que les tests fonctionnent chez tout le monde :
+npm install --save-dev jest supertest
+
+Merci ! N'hésitez pas si vous avez des questions sur l'utilisation du panel (accessible via localhost:3000/admin).
