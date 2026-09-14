@@ -1,0 +1,6 @@
+-- À rajouter dans la création de la table Utilisateur :
+role VARCHAR(20) DEFAULT 'user',
+
+-- À rajouter dans la création de la table Publication :
+is_hidden BOOLEAN DEFAULT 0,
+is_deleted BOOLEAN DEFAULT 0,

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Administration - Modération</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        body { background-color: #000; color: #f5f5f5; padding: 20px; }
+        .dashboard { max-width: 1000px; margin: 0 auto; background: #0a0a0a; border: 1px solid #262626; border-radius: 12px; padding: 20px; }
+        h1 { border-bottom: 1px solid #262626; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid #262626; }
+        th { color: #a8a8a8; font-size: 12px; text-transform: uppercase; }
+        .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; margin-right: 5px; }
+        .btn-danger { background: #ed4956; color: white; }
+        .btn-warning { background: #f0ad4e; color: white; }
+        .btn-success { background: #5cb85c; color: white; }
+        .empty-state { text-align: center; padding: 40px; color: #a8a8a8; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <h1>🚨 Centre de Modération</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Plaignant</th>
+                <th>Motif</th>
+                <th>Contenu du Post</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="reports-list">
+            <!-- Les signalements s'afficheront ici -->
+        </tbody>
+    </table>
+    <div id="empty-msg" class="empty-state" style="display: none;">Aucun signalement en attente.</div>
+</div>
+
+<script>
+    // Charger les signalements au démarrage
+    async function loadReports() {
+        const res = await fetch('/api/admin/reports');
+        const reports = await res.json();
+        
+        const tbody = document.getElementById('reports-list');
+        tbody.innerHTML = '';
+
+        if (reports.length === 0) {
+            document.getElementById('empty-msg').style.display = 'block';
+            return;
+        }
+        document.getElementById('empty-msg').style.display = 'none';
+
+        reports.forEach(report => {
+            const dateStr = new Date(report.date_signalement).toLocaleString('fr-FR');
+            tbody.innerHTML += `
+                <tr>
+                    <td>${dateStr}</td>
+                    <td>${report.plaignant}</td>
+                    <td><strong style="color:#ed4956;">${report.motif}</strong></td>
+                    <td>${report.texte_description || '<em>Média</em>'}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deletePost(${report.id_publication})">Supprimer le post</button>
+                        <button class="btn btn-warning" onclick="banUser(${report.id_utilisateur})">Bannir l'auteur</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // Actions d'administration
+    async function deletePost(postId) {
+        if (!confirm('Supprimer définitivement ce post ?')) return;
+        await fetch('/api/admin/post/' + postId, { method: 'DELETE' });
+        loadReports(); // Rafraîchir la liste
+    }
+
+    async function banUser(userId) {
+        const motif = prompt('Motif du bannissement ?');
+        if (!motif) return;
+        
+        await fetch('/api/admin/user/' + userId + '/ban', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ motif: motif, duree_jour: 7, est_definitif: false })
+        });
+        alert('Utilisateur banni.');
+        loadReports();
+    }
+
+    loadReports();
+</script>
+</body>
+</html>
