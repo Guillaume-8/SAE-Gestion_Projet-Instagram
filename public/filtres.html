@@ -1,0 +1,14 @@
+<input type="file" id="imageInput" accept="image/*">
+<canvas id="previewCanvas"></canvas>
+
+<button onclick="resetToOriginal()">Original</button>
+<button onclick="selectFilter('grayscale')">Noir & blanc</button>
+<button onclick="selectFilter('sepia')">Sépia</button>
+<button onclick="selectFilter('highContrast')">Contraste</button>
+<button onclick="selectFilter('brightness')">Luminosité</button>
+<button onclick="selectFilter('invert')">Négatif</button>
+<button onclick="selectFilter('saturate')">Saturation</button>
+<button onclick="selectFilter('warm')">Chaud</button>
+<button onclick="publishImage()">Publier</button>
+
+<script src="/js/filters.js"></script>

@@ -38,12 +38,20 @@ input.addEventListener('change', (e) => {
 });
 
 /**
+ * Limite une valeur entre 0 et 255.
+ * @param {number} value
+ * @returns {number}
+ */
+function clamp(value) {
+  return Math.max(0, Math.min(255, value));
+}
+
+/**
  * Applique un filtre sur les pixels actuellement affichés dans le canvas.
- * Modifie directement le buffer de pixels puis le réinjecte dans le canvas.
  *
  * @param {HTMLCanvasElement} canvas - Le canvas contenant l'image à filtrer.
  * @param {CanvasRenderingContext2D} ctx - Le contexte 2D du canvas.
- * @param {'grayscale'|'sepia'|'highContrast'} filterName - Le filtre à appliquer.
+ * @param {'grayscale'|'sepia'|'highContrast'|'brightness'|'invert'|'saturate'|'warm'} filterName
  * @returns {void}
  */
 function applyFilter(canvas, ctx, filterName) {
@@ -70,12 +78,48 @@ function applyFilter(canvas, ctx, filterName) {
     case 'highContrast': {
       const factor = 1.3;
       for (let i = 0; i < data.length; i += 4) {
-        data[i]     = (data[i] - 128) * factor + 128;
-        data[i + 1] = (data[i + 1] - 128) * factor + 128;
-        data[i + 2] = (data[i + 2] - 128) * factor + 128;
+        data[i]     = clamp((data[i] - 128) * factor + 128);
+        data[i + 1] = clamp((data[i + 1] - 128) * factor + 128);
+        data[i + 2] = clamp((data[i + 2] - 128) * factor + 128);
       }
       break;
     }
+
+    case 'brightness': {
+      const amount = 40;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = clamp(data[i] + amount);
+        data[i + 1] = clamp(data[i + 1] + amount);
+        data[i + 2] = clamp(data[i + 2] + amount);
+      }
+      break;
+    }
+
+    case 'invert':
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = 255 - data[i];
+        data[i + 1] = 255 - data[i + 1];
+        data[i + 2] = 255 - data[i + 2];
+      }
+      break;
+
+    case 'saturate': {
+      const factor = 1.5;
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i]     = clamp(avg + (data[i] - avg) * factor);
+        data[i + 1] = clamp(avg + (data[i + 1] - avg) * factor);
+        data[i + 2] = clamp(avg + (data[i + 2] - avg) * factor);
+      }
+      break;
+    }
+
+    case 'warm':
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = clamp(data[i] + 25);
+        data[i + 2] = clamp(data[i + 2] - 25);
+      }
+      break;
 
     default:
       break;
