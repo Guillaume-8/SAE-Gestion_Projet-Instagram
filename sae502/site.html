@@ -49,7 +49,7 @@
     .message-container.mine { align-self: flex-end; }
     .message-container.other { align-self: flex-start; }
 
-    .message-bubble { padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; word-break: break-word; position: relative; }
+    .message-bubble { padding: 10px 16px; border-radius: 22px; font-size: 14px; background: #262626; color: white; word-break: break-word; position: relative; display: flex; flex-direction: column; }
     .message-container.other .message-bubble { border-bottom-left-radius: 4px; }
     .message-container.mine .message-bubble { background: #3797f0; border-bottom-right-radius: 4px; }
     .message-time { font-size: 9px; opacity: 0.7; margin-top: 4px; display: block; }
@@ -66,7 +66,7 @@
     .message-actions span:hover { transform: scale(1.2); }
 
     /* Saisie + Emojis */
-    .chat-input-form { padding: 15px 20px; display: flex; background: #000; position: relative; }
+    .chat-input-form { padding: 15px 20px; display: flex; flex-direction: column; background: #000; position: relative; }
     .chat-input-wrapper { display: flex; flex: 1; align-items: center; background: #121212; border: 1px solid #262626; border-radius: 22px; padding: 4px 12px; gap: 8px; }
     .chat-input-wrapper input { flex: 1; background: transparent; border: none; color: white; outline: none; padding: 8px 0; font-size: 14px; }
     .btn-emoji { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; }
@@ -108,9 +108,18 @@
     .lightbox-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 200; }
     .lightbox-img { max-width: 90%; max-height: 90%; border-radius: 8px; object-fit: contain; }
     .lightbox-close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: white; cursor: pointer; font-weight: bold; }
+    /* Toast Notification */
+    #notification-toast { position: fixed; top: 20px; right: 20px; background: #262626; color: white; padding: 12px 16px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; border-left: 4px solid #0095f6; cursor: pointer; display: flex; flex-direction: column; gap: 4px; max-width: 300px; }
+    #notification-toast.show { transform: translateX(0); }
+    #toast-title { font-size: 13px; font-weight: 600; }
+    #toast-body { font-size: 12px; color: #a8a8a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 <body>
+  <div id="notification-toast" onclick="hideToast()">
+    <span id="toast-title">Nouveau message</span>
+    <span id="toast-body">...</span>
+  </div>
 
 <div class="messages-page">
   <aside class="conversations-sidebar">
@@ -176,6 +185,11 @@
       </div>
 
       <form class="chat-input-form" id="chat-input-form">
+        <div id="reply-preview-container" style="display: none; background: #262626; padding: 8px 12px; border-left: 4px solid #0095f6; margin-bottom: 5px; border-radius: 8px; position: relative;">
+          <span style="font-weight: bold; font-size: 12px; color: #0095f6;" id="reply-preview-sender"></span>
+          <p style="font-size: 12px; color: #a8a8a8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px;" id="reply-preview-text"></p>
+          <span id="btn-cancel-reply" style="position: absolute; right: 10px; top: 10px; cursor: pointer; color: #a8a8a8; font-size: 14px; font-weight: bold;">&times;</span>
+        </div>
         <div class="chat-input-wrapper">
           <button type="button" class="btn-emoji" id="btn-emoji" title="Ajouter un émoji">😊</button>
           <input type="text" id="chat-input" placeholder="Écrivez un message..." autocomplete="off">
@@ -183,8 +197,8 @@
           <button type="button" id="btn-attachment" title="Pièces jointes" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; color: #a8a8a8;">+</button>
           
           <div id="attachment-menu" style="display: none; position: absolute; bottom: 60px; right: 80px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 8px; flex-direction: column; gap: 4px; z-index: 60; width: 120px;">
-            <div class="users-dropdown-item" id="btn-menu-image" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">📷 Image</div>
-            <div class="users-dropdown-item" id="btn-menu-vocal" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">🎤 Vocal</div>
+            <div class="users-dropdown-item" id="btn-menu-image" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">Photo</div>
+            <div class="users-dropdown-item" id="btn-menu-vocal" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">Message vocal</div>
           </div>
 
           <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
@@ -236,6 +250,7 @@
         <span class="modal-close" onclick="document.getElementById('modal-message-options').style.display='none'">&times;</span>
       </div>
       <div class="modal-body" style="padding: 10px;">
+        <button id="btn-reply-message" class="btn-secondary" style="width: 100%; margin-bottom: 8px; background: #262626;">Répondre</button>
         <button id="btn-edit-message" class="btn-primary" style="width: 100%; margin-bottom: 8px;">Modifier</button>
         <button id="btn-delete-message" class="btn-secondary" style="width: 100%; background: #ed4956;">Supprimer</button>
       </div>
@@ -267,6 +282,60 @@
   let currentConversationId = null;
   let conversationsData = [];
   let lastMessageDate = null;
+  
+  let unreadCount = 0;
+  
+  document.body.addEventListener('click', () => {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, { once: true });
+
+  function playNotificationSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {}
+  }
+
+  let toastTimer;
+  function showToast(title, body, groupId) {
+    const toast = document.getElementById('notification-toast');
+    document.getElementById('toast-title').innerText = title;
+    document.getElementById('toast-body').innerText = body;
+    toast.onclick = () => {
+      openConversation(groupId);
+      hideToast();
+    };
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 4000);
+  }
+  
+  function hideToast() {
+    const toast = document.getElementById('notification-toast');
+    if (toast) toast.classList.remove('show');
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      unreadCount = 0;
+      document.title = "Messagerie LifeInvader";
+    }
+  });
+  
+
 
   function escapeHtml(text) {
     const div = document.createElement('div');
@@ -314,7 +383,13 @@
         dateDisplay = d.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       }
 
-      const previewText = (conv.lastMessage || '').startsWith('[IMAGE]:') ? '📷 Image' : escapeHtml(conv.lastMessage || '');
+      let rawText = conv.lastMessage || '';
+      if (rawText.startsWith('[REPLY:')) {
+        const closingIdx = rawText.indexOf(']');
+        if (closingIdx > -1) rawText = rawText.substring(closingIdx + 1);
+      }
+      
+      let previewText = rawText.startsWith('[IMAGE]:') ? '📷 Image' : (rawText.startsWith('[AUDIO]:') ? 'Message vocal' : escapeHtml(rawText));
 
       return `
         <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-conv-id="${conv.id}">
@@ -439,6 +514,28 @@
       `<span class="reaction-badge">${emoji} ${reactCounts[emoji] > 1 ? reactCounts[emoji] : ''}</span>`
     ).join('');
 
+    let replyHtml = '';
+    let parsedText = text || '';
+    if (parsedText.startsWith('[REPLY:')) {
+      const closingIdx = parsedText.indexOf(']');
+      if (closingIdx > -1) {
+        const b64 = parsedText.substring(7, closingIdx);
+        try {
+          const replyData = JSON.parse(atob(b64));
+          parsedText = parsedText.substring(closingIdx + 1);
+          let previewText = replyData.text;
+          if (previewText.startsWith('[IMAGE]:')) previewText = '📷 Image';
+          if (previewText.startsWith('[AUDIO]:')) previewText = 'Message vocal';
+          replyHtml = `
+            <div style="background: #000; padding: 10px 14px; border-left: 4px solid rgba(255, 255, 255, 0.4); border-radius: 14px; margin-bottom: 8px; font-size: 12px; width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis;">
+              <strong style="color: #fff; font-size: 13px;">${escapeHtml(replyData.sender)}</strong><br>
+              <span style="color: rgba(255, 255, 255, 0.85); white-space: nowrap;">${escapeHtml(previewText)}</span>
+            </div>
+          `;
+        } catch(e) {}
+      }
+    }
+
     div.innerHTML = `
       ${isMe ? '' : `
       <div class="message-actions">
@@ -448,9 +545,10 @@
         <span onclick="openEmojiPickerForReaction(${idMessage})">➕</span>
       </div>`}
       <div class="message-bubble">
-        ${text && text.startsWith('[IMAGE]:') ? `<img src="${text.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : 
-         (text && text.startsWith('[AUDIO]:') ? `<audio controls src="${text.substring(8)}" style="height: 35px; max-width: 200px; outline: none; margin-bottom: 5px; border-radius: 20px;"></audio>` : 
-         `<p id="msg-text-${idMessage}">${escapeHtml(text)}</p>`)}
+        ${replyHtml}
+        ${parsedText.startsWith('[IMAGE]:') ? `<img src="${parsedText.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : 
+         (parsedText.startsWith('[AUDIO]:') ? `<audio controls src="${parsedText.substring(8)}" style="height: 35px; max-width: 200px; outline: none; margin-bottom: 5px; border-radius: 20px;"></audio>` : 
+         `<p id="msg-text-${idMessage}">${escapeHtml(parsedText)}</p>`)}
         <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
           <span>${escapeHtml(sender)}</span>
           <span>${timeStr}</span>
@@ -463,12 +561,11 @@
     
     div.dataset.text = text || '';
     div.dataset.date = dateString || '';
-    const isTextMsg = !(text && (text.startsWith('[IMAGE]:') || text.startsWith('[AUDIO]:')));
+    const isTextMsg = !(parsedText.startsWith('[IMAGE]:') || parsedText.startsWith('[AUDIO]:'));
     
     let pressTimer;
     const startPress = () => {
-      if (!isMe) return;
-      pressTimer = setTimeout(() => openMessageOptions(idMessage, isTextMsg, div.dataset.date, div.dataset.text), 800);
+      pressTimer = setTimeout(() => openMessageOptions(idMessage, isTextMsg, div.dataset.date, div.dataset.text, isMe, sender), 800);
     };
     const clearPress = () => clearTimeout(pressTimer);
     
@@ -516,10 +613,12 @@
     socket.emit('send_message', {
       pseudonyme: currentUser,
       idGroupe: currentConversationId,
-      contenu: text
+      contenu: text,
+      replyData: window.replyingTo
     });
 
     input.value = '';
+    clearReply();
     document.getElementById('emoji-picker').classList.remove('active');
   };
 
@@ -564,8 +663,10 @@
           pseudonyme: currentUser,
           idGroupe: currentConversationId,
           imageBase64: base64,
-          extension: extension
+          extension: extension,
+          replyData: window.replyingTo
         });
+        clearReply();
       };
       reader.readAsDataURL(file);
       imageUploadInput.value = ''; // Reset
@@ -611,8 +712,10 @@
                   pseudonyme: currentUser,
                   idGroupe: currentConversationId,
                   audioBase64: base64,
-                  extension: '.webm'
+                  extension: '.webm',
+                  replyData: window.replyingTo
                 });
+                clearReply();
               }
             };
             reader.readAsDataURL(audioBlob);
@@ -743,11 +846,49 @@
       conv.lastMessageSender = msg.Pseudonyme_utilisateur;
       conv.lastMessageDate = msg.Date_message;
       
+      const currentUser = document.getElementById('currentUserInput').value.trim();
+      const isFromMe = msg.Pseudonyme_utilisateur.toLowerCase() === currentUser.toLowerCase();
+
       if (msg.id_groupe === currentConversationId) {
-        localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
+        if (!document.hidden) {
+          localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
+        }
         appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []);
       }
+      
       renderConversationsList();
+
+      if (!isFromMe) {
+        const isHidden = document.hidden;
+        const isOtherGroup = msg.id_groupe !== currentConversationId;
+        
+        if (isHidden || isOtherGroup) {
+          playNotificationSound();
+          
+          let previewText = msg.Contenu_message;
+          if (previewText.startsWith('[REPLY:')) {
+            const closingIdx = previewText.indexOf(']');
+            if (closingIdx > -1) previewText = previewText.substring(closingIdx + 1);
+          }
+          if (previewText.startsWith('[IMAGE]:')) previewText = '📷 Image';
+          if (previewText.startsWith('[AUDIO]:')) previewText = 'Message vocal';
+          
+          if (isHidden) {
+            unreadCount++;
+            document.title = `(${unreadCount}) Messagerie LifeInvader`;
+            
+            if (Notification.permission === 'granted') {
+              new Notification(`Message de ${msg.Pseudonyme_utilisateur}`, {
+                body: previewText
+              });
+            }
+          }
+          
+          if (!isHidden && isOtherGroup) {
+            showToast(`Nouveau message de ${msg.Pseudonyme_utilisateur}`, previewText, msg.id_groupe);
+          }
+        }
+      }
     }
   });
 
@@ -843,37 +984,78 @@
   
   let activeOptionsMessageId = null;
   
-  function openMessageOptions(idMessage, isText, sentDateStr, currentText) {
+  window.replyingTo = null;
+  
+  function clearReply() {
+    window.replyingTo = null;
+    document.getElementById('reply-preview-container').style.display = 'none';
+  }
+  
+  document.getElementById('btn-cancel-reply').onclick = clearReply;
+
+  function openMessageOptions(idMessage, isText, sentDateStr, currentText, isMe, senderName) {
     activeOptionsMessageId = idMessage;
     const modalOptions = document.getElementById('modal-message-options');
     const btnEdit = document.getElementById('btn-edit-message');
+    const btnDelete = document.getElementById('btn-delete-message');
+    const btnReply = document.getElementById('btn-reply-message');
     
-    if (isText) {
-      const sentDate = new Date(sentDateStr);
-      const diffMin = (new Date() - sentDate) / 60000;
-      if (diffMin <= 10) {
-        btnEdit.style.display = 'block';
-        btnEdit.onclick = () => {
-          modalOptions.style.display = 'none';
-          document.getElementById('edit-message-input').value = currentText;
-          document.getElementById('modal-edit-message').style.display = 'flex';
-        };
+    btnReply.onclick = () => {
+      let originalText = currentText;
+      // Strip out the [REPLY:...] part if they reply to a reply
+      if (originalText.startsWith('[REPLY:')) {
+        const closingIdx = originalText.indexOf(']');
+        if (closingIdx > -1) originalText = originalText.substring(closingIdx + 1);
+      }
+      
+      window.replyingTo = {
+        id: idMessage,
+        sender: senderName,
+        text: originalText
+      };
+      
+      let pText = originalText;
+      if (pText.startsWith('[IMAGE]:')) pText = '📷 Image';
+      if (pText.startsWith('[AUDIO]:')) pText = 'Message vocal';
+      
+      document.getElementById('reply-preview-sender').innerText = senderName;
+      document.getElementById('reply-preview-text').innerText = pText;
+      document.getElementById('reply-preview-container').style.display = 'block';
+      modalOptions.style.display = 'none';
+    };
+
+    if (!isMe) {
+      btnEdit.style.display = 'none';
+      btnDelete.style.display = 'none';
+    } else {
+      btnDelete.style.display = 'block';
+      if (isText) {
+        const sentDate = new Date(sentDateStr);
+        const diffMin = (new Date() - sentDate) / 60000;
+        if (diffMin <= 10) {
+          btnEdit.style.display = 'block';
+          btnEdit.onclick = () => {
+            modalOptions.style.display = 'none';
+            document.getElementById('edit-message-input').value = currentText;
+            document.getElementById('modal-edit-message').style.display = 'flex';
+          };
+        } else {
+          btnEdit.style.display = 'none';
+        }
       } else {
         btnEdit.style.display = 'none';
       }
-    } else {
-      btnEdit.style.display = 'none';
+      
+      btnDelete.onclick = () => {
+        const currentUser = document.getElementById('currentUserInput').value.trim();
+        socket.emit('delete_message', {
+          idMessage: idMessage,
+          pseudonyme: currentUser,
+          idGroupe: currentConversationId
+        });
+        modalOptions.style.display = 'none';
+      };
     }
-    
-    document.getElementById('btn-delete-message').onclick = () => {
-      const currentUser = document.getElementById('currentUserInput').value.trim();
-      socket.emit('delete_message', {
-        idMessage: idMessage,
-        pseudonyme: currentUser,
-        idGroupe: currentConversationId
-      });
-      modalOptions.style.display = 'none';
-    };
     
     modalOptions.style.display = 'flex';
   }
@@ -1077,8 +1259,10 @@
     socket.emit('send_message', {
       pseudonyme: currentUser,
       idGroupe: currentConversationId,
-      contenu: '[IMAGE]:' + url
+      contenu: '[IMAGE]:' + url,
+      replyData: window.replyingTo
     });
+    clearReply();
   }
 
   btnGif.onclick = () => {

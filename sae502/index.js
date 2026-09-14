@@ -160,14 +160,21 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (data) => {
     try {
-      const { pseudonyme, idGroupe, contenu } = data;
-      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+      const { pseudonyme, idGroupe, contenu, replyData } = data;
+      
+      let finalContenu = contenu;
+      if (replyData) {
+        const replyBase64 = Buffer.from(JSON.stringify(replyData)).toString('base64');
+        finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, finalContenu);
 
       const msg = {
         id_message: idMessage,
         Pseudonyme_utilisateur: pseudonyme,
         id_groupe: idGroupe,
-        Contenu_message: contenu,
+        Contenu_message: finalContenu,
         Date_message: new Date(),
         reactions: []
       };
@@ -180,21 +187,26 @@ io.on('connection', (socket) => {
 
   socket.on('send_image', async (data) => {
     try {
-      const { pseudonyme, idGroupe, imageBase64, extension } = data;
+      const { pseudonyme, idGroupe, imageBase64, extension, replyData } = data;
       const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
       const filepath = path.join(__dirname, 'uploads', filename);
       
       const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
       fs.writeFileSync(filepath, base64Data, 'base64');
       
-      const contenu = `[IMAGE]:/uploads/${filename}`;
-      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+      let finalContenu = `[IMAGE]:/uploads/${filename}`;
+      if (replyData) {
+        const replyBase64 = Buffer.from(JSON.stringify(replyData)).toString('base64');
+        finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, finalContenu);
 
       const msg = {
         id_message: idMessage,
         Pseudonyme_utilisateur: pseudonyme,
         id_groupe: idGroupe,
-        Contenu_message: contenu,
+        Contenu_message: finalContenu,
         Date_message: new Date(),
         reactions: []
       };
@@ -207,21 +219,26 @@ io.on('connection', (socket) => {
 
   socket.on('send_audio', async (data) => {
     try {
-      const { pseudonyme, idGroupe, audioBase64, extension } = data;
+      const { pseudonyme, idGroupe, audioBase64, extension, replyData } = data;
       const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
       const filepath = path.join(__dirname, 'uploads', filename);
       
       const base64Data = audioBase64.replace(/^data:audio\/\w+(?:;\w+=\w+)?;base64,/, "");
       fs.writeFileSync(filepath, base64Data, 'base64');
       
-      const contenu = `[AUDIO]:/uploads/${filename}`;
-      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+      let finalContenu = `[AUDIO]:/uploads/${filename}`;
+      if (replyData) {
+        const replyBase64 = Buffer.from(JSON.stringify(replyData)).toString('base64');
+        finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, finalContenu);
 
       const msg = {
         id_message: idMessage,
         Pseudonyme_utilisateur: pseudonyme,
         id_groupe: idGroupe,
-        Contenu_message: contenu,
+        Contenu_message: finalContenu,
         Date_message: new Date(),
         reactions: []
       };
