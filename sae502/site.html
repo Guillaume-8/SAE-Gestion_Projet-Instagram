@@ -101,6 +101,11 @@
     .users-dropdown-item { padding: 8px 12px; font-size: 13px; color: white; cursor: pointer; border-bottom: 1px solid #262626; }
     .users-dropdown-item:hover { background: #262626; }
     .users-dropdown-item:last-child { border-bottom: none; }
+    
+    /* Lightbox */
+    .lightbox-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 200; }
+    .lightbox-img { max-width: 90%; max-height: 90%; border-radius: 8px; object-fit: contain; }
+    .lightbox-close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: white; cursor: pointer; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -140,6 +145,16 @@
 
       <div class="chat-messages" id="chat-messages"></div>
 
+      <!-- Menu déroulant GIFs -->
+      <div class="gif-picker" id="gif-picker" style="display: none; flex-direction: column; position: absolute; bottom: 70px; right: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 300px; z-index: 50;">
+        <div style="display: flex; margin-bottom: 8px;">
+          <input type="text" id="gif-search-input" placeholder="Rechercher un GIF..." style="flex: 1; background: #121212; border: 1px solid #363636; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; outline: none;">
+        </div>
+        <div class="gif-grid" id="gif-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; overflow-y: auto; max-height: 250px;">
+          <!-- GIFs injectés via JS -->
+        </div>
+      </div>
+
       <!-- Menu déroulant Emojis -->
       <div class="emoji-picker" id="emoji-picker">
         <div class="emoji-header">
@@ -162,6 +177,9 @@
         <div class="chat-input-wrapper">
           <button type="button" class="btn-emoji" id="btn-emoji" title="Ajouter un émoji">😊</button>
           <input type="text" id="chat-input" placeholder="Écrivez un message..." autocomplete="off">
+          <button type="button" id="btn-gif" title="Envoyer un GIF" style="background: white; border: none; font-size: 10px; cursor: pointer; padding: 4px; color: black; border-radius: 4px; font-weight: bold; margin-right: 4px; display: flex; align-items: center; justify-content: center; height: 20px; width: 28px;">GIF</button>
+          <button type="button" id="btn-upload-image" title="Envoyer une image" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; color: #a8a8a8;">+</button>
+          <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
           <button type="submit" class="btn-send-message">Envoyer</button>
         </div>
       </form>
@@ -192,6 +210,11 @@
         <button id="btn-start-group" class="btn-secondary">Créer le groupe</button>
       </div>
     </div>
+  </div>
+
+  <div class="lightbox-overlay" id="image-lightbox">
+    <span class="lightbox-close" id="lightbox-close">&times;</span>
+    <img src="" class="lightbox-img" id="lightbox-img">
   </div>
 </div>
 
@@ -248,13 +271,15 @@
         dateDisplay = d.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       }
 
+      const previewText = (conv.lastMessage || '').startsWith('[IMAGE]:') ? '📷 Image' : escapeHtml(conv.lastMessage || '');
+
       return `
         <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-conv-id="${conv.id}">
           <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="conv-avatar">
           <div class="conv-info">
             <span class="conv-name">${escapeHtml(displayName)}</span>
             <span class="conv-preview" style="${unreadClass}">
-              ${conv.lastMessageSender ? escapeHtml(conv.lastMessageSender) + ': ' : ''}${escapeHtml(conv.lastMessage || '')}
+              ${conv.lastMessageSender ? escapeHtml(conv.lastMessageSender) + ': ' : ''}${previewText}
               ${dateDisplay ? `<br><small style="font-size:10px; opacity:0.6;">${dateDisplay}</small>` : ''}
             </span>
           </div>
@@ -380,7 +405,7 @@
         <span onclick="openEmojiPickerForReaction(${idMessage})">➕</span>
       </div>`}
       <div class="message-bubble">
-        <p>${escapeHtml(text)}</p>
+        ${text && text.startsWith('[IMAGE]:') ? `<img src="${text.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : `<p>${escapeHtml(text)}</p>`}
         <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
           <span>${escapeHtml(sender)}</span>
           <span>${timeStr}</span>
@@ -433,6 +458,35 @@
     input.value = '';
     document.getElementById('emoji-picker').classList.remove('active');
   };
+
+  const imageUploadInput = document.getElementById('image-upload-input');
+  const btnUploadImage = document.getElementById('btn-upload-image');
+
+  if (btnUploadImage && imageUploadInput) {
+    btnUploadImage.onclick = () => imageUploadInput.click();
+    imageUploadInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file || !currentConversationId) return;
+      
+      const currentUser = document.getElementById('currentUserInput').value.trim();
+      if (!currentUser) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        const extension = '.' + file.name.split('.').pop();
+        
+        socket.emit('send_image', {
+          pseudonyme: currentUser,
+          idGroupe: currentConversationId,
+          imageBase64: base64,
+          extension: extension
+        });
+      };
+      reader.readAsDataURL(file);
+      imageUploadInput.value = ''; // Reset
+    };
+  }
 
   // Gestion du menu Emoji avec pagination
   const emojiBtn = document.getElementById('btn-emoji');
@@ -570,6 +624,25 @@
     }
   });
 
+  // Lightbox
+  const lightbox = document.getElementById('image-lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  
+  function openLightbox(src) {
+    lightboxImg.src = src;
+    lightbox.style.display = 'flex';
+  }
+  
+  document.getElementById('lightbox-close').onclick = () => {
+    lightbox.style.display = 'none';
+  };
+  
+  lightbox.onclick = (e) => {
+    if (e.target === lightbox) {
+      lightbox.style.display = 'none';
+    }
+  };
+
   // Modale
   const modal = document.getElementById('modal-new-chat');
   
@@ -706,6 +779,90 @@
       }
     }
   }
+
+  // --- Giphy API Integration ---
+  const btnGif = document.getElementById('btn-gif');
+  const gifPicker = document.getElementById('gif-picker');
+  const gifSearchInput = document.getElementById('gif-search-input');
+  const gifGrid = document.getElementById('gif-grid');
+
+  async function fetchGifs(query = '') {
+    const apiKey = 'BcOykGjIWxQl8m2euqAxoGw1j8nq9c3u'; // Clé publique Giphy beta
+    let url = `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=12`;
+    if (query) {
+      url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=12`;
+    }
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+      const data = await response.json();
+      gifGrid.innerHTML = '';
+      
+      data.data.forEach(gif => {
+        const img = document.createElement('img');
+        img.src = gif.images.fixed_height_small.url;
+        img.style.width = '100%';
+        img.style.height = '100px';
+        img.style.objectFit = 'cover';
+        img.style.cursor = 'pointer';
+        img.style.borderRadius = '6px';
+        
+        img.onclick = () => {
+          sendGif(gif.images.original.url);
+          gifPicker.style.display = 'none';
+        };
+        
+        gifGrid.appendChild(img);
+      });
+    } catch (e) {
+      console.error('Error fetching GIFs:', e);
+      gifGrid.innerHTML = '<span style="color:#ed4956;font-size:12px;text-align:center;padding:10px;">Clé API Giphy expirée ou invalide. Remplacez "apiKey" dans le code.</span>';
+    }
+  }
+
+  function sendGif(url) {
+    if (!currentConversationId) return;
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    if (!currentUser) return;
+    
+    socket.emit('send_message', {
+      pseudonyme: currentUser,
+      idGroupe: currentConversationId,
+      contenu: '[IMAGE]:' + url
+    });
+  }
+
+  btnGif.onclick = () => {
+    if (gifPicker.style.display === 'flex') {
+      gifPicker.style.display = 'none';
+    } else {
+      gifPicker.style.display = 'flex';
+      if (gifGrid.children.length === 0) {
+        fetchGifs();
+      }
+    }
+  };
+
+  let gifSearchTimeout;
+  gifSearchInput.addEventListener('input', (e) => {
+    clearTimeout(gifSearchTimeout);
+    gifSearchTimeout = setTimeout(() => {
+      fetchGifs(e.target.value);
+    }, 500);
+  });
+  
+  // Fermer les pickers si clic en dehors
+  document.addEventListener('click', (e) => {
+    if (!gifPicker.contains(e.target) && e.target !== btnGif) {
+      gifPicker.style.display = 'none';
+    }
+    if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== emojiBtn && !e.target.closest('.message-actions')) {
+      emojiPicker.classList.remove('active');
+    }
+  });
 
   document.getElementById('currentUserInput').addEventListener('change', chargerConversations);
   window.addEventListener('DOMContentLoaded', chargerConversations);

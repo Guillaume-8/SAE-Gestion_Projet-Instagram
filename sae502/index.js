@@ -2,13 +2,21 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const bdd = require('./bdd.js');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
 app.use(express.json());
 app.use(express.static(__dirname));
+app.use('/uploads', express.static(uploadsDir));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/site.html');
@@ -153,6 +161,33 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     try {
       const { pseudonyme, idGroupe, contenu } = data;
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+
+      const msg = {
+        id_message: idMessage,
+        Pseudonyme_utilisateur: pseudonyme,
+        id_groupe: idGroupe,
+        Contenu_message: contenu,
+        Date_message: new Date(),
+        reactions: []
+      };
+
+      io.to(`group_${idGroupe}`).emit('receive_message', msg);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  socket.on('send_image', async (data) => {
+    try {
+      const { pseudonyme, idGroupe, imageBase64, extension } = data;
+      const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
+      const filepath = path.join(__dirname, 'uploads', filename);
+      
+      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+      fs.writeFileSync(filepath, base64Data, 'base64');
+      
+      const contenu = `[IMAGE]:/uploads/${filename}`;
       const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
 
       const msg = {
