@@ -205,6 +205,33 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('send_audio', async (data) => {
+    try {
+      const { pseudonyme, idGroupe, audioBase64, extension } = data;
+      const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
+      const filepath = path.join(__dirname, 'uploads', filename);
+      
+      const base64Data = audioBase64.replace(/^data:audio\/\w+(?:;\w+=\w+)?;base64,/, "");
+      fs.writeFileSync(filepath, base64Data, 'base64');
+      
+      const contenu = `[AUDIO]:/uploads/${filename}`;
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+
+      const msg = {
+        id_message: idMessage,
+        Pseudonyme_utilisateur: pseudonyme,
+        id_groupe: idGroupe,
+        Contenu_message: contenu,
+        Date_message: new Date(),
+        reactions: []
+      };
+
+      io.to(`group_${idGroupe}`).emit('receive_message', msg);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
   socket.on('send_reaction', async (data) => {
     try {
       const { idMessage, pseudonyme, emoji, idGroupe } = data;

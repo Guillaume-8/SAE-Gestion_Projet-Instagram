@@ -180,8 +180,23 @@
           <button type="button" class="btn-emoji" id="btn-emoji" title="Ajouter un émoji">😊</button>
           <input type="text" id="chat-input" placeholder="Écrivez un message..." autocomplete="off">
           <button type="button" id="btn-gif" title="Envoyer un GIF" style="background: white; border: none; font-size: 10px; cursor: pointer; padding: 4px; color: black; border-radius: 4px; font-weight: bold; margin-right: 4px; display: flex; align-items: center; justify-content: center; height: 20px; width: 28px;">GIF</button>
-          <button type="button" id="btn-upload-image" title="Envoyer une image" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; color: #a8a8a8;">+</button>
+          <button type="button" id="btn-attachment" title="Pièces jointes" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; color: #a8a8a8;">+</button>
+          
+          <div id="attachment-menu" style="display: none; position: absolute; bottom: 60px; right: 80px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 8px; flex-direction: column; gap: 4px; z-index: 60; width: 120px;">
+            <div class="users-dropdown-item" id="btn-menu-image" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">📷 Image</div>
+            <div class="users-dropdown-item" id="btn-menu-vocal" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">🎤 Vocal</div>
+          </div>
+
           <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+          <button type="submit" class="btn-send-message">Envoyer</button>
+        </div>
+        
+        <div id="recording-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: #ff4040; border-radius: 22px; padding: 8px 15px; color: white;">
+          <span style="font-size: 13px; font-weight: bold;">🔴 Enregistrement... (<span id="recording-time">0:00</span>)</span>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" id="btn-cancel-record" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 13px;">Annuler</button>
+            <button type="button" id="btn-stop-record" style="background: white; border: none; color: #ff4040; cursor: pointer; font-size: 13px; font-weight: bold; padding: 4px 10px; border-radius: 12px;">Envoyer</button>
+          </div>
           <button type="submit" class="btn-send-message">Envoyer</button>
         </div>
       </form>
@@ -433,7 +448,9 @@
         <span onclick="openEmojiPickerForReaction(${idMessage})">➕</span>
       </div>`}
       <div class="message-bubble">
-        ${text && text.startsWith('[IMAGE]:') ? `<img src="${text.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : `<p id="msg-text-${idMessage}">${escapeHtml(text)}</p>`}
+        ${text && text.startsWith('[IMAGE]:') ? `<img src="${text.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : 
+         (text && text.startsWith('[AUDIO]:') ? `<audio controls src="${text.substring(8)}" style="height: 35px; max-width: 200px; outline: none; margin-bottom: 5px; border-radius: 20px;"></audio>` : 
+         `<p id="msg-text-${idMessage}">${escapeHtml(text)}</p>`)}
         <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
           <span>${escapeHtml(sender)}</span>
           <span>${timeStr}</span>
@@ -446,7 +463,7 @@
     
     div.dataset.text = text || '';
     div.dataset.date = dateString || '';
-    const isTextMsg = !(text && text.startsWith('[IMAGE]:'));
+    const isTextMsg = !(text && (text.startsWith('[IMAGE]:') || text.startsWith('[AUDIO]:')));
     
     let pressTimer;
     const startPress = () => {
@@ -507,10 +524,30 @@
   };
 
   const imageUploadInput = document.getElementById('image-upload-input');
-  const btnUploadImage = document.getElementById('btn-upload-image');
+  
+  const btnAttachment = document.getElementById('btn-attachment');
+  const attachmentMenu = document.getElementById('attachment-menu');
+  const btnMenuImage = document.getElementById('btn-menu-image');
+  const btnMenuVocal = document.getElementById('btn-menu-vocal');
 
-  if (btnUploadImage && imageUploadInput) {
-    btnUploadImage.onclick = () => imageUploadInput.click();
+  if (btnAttachment) {
+    btnAttachment.onclick = (e) => {
+      attachmentMenu.style.display = attachmentMenu.style.display === 'flex' ? 'none' : 'flex';
+      e.stopPropagation();
+    };
+  }
+  
+  document.addEventListener('click', (e) => {
+    if (attachmentMenu && !attachmentMenu.contains(e.target) && e.target !== btnAttachment) {
+      attachmentMenu.style.display = 'none';
+    }
+  });
+
+  if (btnMenuImage && imageUploadInput) {
+    btnMenuImage.onclick = () => {
+      attachmentMenu.style.display = 'none';
+      imageUploadInput.click();
+    };
     imageUploadInput.onchange = (e) => {
       const file = e.target.files[0];
       if (!file || !currentConversationId) return;
@@ -532,6 +569,95 @@
       };
       reader.readAsDataURL(file);
       imageUploadInput.value = ''; // Reset
+    };
+  }
+
+  // --- LOGIQUE VOCALE ---
+  const recordingUi = document.getElementById('recording-ui');
+  const chatInputWrapper = document.querySelector('.chat-input-wrapper');
+  const btnCancelRecord = document.getElementById('btn-cancel-record');
+  const btnStopRecord = document.getElementById('btn-stop-record');
+  const recordingTimeDisplay = document.getElementById('recording-time');
+  
+  let mediaRecorder;
+  let audioChunks = [];
+  let recordTimerInterval;
+  let recordSeconds = 0;
+
+  if (btnMenuVocal) {
+    btnMenuVocal.onclick = async () => {
+      attachmentMenu.style.display = 'none';
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+        
+        mediaRecorder.onstop = () => {
+          clearInterval(recordTimerInterval);
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop()); // Stop microphone usage
+          
+          if (audioChunks.length > 0 && !window.cancelRecording) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const base64 = event.target.result;
+              const currentUser = document.getElementById('currentUserInput').value.trim();
+              if (currentUser && currentConversationId) {
+                socket.emit('send_audio', {
+                  pseudonyme: currentUser,
+                  idGroupe: currentConversationId,
+                  audioBase64: base64,
+                  extension: '.webm'
+                });
+              }
+            };
+            reader.readAsDataURL(audioBlob);
+          }
+          
+          chatInputWrapper.style.display = 'flex';
+          recordingUi.style.display = 'none';
+        };
+        
+        window.cancelRecording = false;
+        mediaRecorder.start();
+        
+        chatInputWrapper.style.display = 'none';
+        recordingUi.style.display = 'flex';
+        
+        recordSeconds = 0;
+        recordingTimeDisplay.innerText = '0:00';
+        recordTimerInterval = setInterval(() => {
+          recordSeconds++;
+          const m = Math.floor(recordSeconds / 60);
+          const s = recordSeconds % 60;
+          recordingTimeDisplay.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }, 1000);
+        
+      } catch (err) {
+        alert("Erreur d'accès au microphone : " + err.message);
+      }
+    };
+  }
+  
+  if (btnCancelRecord) {
+    btnCancelRecord.onclick = () => {
+      window.cancelRecording = true;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    };
+  }
+  
+  if (btnStopRecord) {
+    btnStopRecord.onclick = () => {
+      window.cancelRecording = false;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
     };
   }
 
