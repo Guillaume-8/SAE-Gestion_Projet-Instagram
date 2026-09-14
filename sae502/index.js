@@ -214,6 +214,28 @@ io.on('connection', (socket) => {
       console.error(err);
     }
   });
+
+  socket.on('delete_message', async (data) => {
+    try {
+      const { idMessage, pseudonyme, idGroupe } = data;
+      await bdd.supprimerMessage(idMessage, pseudonyme);
+      io.to(`group_${idGroupe}`).emit('message_deleted', { idMessage });
+    } catch (err) {
+      socket.emit('message_error', { message: err.message });
+      console.error(err);
+    }
+  });
+
+  socket.on('edit_message', async (data) => {
+    try {
+      const { idMessage, pseudonyme, nouveauContenu, idGroupe } = data;
+      await bdd.modifierMessage(idMessage, pseudonyme, nouveauContenu);
+      io.to(`group_${idGroupe}`).emit('message_edited', { idMessage, nouveauContenu });
+    } catch (err) {
+      socket.emit('message_error', { message: err.message });
+      console.error(err);
+    }
+  });
 });
 
 server.listen(3000, () => {

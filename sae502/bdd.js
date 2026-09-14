@@ -206,6 +206,68 @@ async function obtenirTousLesUtilisateurs() {
   return users.map(u => u.pseudonyme);
 }
 
+/**
+ * Supprime un message (et ses réactions)
+ */
+async function supprimerMessage(idMessage, pseudonyme) {
+  const database = await getDb();
+  
+  const user = await database.get(
+    'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
+    [pseudonyme]
+  );
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  const msg = await database.get(
+    'SELECT id_expediteur FROM Message WHERE id_message = ?',
+    [idMessage]
+  );
+  
+  if (!msg || msg.id_expediteur !== user.id_utilisateur) {
+    throw new Error("Non autorisé à supprimer ce message");
+  }
+
+  // Delete reactions first to avoid foreign key constraints
+  await database.run('DELETE FROM Reaction_Message WHERE id_message = ?', [idMessage]);
+  // Delete the message
+  await database.run('DELETE FROM Message WHERE id_message = ?', [idMessage]);
+}
+
+/**
+ * Modifie un message (s'il date de moins de 10 min)
+ */
+async function modifierMessage(idMessage, pseudonyme, nouveauContenu) {
+  const database = await getDb();
+  
+  const user = await database.get(
+    'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
+    [pseudonyme]
+  );
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  const msg = await database.get(
+    'SELECT id_expediteur, date_envoie FROM Message WHERE id_message = ?',
+    [idMessage]
+  );
+  
+  if (!msg || msg.id_expediteur !== user.id_utilisateur) {
+    throw new Error("Non autorisé à modifier ce message");
+  }
+
+  const now = new Date();
+  const sentDate = new Date(msg.date_envoie);
+  const diffMinutes = (now - sentDate) / (1000 * 60);
+
+  if (diffMinutes > 10) {
+    throw new Error("Délai de 10 minutes dépassé pour la modification");
+  }
+
+  await database.run(
+    'UPDATE Message SET contenu_message = ? WHERE id_message = ?',
+    [nouveauContenu, idMessage]
+  );
+}
+
 module.exports = {
   getDb,
   ajouterUtilisateur,
@@ -215,6 +277,8 @@ module.exports = {
   obtenirMembresGroupe,
   supprimerConversationUtilisateur,
   ajouterReaction,
-  obtenirTousLesUtilisateurs
+  obtenirTousLesUtilisateurs,
+  supprimerMessage,
+  modifierMessage
 };
 

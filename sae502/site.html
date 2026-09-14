@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Messages</title>
+  <title>Messagerie LifeInvader</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230095f6' stroke='%230095f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='22' y1='2' x2='11' y2='13'></line><polygon points='22 2 15 22 11 13 2 9 22 2'></polygon></svg>">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #000; color: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -42,7 +43,8 @@
     .chat-header-name { font-weight: 600; font-size: 14px; display: block; }
     .chat-header-status { font-size: 11px; color: #a8a8a8; }
 
-    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; scrollbar-width: none; -ms-overflow-style: none; }
+    .chat-messages::-webkit-scrollbar { display: none; }
     .message-container { position: relative; display: flex; flex-direction: column; max-width: 65%; margin-bottom: 4px; }
     .message-container.mine { align-self: flex-end; }
     .message-container.other { align-self: flex-start; }
@@ -208,6 +210,32 @@
           <div id="users-dropdown-group" class="users-dropdown"></div>
         </div>
         <button id="btn-start-group" class="btn-secondary">Créer le groupe</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-message-options">
+    <div class="modal-content" style="width: 250px;">
+      <div class="modal-header">
+        <span>Options du message</span>
+        <span class="modal-close" onclick="document.getElementById('modal-message-options').style.display='none'">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 10px;">
+        <button id="btn-edit-message" class="btn-primary" style="width: 100%; margin-bottom: 8px;">Modifier</button>
+        <button id="btn-delete-message" class="btn-secondary" style="width: 100%; background: #ed4956;">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-edit-message">
+    <div class="modal-content" style="width: 300px;">
+      <div class="modal-header">
+        <span>Modifier le message</span>
+        <span class="modal-close" onclick="document.getElementById('modal-edit-message').style.display='none'">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 10px;">
+        <input type="text" id="edit-message-input" style="width: 100%; margin-bottom: 10px;" autocomplete="off">
+        <button id="btn-save-edit" class="btn-primary" style="width: 100%;">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -405,7 +433,7 @@
         <span onclick="openEmojiPickerForReaction(${idMessage})">➕</span>
       </div>`}
       <div class="message-bubble">
-        ${text && text.startsWith('[IMAGE]:') ? `<img src="${text.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : `<p>${escapeHtml(text)}</p>`}
+        ${text && text.startsWith('[IMAGE]:') ? `<img src="${text.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : `<p id="msg-text-${idMessage}">${escapeHtml(text)}</p>`}
         <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
           <span>${escapeHtml(sender)}</span>
           <span>${timeStr}</span>
@@ -415,6 +443,25 @@
         ${reactionsHtml}
       </div>
     `;
+    
+    div.dataset.text = text || '';
+    div.dataset.date = dateString || '';
+    const isTextMsg = !(text && text.startsWith('[IMAGE]:'));
+    
+    let pressTimer;
+    const startPress = () => {
+      if (!isMe) return;
+      pressTimer = setTimeout(() => openMessageOptions(idMessage, isTextMsg, div.dataset.date, div.dataset.text), 800);
+    };
+    const clearPress = () => clearTimeout(pressTimer);
+    
+    div.onmousedown = startPress;
+    div.onmouseup = clearPress;
+    div.onmouseleave = clearPress;
+    div.ontouchstart = startPress;
+    div.ontouchend = clearPress;
+    div.ontouchmove = clearPress;
+    
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   }
@@ -613,6 +660,28 @@
     }
   });
 
+  socket.on('message_deleted', (data) => {
+    const msgDiv = document.getElementById(`msg-container-${data.idMessage}`);
+    if (msgDiv) {
+      msgDiv.remove();
+    }
+  });
+
+  socket.on('message_edited', (data) => {
+    const msgDiv = document.getElementById(`msg-container-${data.idMessage}`);
+    if (msgDiv) {
+      msgDiv.dataset.text = data.nouveauContenu;
+      const p = document.getElementById(`msg-text-${data.idMessage}`);
+      if (p) {
+        p.innerText = data.nouveauContenu;
+      }
+    }
+  });
+
+  socket.on('message_error', (data) => {
+    alert("Erreur: " + data.message);
+  });
+
   socket.on('group_created', (newConv) => {
     const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
     const isMember = Array.isArray(newConv.members) && 
@@ -643,8 +712,59 @@
     }
   };
 
-  // Modale
+  // Modales
   const modal = document.getElementById('modal-new-chat');
+  
+  let activeOptionsMessageId = null;
+  
+  function openMessageOptions(idMessage, isText, sentDateStr, currentText) {
+    activeOptionsMessageId = idMessage;
+    const modalOptions = document.getElementById('modal-message-options');
+    const btnEdit = document.getElementById('btn-edit-message');
+    
+    if (isText) {
+      const sentDate = new Date(sentDateStr);
+      const diffMin = (new Date() - sentDate) / 60000;
+      if (diffMin <= 10) {
+        btnEdit.style.display = 'block';
+        btnEdit.onclick = () => {
+          modalOptions.style.display = 'none';
+          document.getElementById('edit-message-input').value = currentText;
+          document.getElementById('modal-edit-message').style.display = 'flex';
+        };
+      } else {
+        btnEdit.style.display = 'none';
+      }
+    } else {
+      btnEdit.style.display = 'none';
+    }
+    
+    document.getElementById('btn-delete-message').onclick = () => {
+      const currentUser = document.getElementById('currentUserInput').value.trim();
+      socket.emit('delete_message', {
+        idMessage: idMessage,
+        pseudonyme: currentUser,
+        idGroupe: currentConversationId
+      });
+      modalOptions.style.display = 'none';
+    };
+    
+    modalOptions.style.display = 'flex';
+  }
+
+  document.getElementById('btn-save-edit').onclick = () => {
+    const newText = document.getElementById('edit-message-input').value.trim();
+    if (newText && activeOptionsMessageId) {
+      const currentUser = document.getElementById('currentUserInput').value.trim();
+      socket.emit('edit_message', {
+        idMessage: activeOptionsMessageId,
+        pseudonyme: currentUser,
+        nouveauContenu: newText,
+        idGroupe: currentConversationId
+      });
+      document.getElementById('modal-edit-message').style.display = 'none';
+    }
+  };
   
   let allDbUsers = [];
   async function fetchDbUsers() {
