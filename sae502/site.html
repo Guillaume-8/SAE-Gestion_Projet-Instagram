@@ -9,7 +9,6 @@
 
     .messages-page { display: flex; width: 980px; height: 90vh; background: #000; border: 1px solid #262626; border-radius: 12px; overflow: hidden; position: relative; }
 
-    /* Sidebar Conversations */
     .conversations-sidebar { width: 340px; border-right: 1px solid #262626; display: flex; flex-direction: column; background: #050505; }
     .sidebar-header { padding: 15px; border-bottom: 1px solid #262626; display: flex; justify-content: space-between; align-items: center; }
     .sidebar-header h2 { font-size: 18px; font-weight: 700; }
@@ -32,7 +31,6 @@
     .btn-delete-conv { background: none; border: none; color: #ed4956; cursor: pointer; font-size: 14px; padding: 4px; display: none; }
     .conversation-item:hover .btn-delete-conv { display: block; }
 
-    /* Zone Chat */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: #000; position: relative; }
     .chat-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #a8a8a8; gap: 8px; }
     .chat-empty-icon { font-size: 40px; }
@@ -63,14 +61,12 @@
     .message-actions span { cursor: pointer; font-size: 16px; transition: transform 0.2s; }
     .message-actions span:hover { transform: scale(1.2); }
 
-    /* Saisie + Emojis */
     .chat-input-form { padding: 15px 20px; display: flex; background: #000; position: relative; }
     .chat-input-wrapper { display: flex; flex: 1; align-items: center; background: #121212; border: 1px solid #262626; border-radius: 22px; padding: 4px 12px; gap: 8px; }
     .chat-input-wrapper input { flex: 1; background: transparent; border: none; color: white; outline: none; padding: 8px 0; font-size: 14px; }
     .btn-emoji { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; }
     .btn-send-message { background: none; border: none; color: #0095f6; font-weight: 600; cursor: pointer; padding: 4px 8px; }
 
-    /* Pop-up Emojis */
     .emoji-picker { display: none; flex-direction: column; position: absolute; bottom: 70px; left: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 280px; z-index: 50; }
     .emoji-picker.active { display: flex; }
     
@@ -87,7 +83,6 @@
     .emoji-categories span { font-size: 16px; cursor: pointer; padding: 4px; border-radius: 6px; transition: background 0.2s; }
     .emoji-categories span:hover { background: #363636; }
 
-    /* Modale */
     .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; }
     .modal-content { background: #262626; width: 360px; border-radius: 12px; overflow: visible; border: 1px solid #363636; }
     .modal-header { padding: 15px; border-bottom: 1px solid #363636; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
@@ -102,7 +97,6 @@
     .users-dropdown-item:hover { background: #262626; }
     .users-dropdown-item:last-child { border-bottom: none; }
     
-    /* Lightbox */
     .lightbox-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 200; }
     .lightbox-img { max-width: 90%; max-height: 90%; border-radius: 8px; object-fit: contain; }
     .lightbox-close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: white; cursor: pointer; font-weight: bold; }
@@ -145,26 +139,20 @@
 
       <div class="chat-messages" id="chat-messages"></div>
 
-      <!-- Menu déroulant GIFs -->
       <div class="gif-picker" id="gif-picker" style="display: none; flex-direction: column; position: absolute; bottom: 70px; right: 20px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 10px; width: 300px; z-index: 50;">
         <div style="display: flex; margin-bottom: 8px;">
           <input type="text" id="gif-search-input" placeholder="Rechercher un GIF..." style="flex: 1; background: #121212; border: 1px solid #363636; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; outline: none;">
         </div>
-        <div class="gif-grid" id="gif-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; overflow-y: auto; max-height: 250px;">
-          <!-- GIFs injectés via JS -->
-        </div>
+        <div class="gif-grid" id="gif-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; overflow-y: auto; max-height: 250px;"></div>
       </div>
 
-      <!-- Menu déroulant Emojis -->
       <div class="emoji-picker" id="emoji-picker">
         <div class="emoji-header">
           <button type="button" id="emoji-prev">&lt;</button>
           <span id="emoji-page-info">1/1</span>
           <button type="button" id="emoji-next">&gt;</button>
         </div>
-        <div class="emoji-grid" id="emoji-grid">
-          <!-- Injecté via JS -->
-        </div>
+        <div class="emoji-grid" id="emoji-grid"></div>
         <div class="emoji-categories">
           <span data-page="0" title="Smileys & Personnes">😀</span>
           <span data-page="3" title="Animaux & Nature">🐶</span>
@@ -224,6 +212,7 @@
   let currentConversationId = null;
   let conversationsData = [];
   let lastMessageDate = null;
+  let typingTimeout = null;
 
   function escapeHtml(text) {
     const div = document.createElement('div');
@@ -341,7 +330,12 @@
     document.getElementById('active-chat').style.display = 'flex';
 
     document.getElementById('chat-header-name').innerText = displayName;
-    document.getElementById('chat-header-status').innerText = 'En ligne';
+    
+    // Réinitialise le statut lors du changement de conversation
+    const statusElem = document.getElementById('chat-header-status');
+    statusElem.innerText = 'En ligne';
+    statusElem.style.color = '#a8a8a8';
+
     document.getElementById('chat-header-avatar').src = avatarUrl;
 
     localStorage.setItem(`read_date_${convId}`, new Date().toISOString());
@@ -441,6 +435,26 @@
     }
   }
 
+  // Écouteur de frappe au clavier pour notifier "est en train d'écrire"
+  document.getElementById('chat-input').addEventListener('input', () => {
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    if (!currentConversationId || !currentUser) return;
+
+    socket.emit('typing', {
+      idGroupe: currentConversationId,
+      pseudonyme: currentUser
+    });
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+      socket.emit('stop_typing', {
+        idGroupe: currentConversationId,
+        pseudonyme: currentUser
+      });
+    }, 2000);
+  });
+
   document.getElementById('chat-input-form').onsubmit = (e) => {
     e.preventDefault();
     const input = document.getElementById('chat-input');
@@ -448,6 +462,13 @@
     const currentUser = document.getElementById('currentUserInput').value.trim();
 
     if (!text || !currentConversationId) return;
+
+    // Arrête immédiatement le statut "écrit..." à l'envoi
+    clearTimeout(typingTimeout);
+    socket.emit('stop_typing', {
+      idGroupe: currentConversationId,
+      pseudonyme: currentUser
+    });
 
     socket.emit('send_message', {
       pseudonyme: currentUser,
@@ -484,11 +505,10 @@
         });
       };
       reader.readAsDataURL(file);
-      imageUploadInput.value = ''; // Reset
+      imageUploadInput.value = '';
     };
   }
 
-  // Gestion du menu Emoji avec pagination
   const emojiBtn = document.getElementById('btn-emoji');
   const emojiPicker = document.getElementById('emoji-picker');
   const chatInput = document.getElementById('chat-input');
@@ -500,9 +520,10 @@
   const allEmojis = [
     "😀","😃","😄","😁","😆","😅","😂","🤣","🥲","🥹","☺️","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😮‍💨","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🫣","🤗","🫡","🤔","🫢","🤭","🤫","🤥","😶","😶‍🌫️","😐","😑","😬","🫨","🫠","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","😵‍💫","🫥","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😹","😻","😼","😽","🙀","😿","😾",
     "🫶","👐","🤲","🙌","👏","🤝","👍","👎","👊","✊","🤛","🤜","🤞","✌️","🫰","🤟","🤘","👌","🤌","🤏","🫳","🫴","👈","👉","👆","👇","☝️","✋","🤚","🖐️","🖖","👋","🤙","🫲","🫱","💪","🦾","🖕","✍️","🙏","🫵","🦶","🦵","🦿","💄","💋","👄","🫦","🦷","👅","👂","🦻","👃","👣","👁️","👀","🫀","🫁","🧠","🗣️","👤","👥","🫂",
-    "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞","🐜","🪰","🪲","🪳","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🦭","🐊","🐅","🐆","🦓","🦍","🦧","🦣","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🦬","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🦙","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🪶","🐓","🦃","🦤","🦚","🦜","🦢","🦩","🕊️","🐇","🦝","🦨","🦡","🦫","🦦","🦥","🐁","🐀","🐿️","🦔","🐾","🐉","🐲",
-    "🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🫘","🍯","🥛","🍼","🫖","☕","🍵","🧃","🥤","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴","🍽️","🥣","🥡","🥢","🧂",
-    "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","☮️","✝️","☪️","🕉️","☸️","✡️","🔯","🕎","☯️","☦️","🛐","⛎","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","🆔","⚛️","🉑","☢️","☣️","📴","📳","🈶","🈚","🈸","🈺","🈷️","✴️","🆚","💮","🉐","㊙️","㊗️","🈴","🈵","🈹","🈲","🅰️","🅱️","🆎","🆑","🅾️","🆘","❌","⭕","🛑","⛔","📛","🚫","💯","💢","♨️","🚷","🚯","🚳","🚱","🔞","📵","🚭","❗","❕","❓","❔","‼️","⁉️","🔅","🔆","〽️","⚠️","🚸","🔱","⚜️","🔰","♻️","✅","🈯","💹","❇️","✳️","❎","🌐","💠","Ⓜ️","🌀","💤","🏧","🚾","♿","🅿️","🛗","🈳","🈂️","🛂","🛃","🛄","🛅","🚹","🚺","🚼","⚧️","🚻","🚮","🎦","📶","🈁","🆖","🆗","🆙","🆒","🆕","🆓","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","🔢","#️⃣","*️⃣","⏏️","▶️","⏸️","⏯️","⏹️","⏺️","⏭️","⏮️","⏩","⏪","⏫","⏬","◀️","🔼","🔽","➡️","⬅️","⬆️","⬇️","↗️","↘️","↙️","↖️","↕️","↔️","↪️","↩️","⤴️","⤵️","🔀","🔁","🔂","🔄","🔃","🎵","🎶","➕","➖","➗","✖️","🟰","♾️","💲","💱","™️","©️","®️","〰️","➰","➿","🔚","🔙","🔛","🔝","🔜","✔️","☑️","🔘","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤","🔺","🔻","🔸","🔹","🔶","🔷","🔳","🔲","▪️","▫️","◾","◽","◼️","◻️","🟥","🟧","🟨","🟩","🟦","🟪","⬛","⬜","🟫","🔈","🔇","🔉","🔊","🔔","🔕","📣","📢","👁️‍🗨️","💬","💭","🗯️","♠️","♣️","♥️","♦️","🃏","🎴","🀄","🕐","🕑","🕒","🕓","🕔","🕕","🕖","🕗","🕘","🕙","🕚","🕛","🕜","🕝","🕞","🕟","🕠","🕡","🕢","🕣","🕤","🕥","🕦","🕧","🚩","🏁","🏴‍☠️","🏳️‍🌈","🏳️‍⚧️"
+    "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞","🐜","🪰","🪲","🪳","🦟","🦗","🕷️","🕸️","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🦭","🐊","🐅","🐆","🦓","🫏","🦍","🦧","🦣","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🦬","🦬","🐂","🐃","🐄","🐎","🐖","🐏","🐑","🦙","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🪶","🐓","🦃","🦤","🦚","🦜","🪿","🩵","🩷","🩶",
+    "🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🫛","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","burrito","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🫘","🍯","🥛","🍼","🫖","☕","🍵","🧃","🥤","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊",
+    "⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂","🪂","🏋️","🤼","🤸","⛹️","🤺","🤾","🏌️","🏇","🧘","🏄","🏊","🚴","🚵","🧗","🏋️‍♂️","🎯","🎱","🎮","🎰","🎲","🧩","🧸","🪅","🪆","🃏","🀄","🎴","🎭","🖼️","🎨","🧵","🪡","🧶","🪢",
+    "❤️","🩷","🧡","💛","💚","💙","🩵","💜","🖤","🩶","🤍","🤎","❤️‍🔥","❤️‍🩹","💔","❣️","💕","💞","💓","💗","💖","💘","💝","💟","☮️","✝️","☪️","🕉️","☸️","✡️","🔯","🕎","☯️","☦️","🛐","⛎","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","🆔","⚛️","🉑","☢️","☣️","📴","📳","🈶","🈚","🈸","🈺","🈷️","✴️","🆚","💮","🉐","㊙️","㊗️","🈴","🈵","🈹","🈲","🅰️","🅱️","🆎","🆑","🅾️","🆘","❌","⭕","🛑","⛔","📛","🚫","💯","💢","♨️","🚷","🚯","🚳","🚱","🔞","📵","🚭","❗","❕","❓","🩶","‼️","⁉️","🔆","🔅","〽️","⚠️","🚸","🔱","⚜️","🔰","♻️","✅","🈯","💹","❇️","✳️","❎","🌐","💠","Ⓜ️","🌀","💤","🏧","🚾","♿","🅿️","🛗","🈳","🈂️","🛂","🛃","🛄","🛅","🚹","🚺","🚼","⚧️","🚻","🚮","🎦","📶","🈁","🔣","ℹ️","🔤","🔡","🔠","🆖","🆗","🆙","🆒","🆕","🆓","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"
   ];
 
   const EMOJIS_PER_PAGE = 30;
@@ -521,8 +542,8 @@
       span.onclick = () => {
         if (activeReactionMessageId) {
           sendReaction(activeReactionMessageId, emoji);
-          document.getElementById('emoji-picker').classList.remove('active');
           activeReactionMessageId = null;
+          emojiPicker.classList.remove('active');
         } else {
           chatInput.value += emoji;
           chatInput.focus();
@@ -532,340 +553,342 @@
     });
 
     emojiPageInfo.innerText = `${currentEmojiPage + 1}/${totalEmojiPages}`;
+    emojiPrev.disabled = currentEmojiPage === 0;
+    emojiNext.disabled = currentEmojiPage === totalEmojiPages - 1;
   }
 
-  emojiPrev.onclick = () => {
+  emojiBtn.onclick = (e) => {
+    e.stopPropagation();
+    activeReactionMessageId = null;
+    gifPicker.style.display = 'none';
+    const isVisible = emojiPicker.classList.contains('active');
+    if (!isVisible) {
+      emojiPicker.classList.add('active');
+      renderEmojiPage();
+    } else {
+      emojiPicker.classList.remove('active');
+    }
+  };
+
+  emojiPrev.onclick = (e) => {
+    e.stopPropagation();
     if (currentEmojiPage > 0) {
       currentEmojiPage--;
       renderEmojiPage();
     }
   };
 
-  emojiNext.onclick = () => {
+  emojiNext.onclick = (e) => {
+    e.stopPropagation();
     if (currentEmojiPage < totalEmojiPages - 1) {
       currentEmojiPage++;
       renderEmojiPage();
     }
   };
 
-  document.querySelectorAll('.emoji-categories span').forEach(catBtn => {
-    catBtn.onclick = () => {
-      currentEmojiPage = parseInt(catBtn.dataset.page, 10);
-      renderEmojiPage();
+  document.querySelectorAll('.emoji-categories span').forEach(cat => {
+    cat.onclick = (e) => {
+      e.stopPropagation();
+      const targetPage = parseInt(cat.dataset.page, 10);
+      if (!isNaN(targetPage) && targetPage < totalEmojiPages) {
+        currentEmojiPage = targetPage;
+        renderEmojiPage();
+      }
     };
   });
 
-  emojiBtn.onclick = () => {
-    activeReactionMessageId = null;
-    emojiPicker.classList.toggle('active');
-    if (emojiPicker.classList.contains('active') && emojiGrid.innerHTML === '') {
-      renderEmojiPage();
+  const btnGif = document.getElementById('btn-gif');
+  const gifPicker = document.getElementById('gif-picker');
+  const gifSearchInput = document.getElementById('gif-search-input');
+  const gifGrid = document.getElementById('gif-grid');
+
+  btnGif.onclick = (e) => {
+    e.stopPropagation();
+    emojiPicker.classList.remove('active');
+    const isVisible = gifPicker.style.display === 'flex';
+    if (!isVisible) {
+      gifPicker.style.display = 'flex';
+      fetchGifs('trending');
+    } else {
+      gifPicker.style.display = 'none';
     }
   };
 
-  socket.on('receive_message', (msg) => {
-    const conv = conversationsData.find(c => c.id === msg.id_groupe);
-    if (conv) {
-      conv.lastMessage = msg.Contenu_message;
-      conv.lastMessageSender = msg.Pseudonyme_utilisateur;
-      conv.lastMessageDate = msg.Date_message;
+  let gifTimeout = null;
+  gifSearchInput.oninput = () => {
+    clearTimeout(gifTimeout);
+    gifTimeout = setTimeout(() => {
+      const query = gifSearchInput.value.trim();
+      fetchGifs(query || 'trending');
+    }, 500);
+  };
+
+  async function fetchGifs(query) {
+    gifGrid.innerHTML = '<span style="grid-column: span 2; font-size: 11px; color: #a8a8a8; text-align: center;">Chargement...</span>';
+    try {
+      const apiKey = 'g9L5h2oRk8P9T3yU8vN1W0zX7C4vB1nM'; 
+      let url = `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=10`;
+      if (query !== 'trending') {
+        url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=10`;
+      }
       
-      if (msg.id_groupe === currentConversationId) {
-        localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
-        appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []);
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      gifGrid.innerHTML = '';
+      if (data.data && data.data.length > 0) {
+        data.data.forEach(gif => {
+          const img = document.createElement('img');
+          img.src = gif.images.fixed_height_small.url;
+          img.style.width = '100%';
+          img.style.height = '80px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '6px';
+          img.style.cursor = 'pointer';
+          
+          img.onclick = () => {
+            const currentUser = document.getElementById('currentUserInput').value.trim();
+            if (!currentConversationId || !currentUser) return;
+            
+            socket.emit('send_message', {
+              pseudonyme: currentUser,
+              idGroupe: currentConversationId,
+              contenu: `[IMAGE]:${gif.images.original.url}`
+            });
+            
+            gifPicker.style.display = 'none';
+          };
+          
+          gifGrid.appendChild(img);
+        });
+      } else {
+        gifGrid.innerHTML = '<span style="grid-column: span 2; font-size: 11px; color: #a8a8a8; text-align: center;">Aucun GIF trouvé</span>';
       }
-      renderConversationsList();
+    } catch (err) {
+      gifGrid.innerHTML = '<span style="grid-column: span 2; font-size: 11px; color: #ed4956; text-align: center;">Erreur de chargement</span>';
     }
-  });
-
-  socket.on('receive_reaction', (data) => {
-    const { idMessage, pseudonyme, emoji, action } = data;
-    if (currentConversationId) {
-      const reactionsContainer = document.getElementById(`reactions-${idMessage}`);
-      if (reactionsContainer) {
-        let badge = Array.from(reactionsContainer.children).find(b => b.innerText.includes(emoji));
-        
-        if (action === 'added') {
-          if (badge) {
-            const match = badge.innerText.match(/\d+/);
-            const count = match ? parseInt(match[0]) + 1 : 2;
-            badge.innerText = `${emoji} ${count}`;
-          } else {
-            const newBadge = document.createElement('span');
-            newBadge.className = 'reaction-badge';
-            newBadge.innerText = emoji;
-            reactionsContainer.appendChild(newBadge);
-          }
-        } else if (action === 'removed') {
-          if (badge) {
-            const match = badge.innerText.match(/\d+/);
-            const count = match ? parseInt(match[0]) : 1;
-            if (count > 2) {
-              badge.innerText = `${emoji} ${count - 1}`;
-            } else if (count === 2) {
-              badge.innerText = `${emoji}`;
-            } else {
-              badge.remove();
-            }
-          }
-        }
-      }
-    }
-  });
-
-  socket.on('group_created', (newConv) => {
-    const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
-    const isMember = Array.isArray(newConv.members) && 
-                     newConv.members.some(m => m.toLowerCase() === myPseudo);
-
-    if (isMember && !conversationsData.some(c => c.id === newConv.id)) {
-      conversationsData.unshift(newConv);
-      renderConversationsList();
-    }
-  });
-
-  // Lightbox
-  const lightbox = document.getElementById('image-lightbox');
-  const lightboxImg = document.getElementById('lightbox-img');
-  
-  function openLightbox(src) {
-    lightboxImg.src = src;
-    lightbox.style.display = 'flex';
   }
-  
+
+  document.addEventListener('click', (e) => {
+    if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+      emojiPicker.classList.remove('active');
+    }
+    if (!gifPicker.contains(e.target) && e.target !== btnGif) {
+      gifPicker.style.display = 'none';
+    }
+  });
+
+  function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('image-lightbox').style.display = 'flex';
+  }
+
   document.getElementById('lightbox-close').onclick = () => {
-    lightbox.style.display = 'none';
+    document.getElementById('image-lightbox').style.display = 'none';
   };
-  
-  lightbox.onclick = (e) => {
-    if (e.target === lightbox) {
-      lightbox.style.display = 'none';
+
+  document.getElementById('image-lightbox').onclick = (e) => {
+    if (e.target.id === 'image-lightbox') {
+      document.getElementById('image-lightbox').style.display = 'none';
     }
   };
 
-  // Modale
-  const modal = document.getElementById('modal-new-chat');
-  
-  let allDbUsers = [];
-  async function fetchDbUsers() {
+  async function loadConversations() {
+    const myPseudo = document.getElementById('currentUserInput').value.trim();
+    if (!myPseudo) return;
+
+    try {
+      const res = await fetch(`/api/conversations/${encodeURIComponent(myPseudo)}`);
+      conversationsData = await res.json();
+      renderConversationsList();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  let allUsersList = [];
+  async function fetchAllUsers() {
     try {
       const res = await fetch('/api/utilisateurs');
-      allDbUsers = await res.json();
-    } catch (e) {
-      console.error(e);
+      allUsersList = await res.json();
+    } catch (err) {
+      console.error(err);
     }
   }
 
-  function setupUsersDropdown(inputId, dropdownId, multi) {
+  function setupAutocomplete(inputId, dropdownId, isMultiple = false) {
     const input = document.getElementById(inputId);
     const dropdown = document.getElementById(dropdownId);
-    
-    const showDropdown = () => {
-      const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
-      dropdown.innerHTML = '';
-      
-      let currentSelected = [];
-      if (multi) {
-        currentSelected = input.value.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
-      }
-      
-      const availableUsers = allDbUsers.filter(u => {
-        const lowerU = u.toLowerCase();
-        return lowerU !== myPseudo && !currentSelected.includes(lowerU);
-      });
-      
-      if (availableUsers.length === 0) {
-        dropdown.innerHTML = '<div style="padding: 8px 12px; font-size: 11px; color: #a8a8a8;">Aucun utilisateur</div>';
-      } else {
-        availableUsers.forEach(u => {
-          const item = document.createElement('div');
-          item.className = 'users-dropdown-item';
-          item.innerText = u;
-          item.onmousedown = (e) => { // onmousedown s'exécute avant le blur de l'input
-            e.preventDefault();
-            if (multi) {
-              let current = input.value.split(',').map(s => s.trim()).filter(s => s);
-              if (current.length < 10) {
-                if (!current.includes(u)) {
-                  current.push(u);
-                  input.value = current.join(', ') + (current.length < 9 ? ', ' : '');
-                }
-              } else {
-                alert("Limite de 10 utilisateurs atteinte.");
-              }
-            } else {
-              input.value = u;
-            }
-            dropdown.style.display = 'none'; // On ferme le menu après la sélection
-          };
-          dropdown.appendChild(item);
-        });
-      }
-      dropdown.style.display = 'flex';
-    };
-    
-    input.addEventListener('focus', showDropdown);
-    input.addEventListener('click', showDropdown);
 
-    input.addEventListener('blur', () => {
-      dropdown.style.display = 'none';
+    input.addEventListener('input', () => {
+      const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+      let query = input.value;
+      
+      if (isMultiple) {
+        const parts = query.split(',');
+        query = parts[parts.length - 1].trim();
+      } else {
+        query = query.trim();
+      }
+
+      if (!query) {
+        dropdown.style.display = 'none';
+        return;
+      }
+
+      const filtered = allUsersList.filter(u => 
+        u.toLowerCase().startsWith(query.toLowerCase()) && u.toLowerCase() !== myPseudo
+      );
+
+      if (filtered.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+      }
+
+      dropdown.innerHTML = filtered.map(u => `<div class="users-dropdown-item">${escapeHtml(u)}</div>`).join('');
+      dropdown.style.display = 'flex';
+
+      dropdown.querySelectorAll('.users-dropdown-item').forEach(item => {
+        item.onclick = () => {
+          const selectedUser = item.innerText;
+          if (isMultiple) {
+            const parts = input.value.split(',').map(p => p.trim());
+            parts[parts.length - 1] = selectedUser;
+            input.value = parts.join(', ') + ', ';
+          } else {
+            input.value = selectedUser;
+          }
+          dropdown.style.display = 'none';
+          input.focus();
+        };
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target !== input && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
     });
   }
 
-  setupUsersDropdown('target-user-input', 'users-dropdown-dm', false);
-  setupUsersDropdown('group-members-input', 'users-dropdown-group', true);
+  setupAutocomplete('target-user-input', 'users-dropdown-dm', false);
+  setupAutocomplete('group-members-input', 'users-dropdown-group', true);
 
+  document.getElementById('currentUserInput').onchange = () => {
+    loadConversations();
+  };
+
+  const modal = document.getElementById('modal-new-chat');
   document.getElementById('btn-new-message').onclick = () => {
     modal.style.display = 'flex';
-    fetchDbUsers();
+    fetchAllUsers();
   };
   document.getElementById('modal-close').onclick = () => modal.style.display = 'none';
 
   document.getElementById('btn-start-dm').onclick = async () => {
-    const myPseudo = document.getElementById('currentUserInput').value.trim();
     const target = document.getElementById('target-user-input').value.trim();
-    if (!target) return;
+    const myPseudo = document.getElementById('currentUserInput').value.trim();
+
+    if (!target || !myPseudo) return;
 
     const res = await fetch('/api/dm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pseudo1: myPseudo, pseudo2: target })
     });
+
     const data = await res.json();
-
-    if (!conversationsData.some(c => c.id === data.conv.id)) {
-      conversationsData.unshift(data.conv);
-    }
-
     modal.style.display = 'none';
+    document.getElementById('target-user-input').value = '';
+
+    await loadConversations();
     openConversation(data.idGroupe);
   };
 
   document.getElementById('btn-start-group').onclick = async () => {
+    const membersRaw = document.getElementById('group-members-input').value;
     const myPseudo = document.getElementById('currentUserInput').value.trim();
-    const input = document.getElementById('group-members-input').value.trim();
-    if (!input) return;
 
-    const membres = input.split(',').map(m => m.trim());
+    const members = membersRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+    if (members.length === 0 || !myPseudo) return;
+
     const res = await fetch('/api/groupe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ createur: myPseudo, membres })
+      body: JSON.stringify({ createur: myPseudo, membres: members })
     });
+
     const data = await res.json();
-
-    if (!conversationsData.some(c => c.id === data.conv.id)) {
-      conversationsData.unshift(data.conv);
-    }
-
     modal.style.display = 'none';
+    document.getElementById('group-members-input').value = '';
+
+    await loadConversations();
     openConversation(data.idGroupe);
   };
 
-  async function chargerConversations() {
-    const currentUser = document.getElementById('currentUserInput').value.trim();
-    if (!currentUser) return;
+  socket.on('receive_message', (msg) => {
+    const myPseudo = document.getElementById('currentUserInput').value.trim().toLowerCase();
+    
+    const conv = conversationsData.find(c => c.id === msg.id_groupe);
+    if (conv) {
+      conv.lastMessage = msg.Contenu_message;
+      conv.lastMessageSender = msg.Pseudonyme_utilisateur;
+      conv.lastMessageDate = msg.Date_message;
+    }
 
-    const res = await fetch(`/api/conversations/${encodeURIComponent(currentUser)}`);
-    conversationsData = await res.json();
+    if (msg.id_groupe === currentConversationId) {
+      appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []);
+      localStorage.setItem(`read_date_${currentConversationId}`, new Date().toISOString());
+    }
     
     renderConversationsList();
-
-    if (currentConversationId) {
-      const conv = conversationsData.find(c => c.id === currentConversationId);
-      if (conv) {
-        document.getElementById('chat-header-name').innerText = getConvDisplayName(conv);
-        document.getElementById('chat-header-avatar').src = getConvAvatar(conv);
-      }
-    }
-  }
-
-  // --- Giphy API Integration ---
-  const btnGif = document.getElementById('btn-gif');
-  const gifPicker = document.getElementById('gif-picker');
-  const gifSearchInput = document.getElementById('gif-search-input');
-  const gifGrid = document.getElementById('gif-grid');
-
-  async function fetchGifs(query = '') {
-    const apiKey = 'BcOykGjIWxQl8m2euqAxoGw1j8nq9c3u'; // Clé publique Giphy beta
-    let url = `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=12`;
-    if (query) {
-      url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=12`;
-    }
-    
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Erreur API: ${response.status}`);
-      }
-      const data = await response.json();
-      gifGrid.innerHTML = '';
-      
-      data.data.forEach(gif => {
-        const img = document.createElement('img');
-        img.src = gif.images.fixed_height_small.url;
-        img.style.width = '100%';
-        img.style.height = '100px';
-        img.style.objectFit = 'cover';
-        img.style.cursor = 'pointer';
-        img.style.borderRadius = '6px';
-        
-        img.onclick = () => {
-          sendGif(gif.images.original.url);
-          gifPicker.style.display = 'none';
-        };
-        
-        gifGrid.appendChild(img);
-      });
-    } catch (e) {
-      console.error('Error fetching GIFs:', e);
-      gifGrid.innerHTML = '<span style="color:#ed4956;font-size:12px;text-align:center;padding:10px;">Clé API Giphy expirée ou invalide. Remplacez "apiKey" dans le code.</span>';
-    }
-  }
-
-  function sendGif(url) {
-    if (!currentConversationId) return;
-    const currentUser = document.getElementById('currentUserInput').value.trim();
-    if (!currentUser) return;
-    
-    socket.emit('send_message', {
-      pseudonyme: currentUser,
-      idGroupe: currentConversationId,
-      contenu: '[IMAGE]:' + url
-    });
-  }
-
-  btnGif.onclick = () => {
-    if (gifPicker.style.display === 'flex') {
-      gifPicker.style.display = 'none';
-    } else {
-      gifPicker.style.display = 'flex';
-      if (gifGrid.children.length === 0) {
-        fetchGifs();
-      }
-    }
-  };
-
-  let gifSearchTimeout;
-  gifSearchInput.addEventListener('input', (e) => {
-    clearTimeout(gifSearchTimeout);
-    gifSearchTimeout = setTimeout(() => {
-      fetchGifs(e.target.value);
-    }, 500);
   });
-  
-  // Fermer les pickers si clic en dehors
-  document.addEventListener('click', (e) => {
-    if (!gifPicker.contains(e.target) && e.target !== btnGif) {
-      gifPicker.style.display = 'none';
-    }
-    if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== emojiBtn && !e.target.closest('.message-actions')) {
-      emojiPicker.classList.remove('active');
+
+  socket.on('receive_reaction', (data) => {
+    if (data.idGroupe === currentConversationId) {
+      fetch(`/api/messages/${currentConversationId}`)
+        .then(res => res.json())
+        .then(messages => {
+          const msg = messages.find(m => m.id_message === data.idMessage);
+          if (msg) {
+            const reactContainer = document.getElementById(`reactions-${data.idMessage}`);
+            if (reactContainer) {
+              const reactCounts = {};
+              (msg.reactions || []).forEach(r => {
+                reactCounts[r.emoji] = (reactCounts[r.emoji] || 0) + 1;
+              });
+              reactContainer.innerHTML = Object.keys(reactCounts).map(emoji => 
+                `<span class="reaction-badge">${emoji} ${reactCounts[emoji] > 1 ? reactCounts[emoji] : ''}</span>`
+              ).join('');
+            }
+          }
+        });
     }
   });
 
-  document.getElementById('currentUserInput').addEventListener('change', chargerConversations);
-  window.addEventListener('DOMContentLoaded', chargerConversations);
+  // Affichage du statut "est en train d'écrire..."
+  socket.on('user_typing', (data) => {
+    if (data.idGroupe === currentConversationId) {
+      const statusElem = document.getElementById('chat-header-status');
+      statusElem.innerText = `${data.pseudonyme} est en train d'écrire...`;
+      statusElem.style.color = '#3797f0';
+    }
+  });
+
+  socket.on('user_stop_typing', (data) => {
+    if (data.idGroupe === currentConversationId) {
+      const statusElem = document.getElementById('chat-header-status');
+      statusElem.innerText = 'En ligne';
+      statusElem.style.color = '#a8a8a8';
+    }
+  });
+
+  socket.on('group_created', () => {
+    loadConversations();
+  });
+
+  loadConversations();
 </script>
 </body>
 </html>
