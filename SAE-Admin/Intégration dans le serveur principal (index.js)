@@ -1,8 +1,0 @@
-// --- DEBUT DE TA PARTIE ADMIN ---
-const adminRoutes = require('./adminRoutes.js');
-app.use('/api/admin', adminRoutes);
-
-app.get('/admin', (req, res) => {
-  res.sendFile(__dirname + '/admin.html');
-});
-// --- FIN DE TA PARTIE ADMIN ---
