@@ -38,7 +38,8 @@
     .chat-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #a8a8a8; gap: 8px; }
     .chat-empty-icon { font-size: 40px; }
 
-    .chat-header { padding: 15px 20px; border-bottom: 1px solid #262626; display: flex; align-items: center; gap: 12px; }
+    .chat-header { padding: 15px 20px; border-bottom: 1px solid #262626; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.2s; }
+    .chat-header:hover { background: #121212; }
     .chat-header-avatar { width: 36px; height: 36px; border-radius: 50%; }
     .chat-header-name { font-weight: 600; font-size: 14px; display: block; }
     .chat-header-status { font-size: 11px; color: #a8a8a8; }
@@ -113,12 +114,49 @@
     #notification-toast.show { transform: translateX(0); }
     #toast-title { font-size: 13px; font-weight: 600; }
     #toast-body { font-size: 12px; color: #a8a8a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .edited-badge { font-size: 10px; font-style: italic; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; margin-right: 4px; }
+    .mine .edited-badge { color: #000; }
+    .mine .edited-badge:hover { text-decoration-color: #000; }
+    .other .edited-badge { color: #0095f6; }
+    .other .edited-badge:hover { text-decoration-color: #0095f6; }
+    .group-details-sidebar { width: 300px; background: #000; border-left: 1px solid #262626; display: none; flex-direction: column; border-right: none; overflow-x: hidden; }
+    .group-details-header { padding: 15px 20px; border-bottom: 1px solid #262626; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 16px; }
+    .group-details-header span { cursor: pointer; color: #a8a8a8; font-size: 24px; line-height: 1; }
+    .group-details-header span:hover { color: #fff; }
+    .group-details-body { padding: 20px; flex: 1; overflow-y: auto; overflow-x: hidden; }
+    .group-details-section { margin-bottom: 24px; }
+    .group-details-title { font-size: 12px; font-weight: 600; color: #a8a8a8; text-transform: uppercase; margin-bottom: 12px; }
+    .group-member-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 14px; font-weight: 500; overflow: hidden; }
+    .group-member-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .group-member-item img { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+    .group-name-input-container { display: flex; gap: 8px; }
+    .group-name-input-container input { flex: 1; background: #121212; border: 1px solid #363636; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; outline: none; }
+    .group-name-input-container button { background: #0095f6; color: white; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; display: flex; justify-content: center; align-items: center; }
+    .group-name-input-container button:hover { background: #1877f2; }
+    
+    .group-photo-edit-container { position: relative; width: 80px; height: 80px; margin: 0 auto 20px auto; cursor: pointer; border-radius: 50%; overflow: hidden; }
+    .group-photo-edit-container img { width: 100%; height: 100%; object-fit: cover; }
+    .group-photo-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; opacity: 0; transition: opacity 0.2s; }
+    .group-photo-edit-container:hover .group-photo-overlay { opacity: 1; }
   </style>
 </head>
 <body>
   <div id="notification-toast" onclick="hideToast()">
     <span id="toast-title">Nouveau message</span>
     <span id="toast-body">...</span>
+  </div>
+
+  <div id="history-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Historique des modifications</span>
+        <span class="modal-close" onclick="closeHistoryModal()">×</span>
+      </div>
+      <div class="modal-body" id="history-modal-body" style="max-height: 350px; overflow-y: auto; color: white; font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- history goes here -->
+      </div>
+    </div>
   </div>
 
 <div class="messages-page">
@@ -146,7 +184,7 @@
     </div>
 
     <div id="active-chat" style="display:none; flex-direction:column; height:100%;">
-      <div class="chat-header">
+      <div class="chat-header" onclick="openGroupDetails()">
         <img src="" alt="" class="chat-header-avatar" id="chat-header-avatar">
         <div class="chat-header-info">
           <span class="chat-header-name" id="chat-header-name">Discussion</span>
@@ -190,6 +228,16 @@
           <p style="font-size: 12px; color: #a8a8a8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px;" id="reply-preview-text"></p>
           <span id="btn-cancel-reply" style="position: absolute; right: 10px; top: 10px; cursor: pointer; color: #a8a8a8; font-size: 14px; font-weight: bold;">&times;</span>
         </div>
+        
+        <div id="upload-progress-container" style="display: none; background: #262626; padding: 10px; border-radius: 8px; margin-bottom: 5px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; color: #a8a8a8;">
+            <span>Envoi du fichier...</span>
+            <span id="upload-progress-text">0%</span>
+          </div>
+          <div style="background: #121212; border-radius: 10px; width: 100%; height: 6px; overflow: hidden;">
+            <div id="upload-progress-bar" style="background: #0095f6; width: 0%; height: 100%; transition: width 0.1s;"></div>
+          </div>
+        </div>
         <div class="chat-input-wrapper">
           <button type="button" class="btn-emoji" id="btn-emoji" title="Ajouter un émoji">😊</button>
           <input type="text" id="chat-input" placeholder="Écrivez un message..." autocomplete="off">
@@ -197,11 +245,11 @@
           <button type="button" id="btn-attachment" title="Pièces jointes" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; color: #a8a8a8;">+</button>
           
           <div id="attachment-menu" style="display: none; position: absolute; bottom: 60px; right: 80px; background: #262626; border: 1px solid #363636; border-radius: 12px; padding: 8px; flex-direction: column; gap: 4px; z-index: 60; width: 120px;">
-            <div class="users-dropdown-item" id="btn-menu-image" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">Photo</div>
+            <div class="users-dropdown-item" id="btn-menu-image" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">Photo / Vidéo</div>
             <div class="users-dropdown-item" id="btn-menu-vocal" style="border-radius: 6px; display: flex; gap: 8px; align-items: center;">Message vocal</div>
           </div>
 
-          <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+          <input type="file" id="image-upload-input" accept="image/*,video/*" style="display: none;">
           <button type="submit" class="btn-send-message">Envoyer</button>
         </div>
         
@@ -270,6 +318,34 @@
     </div>
   </div>
 
+  <aside class="group-details-sidebar" id="group-details-sidebar">
+    <div class="group-details-header">
+      Détails
+      <span onclick="closeGroupDetails()">&times;</span>
+    </div>
+    <div class="group-details-body">
+      <div class="group-photo-edit-container" onclick="document.getElementById('group-photo-input').click()">
+        <img id="group-details-photo" src="" alt="Group Photo">
+        <div class="group-photo-overlay">Modifier</div>
+      </div>
+      <input type="file" id="group-photo-input" accept="image/*" style="display:none;" onchange="uploadGroupPhoto(event)">
+      
+      <div class="group-details-section" id="group-name-section">
+        <div class="group-details-title">Nom du groupe</div>
+        <div class="group-name-input-container">
+          <input type="text" id="group-name-input" placeholder="Nom du groupe...">
+          <button onclick="saveGroupName()" title="Enregistrer">✓</button>
+        </div>
+      </div>
+      <div class="group-details-section">
+        <div class="group-details-title" id="group-members-count">Membres</div>
+        <div id="group-members-list">
+          <!-- Members go here -->
+        </div>
+      </div>
+    </div>
+  </aside>
+
   <div class="lightbox-overlay" id="image-lightbox">
     <span class="lightbox-close" id="lightbox-close">&times;</span>
     <img src="" class="lightbox-img" id="lightbox-img">
@@ -334,6 +410,104 @@
       document.title = "Messagerie LifeInvader";
     }
   });
+
+  async function showEditHistory(idMessage) {
+    try {
+      const res = await fetch(`/api/message-history/${idMessage}`);
+      if (!res.ok) throw new Error("Impossible de charger l'historique");
+      const history = await res.json();
+      
+      const modal = document.getElementById('history-modal');
+      const body = document.getElementById('history-modal-body');
+      
+      if (history.length === 0) {
+        body.innerHTML = '<span>Aucun historique disponible.</span>';
+      } else {
+        body.innerHTML = history.map(h => {
+          const d = new Date(h.date_modification);
+          const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+          return `
+            <div style="background: #121212; padding: 10px; border-radius: 8px; border: 1px solid #363636;">
+              <div style="font-size: 11px; color: #a8a8a8; margin-bottom: 4px;">${dateStr}</div>
+              <div>${escapeHtml(h.ancien_contenu)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+      modal.style.display = 'flex';
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  function closeHistoryModal() {
+    document.getElementById('history-modal').style.display = 'none';
+  }
+
+  async function openGroupDetails() {
+    if (!currentConversationId) return;
+    
+    try {
+      const res = await fetch(`/api/groupe/${currentConversationId}/details`);
+      if (!res.ok) return; // Maybe it's not a group, or not found
+      const details = await res.json();
+      
+      const conv = conversationsData.find(c => c.id === currentConversationId);
+      const isDM = conv && conv.type === 'DM';
+      
+      // If it's a DM, don't show the name input
+      if (isDM) {
+        document.getElementById('group-name-section').style.display = 'none';
+      } else {
+        document.getElementById('group-name-section').style.display = 'block';
+        document.getElementById('group-name-input').value = details.nom_groupe;
+      }
+      
+      document.getElementById('group-members-count').innerText = `Membres (${details.membres.length})`;
+      const list = document.getElementById('group-members-list');
+      list.innerHTML = details.membres.map(m => `
+        <div class="group-member-item">
+          <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(m)}&background=random" alt="">
+          <span>${escapeHtml(m)}</span>
+        </div>
+      `).join('');
+      
+      document.getElementById('group-details-sidebar').style.display = 'flex';
+      document.getElementById('group-details-photo').src = getConvAvatar(conv);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function closeGroupDetails() {
+    document.getElementById('group-details-sidebar').style.display = 'none';
+  }
+
+  function uploadGroupPhoto(event) {
+    const file = event.target.files[0];
+    if (!file || !currentConversationId) return;
+    
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('idGroupe', currentConversationId);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload-group-photo', true);
+    xhr.onload = () => {
+      if (xhr.status !== 200) {
+        showToast('Erreur', "Impossible de modifier la photo.");
+      }
+    };
+    xhr.send(formData);
+    event.target.value = '';
+  }
+
+  function saveGroupName() {
+    if (!currentConversationId) return;
+    const newName = document.getElementById('group-name-input').value.trim();
+    if (!newName) return;
+    socket.emit('change_group_name', { idGroupe: currentConversationId, nouveauNom: newName });
+  }
   
 
 
@@ -354,6 +528,7 @@
   }
 
   function getConvAvatar(conv) {
+    if (conv.photo_groupe) return conv.photo_groupe;
     const name = getConvDisplayName(conv);
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
   }
@@ -389,7 +564,7 @@
         if (closingIdx > -1) rawText = rawText.substring(closingIdx + 1);
       }
       
-      let previewText = rawText.startsWith('[IMAGE]:') ? '📷 Image' : (rawText.startsWith('[AUDIO]:') ? 'Message vocal' : escapeHtml(rawText));
+      let previewText = rawText.startsWith('[IMAGE]:') ? '📷 Image' : (rawText.startsWith('[VIDEO]:') ? '🎥 Vidéo' : (rawText.startsWith('[AUDIO]:') ? 'Message vocal' : escapeHtml(rawText)));
 
       return `
         <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-conv-id="${conv.id}">
@@ -473,10 +648,10 @@
     const box = document.getElementById('chat-messages');
     box.innerHTML = '';
     lastMessageDate = null;
-    messages.forEach(msg => appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []));
+    messages.forEach(msg => appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || [], msg.est_modifie === 1));
   }
 
-  function appendMessage(idMessage, sender, text, dateString, reactions = []) {
+  function appendMessage(idMessage, sender, text, dateString, reactions = [], isEdited = false) {
     const currentUser = document.getElementById('currentUserInput').value.trim();
     const box = document.getElementById('chat-messages');
     const isMe = sender.toLowerCase() === currentUser.toLowerCase();
@@ -525,9 +700,10 @@
           parsedText = parsedText.substring(closingIdx + 1);
           let previewText = replyData.text;
           if (previewText.startsWith('[IMAGE]:')) previewText = '📷 Image';
+          if (previewText.startsWith('[VIDEO]:')) previewText = '🎥 Vidéo';
           if (previewText.startsWith('[AUDIO]:')) previewText = 'Message vocal';
           replyHtml = `
-            <div style="background: #000; padding: 10px 14px; border-left: 4px solid rgba(255, 255, 255, 0.4); border-radius: 14px; margin-bottom: 8px; font-size: 12px; width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis;">
+            <div onclick="const el = document.getElementById('msg-container-${replyData.id}'); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.style.transition = 'background 0.5s'; const oldBg = el.style.background; el.style.background = 'rgba(255,255,255,0.3)'; setTimeout(() => el.style.background = oldBg, 1000); }" style="cursor: pointer; background: #000; padding: 10px 14px; border-left: 4px solid rgba(255, 255, 255, 0.4); border-radius: 14px; margin-bottom: 8px; font-size: 12px; width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s;" onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='#000'">
               <strong style="color: #fff; font-size: 13px;">${escapeHtml(replyData.sender)}</strong><br>
               <span style="color: rgba(255, 255, 255, 0.85); white-space: nowrap;">${escapeHtml(previewText)}</span>
             </div>
@@ -547,11 +723,15 @@
       <div class="message-bubble">
         ${replyHtml}
         ${parsedText.startsWith('[IMAGE]:') ? `<img src="${parsedText.substring(8)}" onclick="openLightbox(this.src)" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" title="Cliquez pour agrandir">` : 
+         (parsedText.startsWith('[VIDEO]:') ? `<video controls src="${parsedText.substring(8)}" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 5px;"></video>` : 
          (parsedText.startsWith('[AUDIO]:') ? `<audio controls src="${parsedText.substring(8)}" style="height: 35px; max-width: 200px; outline: none; margin-bottom: 5px; border-radius: 20px;"></audio>` : 
-         `<p id="msg-text-${idMessage}">${escapeHtml(parsedText)}</p>`)}
+         `<p id="msg-text-${idMessage}">${escapeHtml(parsedText)}</p>`))}
         <span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">
           <span>${escapeHtml(sender)}</span>
-          <span>${timeStr}</span>
+          <span style="display:flex; gap:5px; align-items:center;">
+            ${isEdited ? `<span class="edited-badge" onclick="showEditHistory(${idMessage})" title="Voir l'historique">(Modifié)</span>` : ''}
+            <span>${timeStr}</span>
+          </span>
         </span>
       </div>
       <div class="message-reactions" id="reactions-${idMessage}">
@@ -561,7 +741,7 @@
     
     div.dataset.text = text || '';
     div.dataset.date = dateString || '';
-    const isTextMsg = !(parsedText.startsWith('[IMAGE]:') || parsedText.startsWith('[AUDIO]:'));
+    const isTextMsg = !(parsedText.startsWith('[IMAGE]:') || parsedText.startsWith('[VIDEO]:') || parsedText.startsWith('[AUDIO]:'));
     
     let pressTimer;
     const startPress = () => {
@@ -654,21 +834,52 @@
       const currentUser = document.getElementById('currentUserInput').value.trim();
       if (!currentUser) return;
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target.result;
-        const extension = '.' + file.name.split('.').pop();
-        
-        socket.emit('send_image', {
-          pseudonyme: currentUser,
-          idGroupe: currentConversationId,
-          imageBase64: base64,
-          extension: extension,
-          replyData: window.replyingTo
-        });
-        clearReply();
+      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      
+      const formData = new FormData();
+      formData.append('media', file);
+      formData.append('pseudonyme', currentUser);
+      formData.append('idGroupe', currentConversationId);
+      formData.append('mediaType', mediaType);
+      
+      if (window.replyingTo) {
+        formData.append('replyData', JSON.stringify(window.replyingTo));
+      }
+
+      const progressContainer = document.getElementById('upload-progress-container');
+      const progressBar = document.getElementById('upload-progress-bar');
+      const progressText = document.getElementById('upload-progress-text');
+      
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.innerText = '0%';
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload', true);
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          progressBar.style.width = percentComplete + '%';
+          progressText.innerText = percentComplete + '%';
+        }
       };
-      reader.readAsDataURL(file);
+      
+      xhr.onload = () => {
+        progressContainer.style.display = 'none';
+        if (xhr.status === 200) {
+          clearReply();
+        } else {
+          showToast('Erreur', "Impossible d'envoyer le fichier.");
+        }
+      };
+      
+      xhr.onerror = () => {
+        progressContainer.style.display = 'none';
+        showToast('Erreur', "Une erreur est survenue lors de l'envoi.");
+      };
+      
+      xhr.send(formData);
       imageUploadInput.value = ''; // Reset
     };
   }
@@ -853,7 +1064,7 @@
         if (!document.hidden) {
           localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
         }
-        appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || []);
+        appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || [], false);
       }
       
       renderConversationsList();
@@ -940,7 +1151,24 @@
       msgDiv.dataset.text = data.nouveauContenu;
       const p = document.getElementById(`msg-text-${data.idMessage}`);
       if (p) {
-        p.innerText = data.nouveauContenu;
+        let textToDisplay = data.nouveauContenu;
+        if (textToDisplay.startsWith('[REPLY:')) {
+          const closingIdx = textToDisplay.indexOf(']');
+          if (closingIdx > -1) {
+            textToDisplay = textToDisplay.substring(closingIdx + 1);
+          }
+        }
+        p.innerText = textToDisplay;
+      }
+      
+      const timeSpan = msgDiv.querySelector('.message-time > span:last-child');
+      if (timeSpan && !msgDiv.querySelector('.edited-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'edited-badge';
+        badge.innerText = '(Modifié)';
+        badge.title = "Voir l'historique";
+        badge.onclick = () => showEditHistory(data.idMessage);
+        timeSpan.insertBefore(badge, timeSpan.firstChild);
       }
     }
   });
@@ -957,6 +1185,37 @@
     if (isMember && !conversationsData.some(c => c.id === newConv.id)) {
       conversationsData.unshift(newConv);
       renderConversationsList();
+    }
+  });
+
+  socket.on('group_name_changed', (data) => {
+    const { idGroupe, nouveauNom } = data;
+    const conv = conversationsData.find(c => c.id === idGroupe);
+    if (conv) {
+      conv.name = nouveauNom;
+      renderConversationsList();
+      if (currentConversationId === idGroupe) {
+        document.getElementById('chat-header-name').innerText = getConvDisplayName(conv);
+        document.getElementById('chat-header-avatar').src = getConvAvatar(conv);
+        if (document.getElementById('group-details-sidebar').style.display === 'flex') {
+          document.getElementById('group-name-input').value = nouveauNom;
+        }
+      }
+    }
+  });
+  
+  socket.on('group_photo_changed', (data) => {
+    const { idGroupe, photo } = data;
+    const conv = conversationsData.find(c => c.id === idGroupe);
+    if (conv) {
+      conv.photo_groupe = photo;
+      renderConversationsList();
+      if (currentConversationId === idGroupe) {
+        document.getElementById('chat-header-avatar').src = getConvAvatar(conv);
+        if (document.getElementById('group-details-sidebar').style.display === 'flex') {
+          document.getElementById('group-details-photo').src = getConvAvatar(conv);
+        }
+      }
     }
   });
 
@@ -1016,6 +1275,7 @@
       
       let pText = originalText;
       if (pText.startsWith('[IMAGE]:')) pText = '📷 Image';
+      if (pText.startsWith('[VIDEO]:')) pText = '🎥 Vidéo';
       if (pText.startsWith('[AUDIO]:')) pText = 'Message vocal';
       
       document.getElementById('reply-preview-sender').innerText = senderName;
@@ -1036,7 +1296,18 @@
           btnEdit.style.display = 'block';
           btnEdit.onclick = () => {
             modalOptions.style.display = 'none';
-            document.getElementById('edit-message-input').value = currentText;
+            let prefix = '';
+            let textToEdit = currentText;
+            if (currentText.startsWith('[REPLY:')) {
+              const closingIdx = currentText.indexOf(']');
+              if (closingIdx > -1) {
+                prefix = currentText.substring(0, closingIdx + 1);
+                textToEdit = currentText.substring(closingIdx + 1);
+              }
+            }
+            const input = document.getElementById('edit-message-input');
+            input.value = textToEdit;
+            input.dataset.replyPrefix = prefix;
             document.getElementById('modal-edit-message').style.display = 'flex';
           };
         } else {
@@ -1061,13 +1332,16 @@
   }
 
   document.getElementById('btn-save-edit').onclick = () => {
-    const newText = document.getElementById('edit-message-input').value.trim();
+    const input = document.getElementById('edit-message-input');
+    const newText = input.value.trim();
+    const prefix = input.dataset.replyPrefix || '';
+    
     if (newText && activeOptionsMessageId) {
       const currentUser = document.getElementById('currentUserInput').value.trim();
       socket.emit('edit_message', {
         idMessage: activeOptionsMessageId,
         pseudonyme: currentUser,
-        nouveauContenu: newText,
+        nouveauContenu: prefix + newText,
         idGroupe: currentConversationId
       });
       document.getElementById('modal-edit-message').style.display = 'none';
@@ -1174,7 +1448,7 @@
     const input = document.getElementById('group-members-input').value.trim();
     if (!input) return;
 
-    const membres = input.split(',').map(m => m.trim());
+    const membres = input.split(',').map(m => m.trim()).filter(m => m !== '');
     const res = await fetch('/api/groupe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
