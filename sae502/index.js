@@ -152,7 +152,6 @@ app.delete('/api/conversations/:idGroupe', async (req, res) => {
   }
 });
 
-
 io.on('connection', (socket) => {
   socket.on('join_group', (idGroupe) => {
     socket.join(`group_${idGroupe}`);
@@ -213,6 +212,15 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error(err);
     }
+  });
+
+  // Nouveaux événements "est en train d'écrire"
+  socket.on('typing', (data) => {
+    socket.to(`group_${data.idGroupe}`).emit('user_typing', data);
+  });
+
+  socket.on('stop_typing', (data) => {
+    socket.to(`group_${data.idGroupe}`).emit('user_stop_typing', data);
   });
 });
 
