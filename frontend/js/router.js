@@ -12,6 +12,7 @@ import { render as renderPublish, mount as mountPublish } from './views/publish.
 import { render as renderSettings, mount as mountSettings } from './views/settings.js';
 import { render as renderSaved, mount as mountSaved } from './views/saved.js';
 import { render as renderEditProfile, mount as mountEditProfile } from './views/edit-profile.js';
+import { render as renderSearch, mount as mountSearch } from './views/search.js';
 
 /**
  * Table des routes enregistrées.
@@ -24,6 +25,7 @@ const ROUTES = {
   '#/profile': {render: renderProfile, mount: mountProfile, hideHeader: false},
   '#/edit-profile': {render: renderEditProfile, mount: mountEditProfile, hideHeader: false},
   '#/explore': {render: renderExplore, mount: mountExplore, hideHeader: false},
+  '#/search': {render: renderSearch, mount: mountSearch, hideHeader: false},
   '#/publish': {render: renderPublish, mount: mountPublish, hideHeader: false},
   '#/messages': {render: renderMessages, mount: mountMessages, hideHeader: false},
   '#/settings': {render: renderSettings, mount: mountSettings, hideHeader: false},

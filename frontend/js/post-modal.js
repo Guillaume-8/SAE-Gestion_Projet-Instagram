@@ -20,15 +20,30 @@ function escapeHtml(text) {
  * Ouvre le modal avec les détails d'une publication.
  * @param {Object} post Données de la publication.
  */
+let modalOpenToken = 0;
+
 export function showPostModal(partialPost) {
+  // Protection anti-doublon : si un modal est déjà ouvert, on le ferme
+  // d'abord. Cela évite les empilements quand on clique rapidement
+  // sur plusieurs publications (IDs dupliqués, listeners qui
+  // s'accumulent, impression de freeze).
+  const existing = document.getElementById('post-modal-overlay');
+  if (existing) {
+    existing.remove();
+  }
+
+  const myToken = ++modalOpenToken;
+
   // Fetch full post data — profile/explore pass partial objects
   // (id/mediaUrl only) that lack comments, caption, likesCount, etc.
   // Falls back to the partial data if the fetch fails.
   getPostById(partialPost.id)
     .then((freshPost) => {
+      if (myToken !== modalOpenToken) return;
       renderModal(freshPost);
     })
     .catch((error) => {
+      if (myToken !== modalOpenToken) return;
       console.error('Impossible de récupérer le post complet:', error);
       renderModal(partialPost);
     });

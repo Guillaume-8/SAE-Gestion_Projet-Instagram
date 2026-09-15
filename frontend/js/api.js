@@ -518,6 +518,59 @@ export async function getHashtags() {
   }
 }
 
+/**
+ * Recherche globale : profils, hashtags et publications.
+ * @param {string} query Terme de recherche (texte libre ou #hashtag).
+ * @return {Promise<Object>} Résultats {users, hashtags, posts}.
+ */
+export async function searchAll(query) {
+  if (USE_MOCK) {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) {
+      return Promise.resolve({users: [], hashtags: [], posts: []});
+    }
+
+    // Profils : auteurs uniques des publications.
+    const usersMap = new Map();
+    for (const post of MOCK_POSTS) {
+      if (!usersMap.has(post.author)) {
+        usersMap.set(post.author, {
+          username: post.author,
+          avatar: post.avatar,
+          postsCount: MOCK_POSTS.filter((p) => p.author === post.author).length,
+        });
+      }
+    }
+    const users = [...usersMap.values()].filter((u) =>
+      u.username.toLowerCase().includes(q.replace(/^#/, '')),
+    );
+
+    // Hashtags : tags contenant la requête (sans le # initial).
+    const tagQuery = q.replace(/^#/, '');
+    const hashtags = MOCK_HASHTAGS.filter((h) =>
+      h.tag.toLowerCase().includes(tagQuery),
+    );
+
+    // Publications : par auteur ou par caption.
+    const posts = MOCK_POSTS.filter((p) =>
+      p.author.toLowerCase().includes(q) ||
+      (p.caption || '').toLowerCase().includes(q),
+    );
+
+    return Promise.resolve({users, hashtags, posts});
+  }
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`,
+    );
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de la recherche :', error);
+    return {users: [], hashtags: [], posts: []};
+  }
+}
+
 // ============================================================
 //  MESSAGERIE
 // ============================================================
