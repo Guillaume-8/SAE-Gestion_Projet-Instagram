@@ -9,6 +9,7 @@ du clone Instagram réalisé en NodeJS/SQLite (SAÉ 5.02).
 - [Fonctionnement général](#fonctionnement-général)
 - [Documentation du code](#documentation-du-code)
 - [Utilisation](#utilisation)
+- [Test en local](#test-en-local)
 - [Limites actuelles et pistes d'évolution](#limites-actuelles-et-pistes-dévolution)
 
 ## Choix de cadrage
@@ -47,6 +48,13 @@ conserve donc en mémoire une copie intacte des pixels d'origine
 (`originalImageData`) et repart systématiquement de cette copie avant
 d'appliquer un nouveau filtre.
 
+### Filtres simples uniquement (pas de traitement par voisinage)
+
+Choix volontaire de rester sur des filtres qui ne modifient chaque pixel
+qu'en fonction de lui-même (pas de lecture des pixels voisins), pour
+garder un code simple et rapide à exécuter dans le navigateur. Des effets
+comme le flou ou la vignette sont donc exclus du périmètre actuel.
+
 ## Fonctionnement général
 
 ```
@@ -72,6 +80,13 @@ puis dessine cette image dans le `<canvas>` une fois chargée
 l'image pour éviter toute déformation. Une copie des pixels d'origine est
 sauvegardée dans `originalImageData` juste après ce premier dessin.
 
+### `clamp(value)`
+
+Limite une valeur entre 0 et 255. Nécessaire pour tous les filtres qui
+additionnent ou multiplient des composantes de couleur (`brightness`,
+`highContrast`, `saturate`), afin d'éviter qu'une valeur dépasse la plage
+valide et ne casse le rendu (ex: 250 + 40 = 290, invalide sans `clamp`).
+
 ### `applyFilter(canvas, ctx, filterName)`
 
 Récupère les pixels actuels du canvas via `ctx.getImageData()`, qui
@@ -79,12 +94,17 @@ retourne un tableau plat où chaque pixel occupe 4 cases consécutives
 (Rouge, Vert, Bleu, Alpha). Modifie ce tableau selon le filtre demandé,
 puis réécrit le résultat dans le canvas avec `ctx.putImageData()`.
 
-Filtres implémentés :
-- **`grayscale`** : moyenne des composantes R/G/B, appliquée aux trois.
-- **`sepia`** : matrice de conversion standard (coefficients fixes)
-  combinant R/G/B pondérés.
-- **`highContrast`** : écarte chaque composante de la valeur médiane (128)
-  selon un facteur multiplicateur.
+**7 filtres implémentés :**
+
+| Filtre | Nom (`filterName`) | Principe |
+|---|---|---|
+| Noir & blanc | `grayscale` | Moyenne des composantes R/G/B, appliquée aux trois |
+| Sépia | `sepia` | Matrice de conversion standard (coefficients fixes) |
+| Contraste | `highContrast` | Écarte chaque composante de la valeur médiane (128) |
+| Luminosité | `brightness` | Ajoute une valeur fixe à chaque composante |
+| Négatif | `invert` | Inverse chaque composante (`255 - valeur`) |
+| Saturation | `saturate` | Écarte chaque composante de la moyenne R/G/B |
+| Chaud | `warm` | Augmente le rouge, diminue le bleu |
 
 ### `selectFilter(filterName)`
 
@@ -127,13 +147,30 @@ Page HTML minimale nécessaire :
 <script src="/js/filters.js"></script>
 ```
 
+## Test en local
+
+Le projet n'a pas encore de route `/posts` fonctionnelle côté serveur
+principal (en attente de la partie publication de l'équipe) ni de
+Dockerfile. Pour valider le module de façon indépendante, un petit serveur
+Express jetable (`test-server.js`, à la racine, **non commité**) permet de
+servir `public/` et de simuler l'endpoint `/posts` avec `multer` :
+
+```bash
+npm install express multer
+node test-server.js
+```
+
+Puis ouvrir `http://localhost:3000/filtres.html` dans le navigateur.
+`test-server.js`, `uploads/` et `node_modules/` sont listés dans
+`.gitignore` pour ne pas polluer le dépôt commun.
+
 ## Limites actuelles et pistes d'évolution
 
 - Filtres actuellement codés en dur dans `filters.js` ; pourrait être
   piloté par la table `filters` en base pour une configuration dynamique.
 - Pas de compression/redimensionnement avant upload (image envoyée en
   pleine résolution).
-- Filtres supplémentaires à ajouter selon le besoin (flou, vignette,
-  luminosité, saturation).
+- Filtres volontairement simples (pas de flou, vignette ou autres effets
+  nécessitant une lecture des pixels voisins).
 - Aucune gestion d'erreur utilisateur si `canvas.toBlob()` échoue ou si
   l'upload réseau échoue au-delà du `console.error`.
