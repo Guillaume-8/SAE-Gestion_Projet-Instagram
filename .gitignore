@@ -3,9 +3,13 @@ node_modules/
 *.log
 .DS_Store
 *:Zone.Identifier
+.docusaurus/
+build/
 
 # Certificats et clés privées
 certs/
 *.pem
 *.key
 *.xdb
+
+backend-messagerie/database_lifeinvader.db
