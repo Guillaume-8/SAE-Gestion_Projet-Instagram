@@ -3,6 +3,7 @@
  */
 
 import { toggleLike, toggleDislike, sharePost, republishPost, reportPost, getPostById } from './api.js';
+import { attachMediaFallback } from './media-fallback.js';
 
 /**
  * Échappe les caractères HTML.
@@ -103,6 +104,10 @@ function renderModal(post) {
   
   // Ajoute le modal au DOM
   document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // Dégradé de remplacement si le média local est manquant
+  const modalContent = document.getElementById('post-modal-content');
+  if (modalContent) attachMediaFallback(modalContent);
   
   // Fonction pour mettre à jour le modal avec les données fraîches
   async function updateModalData() {

@@ -2576,3 +2576,95 @@ video.modal-media {
 .edit-profile-form textarea:focus {
   border-color: var(--accent-color, #0095f6);
 }
+
+/* ============ FALLBACK MÉDIAS LOCAUX MANQUANTS ============ */
+/* Les posts mock pointent vers assets/images/posts/post-XX.jpg.
+   Tant que les fichiers ne sont pas fournis, on affiche un dégradé. */
+
+.post-media-container.media-missing {
+  background: linear-gradient(135deg, #1a1a1a, #2e2e2e 55%, #1f2937);
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-media-container.media-missing::after {
+  content: "📷 Image locale manquante — assets/images/posts/";
+  color: #a8a8a8;
+  font-size: 13px;
+}
+
+.explore-tile.media-missing,
+.saved-tile.media-missing,
+.profile-post-thumb.media-missing {
+  background: linear-gradient(135deg, #262626, #3a3a3a 55%, #26303a);
+}
+
+.explore-tile.media-missing::after,
+.saved-tile.media-missing::after,
+.profile-post-thumb.media-missing::after {
+  content: "📷";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  opacity: 0.4;
+}
+
+.post-modal-media.media-missing {
+  background: linear-gradient(135deg, #0a0a0a, #1e1e1e);
+}
+
+.post-modal-media.media-missing::after {
+  content: "📷 Image locale manquante";
+  color: #a8a8a8;
+  font-size: 14px;
+}
+
+/* ============ EXPLORE — FILTRE HASHTAG ============ */
+
+.trending-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.explore-clear-btn {
+  background: none;
+  border: 1px solid var(--border-color, #363636);
+  color: var(--text-main, #f5f5f5);
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.explore-clear-btn:hover {
+  background: var(--bg-color, #262626);
+}
+
+.explore-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  color: #a8a8a8;
+  text-align: center;
+}
+
+.explore-empty-icon {
+  font-size: 36px;
+}
+
+.hashtag-chip.active {
+  border-color: var(--accent-color, #0095f6);
+  background: rgba(0, 149, 246, 0.12);
+}

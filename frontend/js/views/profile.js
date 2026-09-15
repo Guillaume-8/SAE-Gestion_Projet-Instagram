@@ -4,6 +4,7 @@
 
 import { getCurrentUser } from '../api.js';
 import { showPostModal } from '../post-modal.js';
+import { attachMediaFallback } from '../media-fallback.js';
 
 /**
  * Échappe les caractères HTML.
@@ -97,6 +98,9 @@ export async function mount() {
   try {
     const user = await getCurrentUser();
     container.innerHTML = buildProfileHtml(user);
+
+    // Dégradé de remplacement si une image locale est manquante
+    attachMediaFallback(container);
 
     // Onglets du profil
     const tabs = container.querySelectorAll('.profile-tab');

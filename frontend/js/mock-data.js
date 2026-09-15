@@ -1,92 +1,379 @@
 /**
  * @fileoverview Données fictives pour le développement de l'interface.
+ *
+ * Les médias des publications pointent vers "assets/images/posts/" :
+ * importer vos propres images en local avec les noms post-01.jpg à
+ * post-20.jpg (formats PNG/WebP acceptés si l'extension est adaptée).
+ * Tant qu'une image locale est absente, un dégradé de remplacement
+ * s'affiche (voir .media-missing dans style.css).
+ *
+ * Les avatars sont des SVG inline générés (initiale colorée) : aucune
+ * dépendance réseau, aucune image à fournir.
  */
 
-export const MOCK_POSTS = [
+/**
+ * Génère un avatar SVG inline (initiale colorée) sans dépendance externe.
+ * @param {string} name Nom de l'utilisateur.
+ * @return {string} Data URL de l'avatar SVG.
+ */
+function makeAvatar(name) {
+  const colors = [
+    '#f97316', '#8b5cf6', '#06b6d4', '#10b981', '#f43f5e',
+    '#3b82f6', '#eab308', '#a855f7', '#14b8a6', '#ef4444',
+  ];
+  let hash = 0;
+  for (const ch of name) {
+    hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  }
+  const color = colors[hash % colors.length];
+  const letter = name.charAt(0).toUpperCase();
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
+    '<rect fill="' + color + '" width="100" height="100"/>' +
+    '<text x="50" y="55" font-size="52" fill="#ffffff" text-anchor="middle" ' +
+    'font-family="sans-serif" font-weight="bold">' + letter + '</text></svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/**
+ * Source unique de vérité : toutes les listes exportées sont dérivées
+ * de ce tableau. Les ids correspondent aux fichiers post-XX.jpg.
+ * @type {Array<Object>}
+ */
+const ALL_POSTS = [
   {
     id: 1,
-    author: 'thomas_rt',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-    mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600',
+    author: 'eren_rt',
+    avatar: makeAvatar('eren_rt'),
+    mediaUrl: 'assets/images/posts/post-01.jpg',
     isVideo: false,
-    caption: 'Déploiement du serveur Apache validé en HTTPS ! #butrt #dev #sae',
-    likesCount: 12,
+    caption: 'Configuration Apache validée en HTTPS sur le serveur ! #butrt #dev',
+    likesCount: 18,
     dislikesCount: 1,
     visibility: 'public',
     comments: [
-      {id: 101, author: 'guillaume_rt', text: 'Top la conf SSL !'},
-      {id: 102, author: 'mathias_rt', text: 'API REST en cours de route.'},
+      {id: 101, author: 'guillaume_rt', text: 'Le certificat passe bien !'},
+      {id: 102, author: 'mathias_rt', text: 'Top, je branche le back dessus.'},
     ],
     createdAt: 'Il y a 10 minutes',
   },
   {
     id: 2,
-    author: 'tanguy_rt',
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100',
-    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    isVideo: true,
-    caption: 'Premier test du lecteur vidéo pour le projet #multimedia',
-    likesCount: 24,
+    author: 'thomas_rt',
+    avatar: makeAvatar('thomas_rt'),
+    mediaUrl: 'assets/images/posts/post-02.jpg',
+    isVideo: false,
+    caption: 'Le routeur hash du SPA est finalisé, navigation fluide #sae502 #frontend',
+    likesCount: 25,
     dislikesCount: 0,
-    visibility: 'friends',
+    visibility: 'public',
+    comments: [
+      {id: 103, author: 'eren_rt', text: 'Le mode sombre avec est parfait.'},
+    ],
+    createdAt: 'Il y a 32 minutes',
+  },
+  {
+    id: 3,
+    author: 'guillaume_rt',
+    avatar: makeAvatar('guillaume_rt'),
+    mediaUrl: 'assets/images/posts/post-03.jpg',
+    isVideo: false,
+    caption: 'Reverse proxy Apache configuré, Node.js répond derrière ! #butrt #apache',
+    likesCount: 31,
+    dislikesCount: 2,
+    visibility: 'public',
     comments: [],
     createdAt: 'Il y a 1 heure',
   },
+  {
+    id: 4,
+    author: 'mathias_rt',
+    avatar: makeAvatar('mathias_rt'),
+    mediaUrl: 'assets/images/posts/post-04.jpg',
+    isVideo: false,
+    caption: 'Premiers endpoints Express en place, ça répond vite ! #dev #nodejs',
+    likesCount: 44,
+    dislikesCount: 1,
+    visibility: 'public',
+    comments: [
+      {id: 104, author: 'eren_rt', text: 'Je teste le fetch ce soir.'},
+      {id: 105, author: 'enes_rt', text: 'Bonne vitesse de réponse !'},
+    ],
+    createdAt: 'Il y a 2 heures',
+  },
+  {
+    id: 5,
+    author: 'tanguy_rt',
+    avatar: makeAvatar('tanguy_rt'),
+    mediaUrl: 'assets/images/posts/post-05.jpg',
+    isVideo: false,
+    caption: "Le plan d'adressage IPv6 du labo est enfin prêt #reseau #projet",
+    likesCount: 12,
+    dislikesCount: 0,
+    visibility: 'friends',
+    comments: [],
+    createdAt: 'Il y a 3 heures',
+  },
+  {
+    id: 6,
+    author: 'pierre_rt',
+    avatar: makeAvatar('pierre_rt'),
+    mediaUrl: 'assets/images/posts/post-06.jpg',
+    isVideo: false,
+    caption: 'Retouche des photos du projet avec les filtres CSS #multimedia #frontend',
+    likesCount: 56,
+    dislikesCount: 3,
+    visibility: 'public',
+    comments: [
+      {id: 106, author: 'yanis_rt', text: 'Le rendu est superbe.'},
+    ],
+    createdAt: 'Il y a 4 heures',
+  },
+  {
+    id: 7,
+    author: 'eren_rt',
+    avatar: makeAvatar('eren_rt'),
+    mediaUrl: 'assets/images/posts/post-07.jpg',
+    isVideo: false,
+    caption: 'Le menu hamburger est terminé, mode sombre persistant inclus #sae502 #frontend',
+    likesCount: 22,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 5 heures',
+  },
+  {
+    id: 8,
+    author: 'yanis_rt',
+    avatar: makeAvatar('yanis_rt'),
+    mediaUrl: 'assets/images/posts/post-08.jpg',
+    isVideo: false,
+    caption: 'Modélisation de la base SQLite, les tables sont créées #butrt #sqlite',
+    likesCount: 15,
+    dislikesCount: 1,
+    visibility: 'public',
+    comments: [
+      {id: 107, author: 'mathias_rt', text: 'Les clés étrangères sont propres.'},
+    ],
+    createdAt: 'Il y a 6 heures',
+  },
+  {
+    id: 9,
+    author: 'enes_rt',
+    avatar: makeAvatar('enes_rt'),
+    mediaUrl: 'assets/images/posts/post-09.jpg',
+    isVideo: false,
+    caption: 'API REST Node.js branchée sur SQLite, tout répond ! #dev #nodejs',
+    likesCount: 38,
+    dislikesCount: 2,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 7 heures',
+  },
+  {
+    id: 10,
+    author: 'guillaume_rt',
+    avatar: makeAvatar('guillaume_rt'),
+    mediaUrl: 'assets/images/posts/post-10.jpg',
+    isVideo: false,
+    caption: 'Génération du certificat avec SAN pour localhost #apache #securite',
+    likesCount: 27,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [
+      {id: 108, author: 'eren_rt', text: 'Brave accepte le certificat maintenant ?'},
+      {id: 109, author: 'guillaume_rt', text: 'Oui, plus aucun avertissement !'},
+    ],
+    createdAt: 'Il y a 8 heures',
+  },
+  {
+    id: 11,
+    author: 'jonathan_rt',
+    avatar: makeAvatar('jonathan_rt'),
+    mediaUrl: 'assets/images/posts/post-11.jpg',
+    isVideo: false,
+    caption: 'Capture du trafic réseau avec Wireshark en TP #reseau #multimedia',
+    likesCount: 19,
+    dislikesCount: 0,
+    visibility: 'friends',
+    comments: [],
+    createdAt: 'Il y a 9 heures',
+  },
+  {
+    id: 12,
+    author: 'eren_rt',
+    avatar: makeAvatar('eren_rt'),
+    mediaUrl: 'assets/images/posts/post-12.jpg',
+    isVideo: false,
+    caption: 'Le Dockerfile du back-end build sans warning #sae502 #docker',
+    likesCount: 33,
+    dislikesCount: 1,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 10 heures',
+  },
+  {
+    id: 13,
+    author: 'matheo_rt',
+    avatar: makeAvatar('matheo_rt'),
+    mediaUrl: 'assets/images/posts/post-13.jpg',
+    isVideo: false,
+    caption: 'Audit de sécurité du site, en-têtes HTTP renforcés #butrt #securite',
+    likesCount: 21,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 11 heures',
+  },
+  {
+    id: 14,
+    author: 'thomas_rt',
+    avatar: makeAvatar('thomas_rt'),
+    mediaUrl: 'assets/images/posts/post-14.jpg',
+    isVideo: false,
+    caption: 'Requêtes SQL préparées contre les injections #dev #sqlite',
+    likesCount: 17,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [
+      {id: 110, author: 'yanis_rt', text: 'Sécurité avant tout.'},
+    ],
+    createdAt: 'Il y a 12 heures',
+  },
+  {
+    id: 15,
+    author: 'pierre_rt',
+    avatar: makeAvatar('pierre_rt'),
+    mediaUrl: 'assets/images/posts/post-15.jpg',
+    isVideo: false,
+    caption: 'Fail2ban installé sur le serveur Apache #apache #reseau',
+    likesCount: 9,
+    dislikesCount: 0,
+    visibility: 'friends',
+    comments: [],
+    createdAt: 'Il y a 14 heures',
+  },
+  {
+    id: 16,
+    author: 'tanguy_rt',
+    avatar: makeAvatar('tanguy_rt'),
+    mediaUrl: 'assets/images/posts/post-16.jpg',
+    isVideo: false,
+    caption: 'Galerie photos responsive en CSS grid #multimedia #frontend #projet',
+    likesCount: 29,
+    dislikesCount: 1,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 16 heures',
+  },
+  {
+    id: 17,
+    author: 'jonathan_rt',
+    avatar: makeAvatar('jonathan_rt'),
+    mediaUrl: 'assets/images/posts/post-17.jpg',
+    isVideo: false,
+    caption: 'Pipeline CI avec GitHub Actions pour la SAE #sae502 #docker',
+    likesCount: 24,
+    dislikesCount: 2,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 18 heures',
+  },
+  {
+    id: 18,
+    author: 'eren_rt',
+    avatar: makeAvatar('eren_rt'),
+    mediaUrl: 'assets/images/posts/post-18.jpg',
+    isVideo: false,
+    caption: 'Le mode sombre persiste grâce au localStorage #butrt #frontend',
+    likesCount: 26,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Il y a 20 heures',
+  },
+  {
+    id: 19,
+    author: 'matheo_rt',
+    avatar: makeAvatar('matheo_rt'),
+    mediaUrl: 'assets/images/posts/post-19.jpg',
+    isVideo: false,
+    caption: 'Conteneurisation complète de la stack, une seule commande ! #dev #docker',
+    likesCount: 35,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [
+      {id: 111, author: 'eren_rt', text: 'Pratique pour la démo.'},
+    ],
+    createdAt: 'Hier',
+  },
+  {
+    id: 20,
+    author: 'mathias_rt',
+    avatar: makeAvatar('mathias_rt'),
+    mediaUrl: 'assets/images/posts/post-20.jpg',
+    isVideo: false,
+    caption: 'Hachage des mots de passe avec bcrypt côté serveur #nodejs #securite',
+    likesCount: 41,
+    dislikesCount: 1,
+    visibility: 'public',
+    comments: [],
+    createdAt: 'Hier',
+  },
 ];
+
+/** Fil d'actualité : toutes les publications. */
+export const MOCK_POSTS = ALL_POSTS;
+
+/** Publications tendance : triées par nombre de likes. */
+export const MOCK_TRENDING_POSTS = [...ALL_POSTS].sort(
+  (a, b) => b.likesCount - a.likesCount,
+);
+
+/** Publications enregistrées : une sélection (hors posts de eren_rt). */
+export const MOCK_SAVED_POSTS = [3, 9, 16, 20]
+  .map((id) => ALL_POSTS.find((p) => p.id === id))
+  .filter(Boolean);
+
+/**
+ * Hashtags tendance : calculés depuis les captions réelles, donc les
+ * compteurs affichés correspondent toujours au contenu filtrable.
+ */
+export const MOCK_HASHTAGS = (() => {
+  const counts = new Map();
+  const regex = /#[\wàâäéèêëîïôöùûüç]+/g;
+  for (const post of ALL_POSTS) {
+    const tags = post.caption.match(regex) || [];
+    for (const tag of tags) {
+      const key = tag.toLowerCase();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([tag, count]) => ({tag, count}))
+    .sort((a, b) => b.count - a.count);
+})();
+
+/** Posts de l'utilisateur connecté (eren_rt). */
+const EREN_POSTS = ALL_POSTS.filter((p) => p.author === 'eren_rt');
 
 export const MOCK_USER = {
   id: 1,
   username: 'eren_rt',
   name: 'Eren',
-  avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+  avatar: makeAvatar('eren_rt'),
   bio: 'Responsable Front-End | BUT R&T 3ème année | SAÉ 5.02',
-  postsCount: 6,
+  postsCount: EREN_POSTS.length,
   followersCount: 42,
   followingCount: 28,
-  posts: [
-    {id: 1, mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300', isVideo: false},
-    {id: 2, mediaUrl: 'https://images.unsplash.com/photo-1618005198919-56ceb5ecca61?w=300', isVideo: false},
-    {id: 3, mediaUrl: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300', isVideo: false},
-    {id: 4, mediaUrl: 'https://images.unsplash.com/photo-1551650975-87deedd944b3?w=300', isVideo: false},
-    {id: 5, mediaUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=300', isVideo: false},
-    {id: 6, mediaUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300', isVideo: false},
-  ],
+  posts: EREN_POSTS.map(({id, mediaUrl, isVideo}) => ({id, mediaUrl, isVideo})),
 };
-
-export const MOCK_TRENDING_POSTS = [
-  {id: 1, mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300', isVideo: false, author: 'thomas_rt', likesCount: 12},
-  {id: 2, mediaUrl: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300', isVideo: false, author: 'matheo_rt', likesCount: 45},
-  {id: 3, mediaUrl: 'https://images.unsplash.com/photo-1551650975-87deedd944b3?w=300', isVideo: false, author: 'tanguy_rt', likesCount: 67},
-  {id: 4, mediaUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=300', isVideo: false, author: 'pierre_rt', likesCount: 89},
-  {id: 5, mediaUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300', isVideo: false, author: 'yanis_rt', likesCount: 33},
-  {id: 6, mediaUrl: 'https://images.unsplash.com/photo-1605379399642-870262d3d051?w=300', isVideo: false, author: 'enes_rt', likesCount: 51},
-  {id: 7, mediaUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=300', isVideo: false, author: 'mathias_rt', likesCount: 72},
-  {id: 8, mediaUrl: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300', isVideo: false, author: 'guillaume_rt', likesCount: 28},
-  {id: 9, mediaUrl: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=300', isVideo: false, author: 'jonathan_rt', likesCount: 95},
-];
-
-export const MOCK_HASHTAGS = [
-  {tag: '#butrt', count: 128},
-  {tag: '#sae502', count: 84},
-  {tag: '#dev', count: 67},
-  {tag: '#multimedia', count: 45},
-  {tag: '#apache', count: 32},
-  {tag: '#nodejs', count: 28},
-  {tag: '#sqlite', count: 19},
-  {tag: '#docker', count: 15},
-];
-
-export const MOCK_SAVED_POSTS = [
-  {id: 1, mediaUrl: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300', isVideo: false, author: 'matheo_rt', likesCount: 45},
-  {id: 2, mediaUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=300', isVideo: false, author: 'pierre_rt', likesCount: 89},
-  {id: 3, mediaUrl: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=300', isVideo: false, author: 'jonathan_rt', likesCount: 95},
-];
 
 export const MOCK_CONVERSATIONS = [
   {
     id: 1,
     name: 'thomas_rt',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+    avatar: makeAvatar('thomas_rt'),
     lastMessage: 'Tu as pu tester le reverse proxy ?',
     lastTime: 'Il y a 5 min',
     unread: true,
@@ -99,7 +386,7 @@ export const MOCK_CONVERSATIONS = [
   {
     id: 2,
     name: 'guillaume_rt',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+    avatar: makeAvatar('guillaume_rt'),
     lastMessage: 'Le certificat SSL est presque prêt',
     lastTime: 'Il y a 1 h',
     unread: false,
@@ -112,7 +399,7 @@ export const MOCK_CONVERSATIONS = [
   {
     id: 3,
     name: 'mathias_rt',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+    avatar: makeAvatar('mathias_rt'),
     lastMessage: "L'API REST renvoie les posts correctement",
     lastTime: 'Hier',
     unread: false,
@@ -124,7 +411,7 @@ export const MOCK_CONVERSATIONS = [
   {
     id: 4,
     name: 'groupe_dev',
-    avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
+    avatar: makeAvatar('groupe_dev'),
     lastMessage: 'Yanis : Réunion demain à 14h',
     lastTime: 'Hier',
     unread: true,

@@ -13,6 +13,7 @@ import {
   addComment,
 } from './api.js';
 import { showPostModal } from './post-modal.js';
+import { attachMediaFallback } from './media-fallback.js';
 
 /**
  * Échappe les caractères HTML pour éviter les injections XSS.
@@ -399,6 +400,9 @@ export async function mount() {
 
   const posts = await getFeedPosts();
   container.innerHTML = posts.map(createPostElement).join('');
+
+  // Dégradé de remplacement si une image locale est manquante
+  attachMediaFallback(container);
 
   setupEventDelegation(container);
   

@@ -3,6 +3,8 @@
  */
 
 import { getSavedPosts } from '../api.js';
+import { showPostModal } from '../post-modal.js';
+import { attachMediaFallback } from '../media-fallback.js';
 
 /**
  * Rend le squelette HTML de la vue Enregistrées.
@@ -63,10 +65,16 @@ export async function mount() {
 
     grid.innerHTML = posts.map(createSavedTileHtml).join('');
 
+    // Dégradé de remplacement si une image locale est manquante
+    attachMediaFallback(grid);
+
     grid.querySelectorAll('.saved-tile').forEach((tile) => {
       tile.addEventListener('click', () => {
-        const postId = tile.dataset.postId;
-        console.info('[DEV] Ouverture de la publication #' + postId);
+        const postId = parseInt(tile.dataset.postId, 10);
+        const post = posts.find((p) => p.id === postId);
+        if (post) {
+          showPostModal(post);
+        }
       });
     });
   } catch (error) {
