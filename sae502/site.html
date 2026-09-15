@@ -250,7 +250,7 @@
           </div>
 
           <input type="file" id="image-upload-input" accept="image/*,video/*" style="display: none;">
-          <button type="submit" class="btn-send-message">Envoyer</button>
+          <button type="submit" class="btn-send-message" id="btn-send-message" disabled style="color: #545454; cursor: default;">Envoyer</button>
         </div>
         
         <div id="recording-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: #ff4040; border-radius: 22px; padding: 8px 15px; color: white;">
@@ -259,7 +259,6 @@
             <button type="button" id="btn-cancel-record" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 13px;">Annuler</button>
             <button type="button" id="btn-stop-record" style="background: white; border: none; color: #ff4040; cursor: pointer; font-size: 13px; font-weight: bold; padding: 4px 10px; border-radius: 12px;">Envoyer</button>
           </div>
-          <button type="submit" class="btn-send-message">Envoyer</button>
         </div>
       </form>
     </div>
@@ -334,9 +333,21 @@
         <div class="group-details-title">Nom du groupe</div>
         <div class="group-name-input-container">
           <input type="text" id="group-name-input" placeholder="Nom du groupe...">
-          <button onclick="saveGroupName()" title="Enregistrer">✓</button>
+          <button onclick="saveGroupName()" title="Enregistrer">💾</button>
         </div>
       </div>
+      
+      <div class="group-details-section" id="group-media-section">
+        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+          <button id="tab-media-imgvid" onclick="switchMediaTab('imgvid')" style="flex: 1; padding: 6px; background: #363636; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;">Images & Vidéos</button>
+          <button id="tab-media-gifs" onclick="switchMediaTab('gifs')" style="flex: 1; padding: 6px; background: #121212; border: none; color: #a8a8a8; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;">GIFs</button>
+        </div>
+        <div>
+          <div id="media-images-videos" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-height: 250px; overflow-y: auto;"></div>
+          <div id="media-gifs" style="display: none; grid-template-columns: repeat(3, 1fr); gap: 4px; max-height: 250px; overflow-y: auto;"></div>
+        </div>
+      </div>
+
       <div class="group-details-section">
         <div class="group-details-title" id="group-members-count">Membres</div>
         <div id="group-members-list">
@@ -452,6 +463,10 @@
       if (!res.ok) return; // Maybe it's not a group, or not found
       const details = await res.json();
       
+      if (details.membres.length <= 2) {
+        return; // Do not open details for DMs
+      }
+      
       const conv = conversationsData.find(c => c.id === currentConversationId);
       const isDM = conv && conv.type === 'DM';
       
@@ -472,6 +487,57 @@
         </div>
       `).join('');
       
+      if (typeof switchMediaTab === 'function') {
+        switchMediaTab('imgvid');
+      }
+      
+      const containerImgVid = document.getElementById('media-images-videos');
+      const containerGifs = document.getElementById('media-gifs');
+      if (containerImgVid && containerGifs) {
+        containerImgVid.innerHTML = '';
+        containerGifs.innerHTML = '';
+        if (details.media && details.media.length > 0) {
+          details.media.forEach(m => {
+            let content = m;
+            if (content.startsWith('[REPLY:')) {
+              const closingBracket = content.indexOf(']');
+              if (closingBracket !== -1) {
+                content = content.substring(closingBracket + 1);
+              }
+            }
+            
+            if (content.startsWith('[IMAGE]:')) {
+              const url = content.replace('[IMAGE]:', '');
+              const img = document.createElement('img');
+              img.src = url;
+              img.style.width = '100%';
+              img.style.height = '60px';
+              img.style.objectFit = 'cover';
+              img.style.borderRadius = '4px';
+              img.style.cursor = 'pointer';
+              img.onclick = () => window.open(url, '_blank');
+              
+              if (url.includes('giphy.com')) {
+                containerGifs.appendChild(img);
+              } else {
+                containerImgVid.appendChild(img);
+              }
+            } else if (content.startsWith('[VIDEO]:')) {
+              const url = content.replace('[VIDEO]:', '');
+              const vid = document.createElement('video');
+              vid.src = url;
+              vid.style.width = '100%';
+              vid.style.height = '60px';
+              vid.style.objectFit = 'cover';
+              vid.style.borderRadius = '4px';
+              vid.style.cursor = 'pointer';
+              vid.onclick = () => window.open(url, '_blank');
+              containerImgVid.appendChild(vid);
+            }
+          });
+        }
+      }
+      
       document.getElementById('group-details-sidebar').style.display = 'flex';
       document.getElementById('group-details-photo').src = getConvAvatar(conv);
     } catch (e) {
@@ -481,6 +547,24 @@
 
   function closeGroupDetails() {
     document.getElementById('group-details-sidebar').style.display = 'none';
+  }
+
+  function switchMediaTab(tab) {
+    if (tab === 'imgvid') {
+      document.getElementById('media-images-videos').style.display = 'grid';
+      document.getElementById('media-gifs').style.display = 'none';
+      document.getElementById('tab-media-imgvid').style.background = '#363636';
+      document.getElementById('tab-media-imgvid').style.color = 'white';
+      document.getElementById('tab-media-gifs').style.background = '#121212';
+      document.getElementById('tab-media-gifs').style.color = '#a8a8a8';
+    } else {
+      document.getElementById('media-images-videos').style.display = 'none';
+      document.getElementById('media-gifs').style.display = 'grid';
+      document.getElementById('tab-media-gifs').style.background = '#363636';
+      document.getElementById('tab-media-gifs').style.color = 'white';
+      document.getElementById('tab-media-imgvid').style.background = '#121212';
+      document.getElementById('tab-media-imgvid').style.color = '#a8a8a8';
+    }
   }
 
   function uploadGroupPhoto(event) {
@@ -649,6 +733,10 @@
     box.innerHTML = '';
     lastMessageDate = null;
     messages.forEach(msg => appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || [], msg.est_modifie === 1));
+    
+    if (typeof closeGroupDetails === 'function') {
+      closeGroupDetails();
+    }
   }
 
   function appendMessage(idMessage, sender, text, dateString, reactions = [], isEdited = false) {
@@ -782,6 +870,26 @@
     }
   }
 
+  function updateSendButtonState() {
+    const btn = document.getElementById('btn-send-message');
+    const input = document.getElementById('chat-input');
+    if (!btn || !input) return;
+    
+    if (input.value.trim() === '') {
+      btn.style.color = '#545454';
+      btn.style.cursor = 'default';
+      btn.disabled = true;
+    } else {
+      btn.style.color = '#0095f6';
+      btn.style.cursor = 'pointer';
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('chat-input').addEventListener('input', updateSendButtonState);
+  document.getElementById('chat-input').addEventListener('keyup', updateSendButtonState);
+  document.getElementById('chat-input').addEventListener('change', updateSendButtonState);
+
   document.getElementById('chat-input-form').onsubmit = (e) => {
     e.preventDefault();
     const input = document.getElementById('chat-input');
@@ -800,6 +908,11 @@
     input.value = '';
     clearReply();
     document.getElementById('emoji-picker').classList.remove('active');
+    
+    const btn = document.getElementById('btn-send-message');
+    btn.style.color = '#545454';
+    btn.style.cursor = 'default';
+    btn.disabled = true;
   };
 
   const imageUploadInput = document.getElementById('image-upload-input');
@@ -1012,6 +1125,7 @@
           activeReactionMessageId = null;
         } else {
           chatInput.value += emoji;
+          updateSendButtonState();
           chatInput.focus();
         }
       };

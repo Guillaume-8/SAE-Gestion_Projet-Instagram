@@ -316,11 +316,19 @@ async function obtenirDetailsGroupe(idGroupe) {
      WHERE ag.id_groupe = ?`,
     [idGroupe]);
 
+  const mediaResult = await database.all(
+    `SELECT contenu_message
+     FROM Message
+     WHERE id_groupe = ? AND (contenu_message LIKE '%[IMAGE]:%' OR contenu_message LIKE '%[VIDEO]:%')
+     ORDER BY date_envoie DESC`,
+    [idGroupe]);
+
   if (!groupe) return null;
   return {
     nom_groupe: groupe.nom_groupe,
     photo_groupe: groupe.photo_groupe,
-    membres: membres.map(m => m.pseudonyme)
+    membres: membres.map(m => m.pseudonyme),
+    media: mediaResult.map(m => m.contenu_message)
   };
 }
 
