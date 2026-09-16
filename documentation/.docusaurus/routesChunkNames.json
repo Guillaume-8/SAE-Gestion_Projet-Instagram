@@ -42,18 +42,22 @@
       "plugin": "plugin---docusaurus-debugb-38-ad3"
     }
   },
-  "/docs-1d4": {
+  "/docs-c99": {
     "__comp": "__comp---theme-docs-root-5-e-9-0b6",
     "__context": {
       "plugin": "plugin---docsaba-d7c"
     }
   },
-  "/docs-d0e": {
+  "/docs-c67": {
     "__comp": "__comp---theme-doc-version-roota-7-b-5de",
     "__props": "__props---docs-005-788"
   },
-  "/docs-b52": {
+  "/docs-d20": {
     "__comp": "__comp---theme-doc-roota-94-67a"
+  },
+  "/docs/database_user/documentation-db-ad1": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---docs-database-user-documentation-db-6-a-1-a2e"
   },
   "/docs/gestion-projet/git-4e7": {
     "__comp": "__comp---theme-doc-item-178-a40",
@@ -158,5 +162,12 @@
   "/docs/utilisateur/signalement-970": {
     "__comp": "__comp---theme-doc-item-178-a40",
     "content": "content---docs-utilisateur-signalement-8-e-9-ed2"
+  },
+  "/-2e1": {
+    "__comp": "__comp---site-src-pages-index-jsc-4-f-f99",
+    "__context": {
+      "plugin": "plugin---a-74-9d6"
+    },
+    "config": "config---5-e-9-4f3"
   }
 }

@@ -3,6 +3,8 @@
  * signalement de problème et navigation.
  */
 
+import { logoutUser } from './api.js';
+
 // ============================================================
 //  MODE SOMBRE / CLAIR
 // ============================================================
@@ -136,6 +138,7 @@ function buildMenu() {
         window.location.hash = '#/settings';
         break;
       case 'logout':
+        logoutUser();
         window.location.hash = '#/login';
         break;
     }

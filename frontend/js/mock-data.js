@@ -13,10 +13,11 @@
 
 /**
  * Génère un avatar SVG inline (initiale colorée) sans dépendance externe.
+ * Exporté : utilisé comme avatar par défaut des profils réels.
  * @param {string} name Nom de l'utilisateur.
  * @return {string} Data URL de l'avatar SVG.
  */
-function makeAvatar(name) {
+export function makeAvatar(name) {
   const colors = [
     '#f97316', '#8b5cf6', '#06b6d4', '#10b981', '#f43f5e',
     '#3b82f6', '#eab308', '#a855f7', '#14b8a6', '#ef4444',

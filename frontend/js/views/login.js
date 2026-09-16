@@ -23,9 +23,14 @@ export function render() {
             <input type="text" id="input-name" placeholder="Eren" autocomplete="name">
           </div>
 
-          <div class="form-field" id="field-email">
-            <label for="input-email">Nom d'utilisateur ou email</label>
+          <div class="form-field" id="field-email" >
+            <label for="input-email" id="label-identifiant">Nom d'utilisateur ou email</label>
             <input type="text" id="input-email" placeholder="eren_rt" autocomplete="username" required>
+          </div>
+
+          <div class="form-field" id="field-email-register" hidden>
+            <label for="input-email-register">Email</label>
+            <input type="email" id="input-email-register" placeholder="eren@exemple.fr" autocomplete="email">
           </div>
 
           <div class="form-field">
@@ -58,20 +63,23 @@ function toggleAuthMode() {
   isLoginMode = !isLoginMode;
 
   const fieldName = document.getElementById('field-name');
-  const inputEmail = document.getElementById('input-email');
+  const fieldEmailRegister = document.getElementById('field-email-register');
+  const labelIdentifiant = document.getElementById('label-identifiant');
   const submitBtn = document.getElementById('btn-auth-submit');
   const switchText = document.getElementById('auth-switch-text');
   const switchBtn = document.getElementById('btn-auth-switch');
 
   if (isLoginMode) {
     fieldName.hidden = true;
-    inputEmail.placeholder = 'eren_rt';
+    fieldEmailRegister.hidden = true;
+    labelIdentifiant.textContent = "Nom d'utilisateur ou email";
     submitBtn.textContent = 'Se connecter';
     switchText.textContent = 'Pas de compte ?';
-    switchBtn.textContent = 'S\'inscrire';
+    switchBtn.textContent = "S'inscrire";
   } else {
     fieldName.hidden = false;
-    inputEmail.placeholder = 'eren_rt';
+    fieldEmailRegister.hidden = false;
+    labelIdentifiant.textContent = "Nom d'utilisateur";
     submitBtn.textContent = 'Créer un compte';
     switchText.textContent = 'Déjà inscrit ?';
     switchBtn.textContent = 'Se connecter';
@@ -85,9 +93,10 @@ function toggleAuthMode() {
 async function handleAuthSubmit(event) {
   event.preventDefault();
 
-  const email = document.getElementById('input-email').value.trim();
+  const identifiant = document.getElementById('input-email').value.trim();
   const password = document.getElementById('input-password').value;
   const name = document.getElementById('input-name').value.trim();
+  const emailRegister = document.getElementById('input-email-register').value.trim();
   const errorEl = document.getElementById('auth-error');
   const submitBtn = document.getElementById('btn-auth-submit');
 
@@ -97,10 +106,11 @@ async function handleAuthSubmit(event) {
 
   try {
     if (isLoginMode) {
-      await loginUser(email, password);
+      await loginUser(identifiant, password);
     } else {
       if (!name) throw new Error('Veuillez saisir votre nom');
-      await registerUser(email, name, password, email);
+      if (!emailRegister) throw new Error('Veuillez saisir votre email');
+      await registerUser(identifiant, name, password, emailRegister);
     }
 
     window.location.hash = '#/feed';

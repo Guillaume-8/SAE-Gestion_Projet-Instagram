@@ -39,16 +39,21 @@ export default [
   },
   {
     path: '/docs',
-    component: ComponentCreator('/docs', '1d4'),
+    component: ComponentCreator('/docs', 'c99'),
     routes: [
       {
         path: '/docs',
-        component: ComponentCreator('/docs', 'd0e'),
+        component: ComponentCreator('/docs', 'c67'),
         routes: [
           {
             path: '/docs',
-            component: ComponentCreator('/docs', 'b52'),
+            component: ComponentCreator('/docs', 'd20'),
             routes: [
+              {
+                path: '/docs/database_user/documentation-db',
+                component: ComponentCreator('/docs/database_user/documentation-db', 'ad1'),
+                exact: true
+              },
               {
                 path: '/docs/gestion-projet/git',
                 component: ComponentCreator('/docs/gestion-projet/git', '4e7'),
@@ -210,6 +215,11 @@ export default [
         ]
       }
     ]
+  },
+  {
+    path: '/',
+    component: ComponentCreator('/', '2e1'),
+    exact: true
   },
   {
     path: '*',

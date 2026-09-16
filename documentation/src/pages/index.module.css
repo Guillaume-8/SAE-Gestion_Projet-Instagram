@@ -1,0 +1,89 @@
+/**
+ * Page d'accueil InstaClone — styles
+ */
+
+.hero {
+  text-align: center;
+  padding: 80px 20px 60px;
+  background: linear-gradient(135deg, #0095f6 0%, #6a3093 100%);
+  color: #fff;
+}
+
+.title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.buttons .button {
+  border-radius: 8px;
+}
+
+.team {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.team h2 {
+  text-align: center;
+  font-size: 1.6rem;
+  margin-bottom: 24px;
+}
+
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.teamCard {
+  background: var(--ifm-card-background-color, #fff);
+  border: 1px solid var(--ifm-color-emphasis-200, #dbdbdb);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.teamCard strong {
+  font-size: 0.95rem;
+}
+
+.teamCard span {
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-600, #8e8e8e);
+}
+
+@media (max-width: 600px) {
+  .title {
+    font-size: 2.5rem;
+  }
+
+  .buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .buttons .button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
