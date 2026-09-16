@@ -51,8 +51,8 @@ CREATE TABLE Signalement(
    statut VARCHAR(50) DEFAULT 'En attente',
    est_automatique BOOLEAN DEFAULT 0,
    date_signalement DATETIME,
-   id_publication INT NULL,
-   id_utilisateur INT NOT NULL,
+   id_publication INT NOT NULL,
+   id_utilisateur INT NULL,
    FOREIGN KEY(id_publication) REFERENCES Publication(id_publication),
    FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)
 );
