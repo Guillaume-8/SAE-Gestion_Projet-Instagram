@@ -165,7 +165,11 @@ export async function mount() {
           let show = true;
           if (query !== '') {
             if (query.startsWith('#')) {
-              show = caption.split(/\s+/).includes(query);
+              // Hashtags liés en base (Contient_Tag) ou présents dans le texte.
+              const postHashtags = (post.hashtags || [])
+                .map((h) => h.toLowerCase());
+              show = caption.split(/\s+/).includes(query) ||
+                postHashtags.includes(query);
             } else {
               show = post.author.toLowerCase().includes(query) ||
                 caption.includes(query);

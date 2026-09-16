@@ -1,6 +1,14 @@
 /**
  * @fileoverview Service d'interaction avec l'API REST.
  * Conforme au Google Coding Style (ES6 Modules).
+ *
+ * Double mode :
+ *  - API réelle (MariaDB PhotoVideo via le serveur port 3001) :
+ *    utilisateurs, publications, commentaires, likes, signalements,
+ *    hashtags. Le jeton d'authentification est envoyé automatiquement.
+ *  - Repli mock : si le serveur est arrêté (proxy Apache en 502/503)
+ *    ou si aucune session n'est ouverte, le front retombe sur les
+ *    données simulées — le site reste utilisable pour les démos.
  */
 
 import {
@@ -13,14 +21,11 @@ import {
   makeAvatar,
 } from './mock-data.js';
 
-const USE_MOCK = true;
-
 /**
- * Authentification et profil via l'API réelle (MariaDB, port 3001).
- * Si le serveur est arrêté, le front retombe automatiquement en
- * mode mock : le site reste utilisable sans backend.
+ * Active les appels vers l'API réelle (serveur MariaDB, port 3001).
+ * Le repli mock reste automatique en cas d'indisponibilité.
  */
-const USE_REAL_USERS = true;
+const USE_REAL_API = true;
 
 const API_BASE_URL = '/api';
 
@@ -28,7 +33,7 @@ const API_BASE_URL = '/api';
 let currentUser = structuredClone(MOCK_USER);
 
 // ============================================================
-//  AUTHENTIFICATION RÉELLE (MariaDB)
+//  INFRASTRUCTURE API RÉELLE (MariaDB)
 // ============================================================
 
 /** Clé de stockage du jeton d'authentification. */
@@ -37,12 +42,12 @@ const TOKEN_KEY = 'instaclone-token';
 /** Jeton d'authentification courant (ou null). */
 let authToken = localStorage.getItem(TOKEN_KEY);
 
-/** Cache de disponibilité de l'API utilisateurs (tri-state). */
-let realUsersAvailable = null;
+/** Cache de disponibilité de l'API (tri-state). */
+let realApiAvailable = null;
 
 /**
- * Erreur signalant que le serveur API utilisateurs est injoignable
- * (proxy Apache en échec) : le front doit retomber en mode mock.
+ * Erreur signalant que le serveur API est injoignable (proxy Apache
+ * en échec) : le front doit retomber en mode mock.
  */
 class ApiUnavailable extends Error {}
 
@@ -65,36 +70,36 @@ function setAuthToken(token) {
  */
 export function logoutUser() {
   setAuthToken(null);
-  realUsersAvailable = null;
+  realApiAvailable = null;
 }
 
 /**
- * Vérifie si l'API utilisateurs réelle est joignable (avec cache).
+ * Vérifie si l'API réelle est joignable (avec cache).
  * @return {Promise<boolean>} true si le backend répond.
  */
-async function isRealUsersApiAvailable() {
-  if (!USE_REAL_USERS) return false;
-  if (realUsersAvailable !== null) return realUsersAvailable;
+async function isRealApiAvailable() {
+  if (!USE_REAL_API) return false;
+  if (realApiAvailable !== null) return realApiAvailable;
   try {
     const response = await fetch(`${API_BASE_URL}/auth/ping`);
-    realUsersAvailable = response.ok;
+    realApiAvailable = response.ok;
   } catch (e) {
-    realUsersAvailable = false;
+    realApiAvailable = false;
   }
-  return realUsersAvailable;
+  return realApiAvailable;
 }
 
 /**
- * Appelle l'API utilisateurs réelle et lève ApiUnavailable si le
- * serveur est absent (502/503 du proxy Apache ou échec réseau).
+ * Appelle l'API réelle et lève ApiUnavailable si le serveur est
+ * absent (502/503/504 du proxy Apache ou échec réseau).
  * @param {string} path Chemin relatif (ex. '/auth/login').
  * @param {Object} options Options fetch.
  * @return {Promise<Response>} Réponse fetch.
  */
-async function usersFetch(path, options = {}) {
+async function apiFetch(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, options);
   if ([502, 503, 504].includes(response.status)) {
-    throw new ApiUnavailable('Serveur API utilisateurs indisponible');
+    throw new ApiUnavailable('Serveur API indisponible');
   }
   return response;
 }
@@ -113,86 +118,152 @@ function normalizeRealUser(user) {
   };
 }
 
+/**
+ * Convertit une date ISO en libellé relatif français.
+ * @param {string} isoDate Date au format ISO.
+ * @return {string} Libellé lisible ("Il y a 3 h"...).
+ */
+function timeAgo(isoDate) {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return isoDate || '';
+  const diffSec = Math.round((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 60) return "À l'instant";
+  if (diffSec < 3600) return `Il y a ${Math.floor(diffSec / 60)} min`;
+  if (diffSec < 86400) return `Il y a ${Math.floor(diffSec / 3600)} h`;
+  if (diffSec < 604800) return `Il y a ${Math.floor(diffSec / 86400)} j`;
+  return date.toLocaleDateString('fr-FR');
+}
+
+/**
+ * Convertit une publication renvoyée par l'API réelle vers le format
+ * attendu par les vues du front.
+ * @param {Object} row Publication au format serveur.
+ * @return {Object} Publication au format front.
+ */
+function mapRealPost(row) {
+  return {
+    id: row.id,
+    author: row.author,
+    avatar: row.avatar || makeAvatar(row.author || 'user'),
+    mediaUrl: row.mediaUrl,
+    isVideo: Boolean(row.isVideo),
+    caption: row.caption || '',
+    likesCount: row.likesCount || 0,
+    dislikesCount: row.dislikesCount || 0,
+    liked: Boolean(row.liked),
+    disliked: Boolean(row.disliked),
+    visibility: row.visibility || 'public',
+    comments: (row.comments || []).map((c) => ({
+      id: c.id,
+      author: c.author,
+      text: c.text,
+      createdAt: timeAgo(c.createdAt),
+    })),
+    createdAt: timeAgo(row.createdAt),
+    hashtags: row.hashtags || [],
+  };
+}
+
+/**
+ * Construit les en-têtes d'authentification si une session existe.
+ * @return {Object} En-têtes fetch (éventuellement vides).
+ */
+function authHeaders() {
+  return authToken ? {Authorization: `Bearer ${authToken}`} : {};
+}
+
 // ============================================================
 //  FIL D'ACTUALITÉ
 // ============================================================
 
 /**
- * Récupère le fil d'actualité.
+ * Récupère les publications du fil d'actualité.
  * @return {Promise<Array<Object>>} Liste des publications.
  */
 export async function getFeedPosts() {
-  if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_POSTS));
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch('/posts', {headers: authHeaders()});
+      if (response.ok) {
+        const rows = await response.json();
+        return rows.map(mapRealPost);
+      }
+      console.error('Échec de récupération des publications :', response.status);
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de récupération des publications :', error);
+      }
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts`);
-    if (!response.ok) throw new Error(`Erreur réseau: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération des publications :', error);
-    return [];
-  }
+
+  // --- Repli mock ---
+  return Promise.resolve(structuredClone(MOCK_POSTS));
 }
 
 /**
  * Récupère les publications enregistrées de l'utilisateur.
+ * (Pas de table dédiée en base : reste en mode mock.)
  * @return {Promise<Array<Object>>} Liste des publications enregistrées.
  */
 export async function getSavedPosts() {
-  if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_SAVED_POSTS));
-  }
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/me/saved`);
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération des publications enregistrées :', error);
-    return [];
-  }
+  return Promise.resolve(structuredClone(MOCK_SAVED_POSTS));
 }
 
 /**
- * Crée une nouvelle publication.
+ * Crée une nouvelle publication (upload du média vers le serveur).
  * @param {Object} postData Données de la publication.
  * @return {Promise<Object>} La publication créée.
  */
 export async function createPost(postData) {
-  if (USE_MOCK) {
-    const newPost = {
-      id: Date.now(),
-      author: MOCK_USER.username,
-      avatar: MOCK_USER.avatar,
-      mediaUrl: postData.mediaFile
-        ? URL.createObjectURL(postData.mediaFile)
-        : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600',
-      isVideo: postData.mediaType === 'video',
-      caption: postData.caption,
-      likesCount: 0,
-      dislikesCount: 0,
-      visibility: postData.visibility,
-      comments: [],
-      createdAt: "À l'instant",
-    };
-    MOCK_POSTS.unshift(newPost);
-    return Promise.resolve(newPost);
+  // --- API réelle (MariaDB) : session requise ---
+  if (authToken && (await isRealApiAvailable())) {
+    try {
+      const formData = new FormData();
+      formData.append('media', postData.mediaFile);
+      formData.append('caption', postData.caption);
+      formData.append('visibility', postData.visibility);
+
+      const response = await apiFetch('/posts', {
+        method: 'POST',
+        headers: authHeaders(), // Content-Type géré par FormData
+        body: formData,
+      });
+      if (response.status === 401) {
+        setAuthToken(null); // jeton expiré : repli mock
+      } else if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Erreur: ${response.status}`);
+      } else {
+        return mapRealPost(await response.json());
+      }
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      console.warn('API indisponible — repli mock pour la publication');
+      realApiAvailable = false;
+    }
   }
-  try {
-    const formData = new FormData();
-    formData.append('media', postData.mediaFile);
-    formData.append('caption', postData.caption);
-    formData.append('visibility', postData.visibility);
-    const response = await fetch(`${API_BASE_URL}/posts`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de la création de publication :', error);
-    throw error;
-  }
+
+  // --- Repli mock ---
+  const newPost = {
+    id: Date.now(),
+    author: MOCK_USER.username,
+    avatar: MOCK_USER.avatar,
+    mediaUrl: postData.mediaFile
+      ? URL.createObjectURL(postData.mediaFile)
+      : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600',
+    isVideo: postData.mediaType === 'video',
+    caption: postData.caption,
+    likesCount: 0,
+    dislikesCount: 0,
+    visibility: postData.visibility,
+    comments: [],
+    createdAt: "À l'instant",
+  };
+  MOCK_POSTS.unshift(newPost);
+  return Promise.resolve(newPost);
 }
 
 /**
@@ -202,39 +273,48 @@ export async function createPost(postData) {
  * @return {Promise<Object>} Nouvel état.
  */
 export async function toggleLike(postId, liked) {
-  if (USE_MOCK) {
-    const post = MOCK_POSTS.find((p) => p.id === postId);
-    if (!post) throw new Error('Publication introuvable');
-    if (liked) {
-      post.likesCount++;
-      if (post.disliked) {
-        post.dislikesCount = Math.max(0, post.dislikesCount - 1);
-        post.disliked = false;
+  // --- API réelle (MariaDB) ---
+  if (authToken && (await isRealApiAvailable())) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', ...authHeaders()},
+        body: JSON.stringify({like: liked}),
+      });
+      if (response.status === 401) {
+        setAuthToken(null); // jeton expiré : repli mock
+      } else if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error(`Erreur: ${response.status}`);
       }
-      post.liked = true;
-    } else {
-      post.likesCount = Math.max(0, post.likesCount - 1);
-      post.liked = false;
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      console.warn('API indisponible — repli mock pour le like');
+      realApiAvailable = false;
     }
-    return Promise.resolve({
-      likesCount: post.likesCount,
-      liked: post.liked,
-      dislikesCount: post.dislikesCount,
-      disliked: post.disliked,
-    });
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/like`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({liked}),
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec du like :', error);
-    throw error;
+
+  // --- Repli mock ---
+  const post = MOCK_POSTS.find((p) => p.id === postId);
+  if (!post) throw new Error('Publication introuvable');
+  if (liked) {
+    post.likesCount++;
+    if (post.disliked) {
+      post.dislikesCount = Math.max(0, post.dislikesCount - 1);
+      post.disliked = false;
+    }
+    post.liked = true;
+  } else {
+    post.likesCount = Math.max(0, post.likesCount - 1);
+    post.liked = false;
   }
+  return Promise.resolve({
+    likesCount: post.likesCount,
+    liked: post.liked,
+    dislikesCount: post.dislikesCount,
+    disliked: post.disliked,
+  });
 }
 
 /**
@@ -244,63 +324,80 @@ export async function toggleLike(postId, liked) {
  * @return {Promise<Object>} Nouvel état.
  */
 export async function toggleDislike(postId, disliked) {
-  if (USE_MOCK) {
-    const post = MOCK_POSTS.find((p) => p.id === postId);
-    if (!post) throw new Error('Publication introuvable');
-    if (disliked) {
-      post.dislikesCount++;
-      if (post.liked) {
-        post.likesCount = Math.max(0, post.likesCount - 1);
-        post.liked = false;
+  // --- API réelle (MariaDB) ---
+  if (authToken && (await isRealApiAvailable())) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/dislike`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', ...authHeaders()},
+        body: JSON.stringify({dislike: disliked}),
+      });
+      if (response.status === 401) {
+        setAuthToken(null); // jeton expiré : repli mock
+      } else if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error(`Erreur: ${response.status}`);
       }
-      post.disliked = true;
-    } else {
-      post.dislikesCount = Math.max(0, post.dislikesCount - 1);
-      post.disliked = false;
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      console.warn('API indisponible — repli mock pour le dislike');
+      realApiAvailable = false;
     }
-    return Promise.resolve({
-      likesCount: post.likesCount,
-      liked: post.liked,
-      dislikesCount: post.dislikesCount,
-      disliked: post.disliked,
-    });
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/dislike`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({disliked}),
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec du dislike :', error);
-    throw error;
+
+  // --- Repli mock ---
+  const post = MOCK_POSTS.find((p) => p.id === postId);
+  if (!post) throw new Error('Publication introuvable');
+  if (disliked) {
+    post.dislikesCount++;
+    if (post.liked) {
+      post.likesCount = Math.max(0, post.likesCount - 1);
+      post.liked = false;
+    }
+    post.disliked = true;
+  } else {
+    post.dislikesCount = Math.max(0, post.dislikesCount - 1);
+    post.disliked = false;
   }
+  return Promise.resolve({
+    likesCount: post.likesCount,
+    liked: post.liked,
+    dislikesCount: post.dislikesCount,
+    disliked: post.disliked,
+  });
 }
 
 /**
- * Repartage une publication.
+ * Repartage une publication (partage externe).
  * @param {number} postId Identifiant de la publication.
  * @return {Promise<Object>} Résultat du partage.
  */
 export async function sharePost(postId) {
-  if (USE_MOCK) {
-    return Promise.resolve({
-      success: true,
-      shareUrl: `${window.location.origin}/post/${postId}`,
-    });
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/share`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec du partage :', error);
+      }
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/share`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec du partage :', error);
-    throw error;
-  }
+
+  // --- Repli mock ---
+  return Promise.resolve({
+    success: true,
+    shareUrl: `${window.location.origin}/post/${postId}`,
+  });
 }
 
 /**
@@ -310,22 +407,32 @@ export async function sharePost(postId) {
  * @return {Promise<Object>} Résultat du signalement.
  */
 export async function reportPost(postId, reason) {
-  if (USE_MOCK) {
-    console.info(`[MOCK] Publication ${postId} signalée : ${reason}`);
-    return Promise.resolve({success: true});
+  // --- API réelle (MariaDB) : session requise ---
+  if (authToken && (await isRealApiAvailable())) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/report`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', ...authHeaders()},
+        body: JSON.stringify({motif: reason}),
+      });
+      if (response.status === 401) {
+        setAuthToken(null); // jeton expiré : repli mock
+      } else if (response.ok) {
+        return await response.json();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Erreur: ${response.status}`);
+      }
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      console.warn('API indisponible — repli mock pour le signalement');
+      realApiAvailable = false;
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/report`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({reason}),
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec du signalement :', error);
-    throw error;
-  }
+
+  // --- Repli mock ---
+  console.info(`[MOCK] Publication ${postId} signalée : ${reason}`);
+  return Promise.resolve({success: true});
 }
 
 /**
@@ -334,18 +441,31 @@ export async function reportPost(postId, reason) {
  * @return {Promise<Array<Object>>} Liste des commentaires.
  */
 export async function getComments(postId) {
-  if (USE_MOCK) {
-    const post = MOCK_POSTS.find((p) => p.id === postId);
-    return Promise.resolve(post ? structuredClone(post.comments) : []);
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/comments`);
+      if (response.ok) {
+        const rows = await response.json();
+        return rows.map((c) => ({
+          id: c.id,
+          author: c.author,
+          text: c.text,
+          createdAt: timeAgo(c.createdAt),
+        }));
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de récupération des commentaires :', error);
+      }
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`);
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération des commentaires :', error);
-    return [];
-  }
+
+  // --- Repli mock ---
+  const post = MOCK_POSTS.find((p) => p.id === postId);
+  return Promise.resolve(post ? structuredClone(post.comments) : []);
 }
 
 /**
@@ -355,30 +475,41 @@ export async function getComments(postId) {
  * @return {Promise<Object>} Le commentaire créé.
  */
 export async function addComment(postId, text) {
-  if (USE_MOCK) {
-    const post = MOCK_POSTS.find((p) => p.id === postId);
-    if (!post) throw new Error('Publication introuvable');
-    const newComment = {
-      id: Date.now(),
-      author: 'moi',
-      text: text,
-      createdAt: "À l'instant",
-    };
-    post.comments.push(newComment);
-    return Promise.resolve(newComment);
+  // --- API réelle (MariaDB) : session requise ---
+  if (authToken && (await isRealApiAvailable())) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', ...authHeaders()},
+        body: JSON.stringify({text}),
+      });
+      if (response.status === 401) {
+        setAuthToken(null); // jeton expiré : repli mock
+      } else if (response.ok) {
+        const c = await response.json();
+        return {id: c.id, author: c.author, text: c.text, createdAt: timeAgo(c.createdAt)};
+      } else {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Erreur: ${response.status}`);
+      }
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      console.warn('API indisponible — repli mock pour le commentaire');
+      realApiAvailable = false;
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text}),
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error("Échec de l'ajout de commentaire :", error);
-    throw error;
-  }
+
+  // --- Repli mock ---
+  const post = MOCK_POSTS.find((p) => p.id === postId);
+  if (!post) throw new Error('Publication introuvable');
+  const newComment = {
+    id: Date.now(),
+    author: 'moi',
+    text: text,
+    createdAt: "À l'instant",
+  };
+  post.comments.push(newComment);
+  return Promise.resolve(newComment);
 }
 
 // ============================================================
@@ -387,15 +518,15 @@ export async function addComment(postId, text) {
 
 /**
  * Connecte un utilisateur.
- * @param {string} username Nom d'utilisateur.
+ * @param {string} username Nom d'utilisateur ou email.
  * @param {string} password Mot de passe.
  * @return {Promise<Object>} Utilisateur connecté.
  */
 export async function loginUser(username, password) {
   // --- API réelle (MariaDB) ---
-  if (await isRealUsersApiAvailable()) {
+  if (await isRealApiAvailable()) {
     try {
-      const response = await usersFetch('/auth/login', {
+      const response = await apiFetch('/auth/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({identifiant: username, motDePasse: password}),
@@ -411,7 +542,7 @@ export async function loginUser(username, password) {
     } catch (error) {
       if (!(error instanceof ApiUnavailable)) throw error;
       console.warn('API indisponible — repli mock pour la connexion');
-      realUsersAvailable = false;
+      realApiAvailable = false;
     }
   }
 
@@ -431,21 +562,22 @@ export async function loginUser(username, password) {
 
 /**
  * Inscrit un nouvel utilisateur.
- * @param {string} username Nom d'utilisateur.
- * @param {string} email Adresse email.
+ * @param {string} username Nom d'utilisateur (pseudonyme).
+ * @param {string} name Nom complet (prénom + nom).
  * @param {string} password Mot de passe.
+ * @param {string} email Adresse email.
  * @return {Promise<Object>} Utilisateur créé.
  */
 export async function registerUser(username, name, password, email) {
   // --- API réelle (MariaDB) ---
-  if (await isRealUsersApiAvailable()) {
+  if (await isRealApiAvailable()) {
     try {
       // Découpe "Prenom Nom" en deux colonnes distinctes.
       const parts = (name || '').trim().split(/\s+/);
       const prenom = parts.shift() || username;
       const nom = parts.join(' ');
 
-      const response = await usersFetch('/auth/register', {
+      const response = await apiFetch('/auth/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -472,7 +604,7 @@ export async function registerUser(username, name, password, email) {
     } catch (error) {
       if (!(error instanceof ApiUnavailable)) throw error;
       console.warn('API indisponible — repli mock pour l\u2019inscription');
-      realUsersAvailable = false;
+      realApiAvailable = false;
     }
   }
 
@@ -493,15 +625,15 @@ export async function registerUser(username, name, password, email) {
 // ============================================================
 
 /**
- * Récupère le profil de l'utilisateur connecté.
+ * Récupère l'utilisateur actuellement connecté.
  * @return {Promise<Object>} Données du profil.
  */
 export async function getCurrentUser() {
   // --- API réelle (MariaDB) : jeton présent + serveur joignable ---
-  if (authToken && (await isRealUsersApiAvailable())) {
+  if (authToken && (await isRealApiAvailable())) {
     try {
-      const response = await usersFetch('/users/me', {
-        headers: {Authorization: `Bearer ${authToken}`},
+      const response = await apiFetch('/users/me', {
+        headers: authHeaders(),
       });
       if (response.status === 401) {
         // Jeton expiré ou invalide : on l'efface et on retombe en mock.
@@ -513,7 +645,7 @@ export async function getCurrentUser() {
       }
     } catch (error) {
       if (error instanceof ApiUnavailable) {
-        realUsersAvailable = false;
+        realApiAvailable = false;
       } else {
         console.error('Échec de récupération du profil :', error);
       }
@@ -525,24 +657,34 @@ export async function getCurrentUser() {
 }
 
 /**
- * Récupère un post spécifique par son ID (données fraîches).
+ * Récupère une publication par son identifiant.
  * @param {number} postId Identifiant de la publication.
  * @return {Promise<Object>} Les données fraîches du post.
  */
 export async function getPostById(postId) {
-  if (USE_MOCK) {
-    const post = MOCK_POSTS.find((p) => p.id === postId);
-    if (!post) throw new Error('Publication introuvable');
-    return Promise.resolve(structuredClone(post));
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch(`/posts/${postId}`, {
+        headers: authHeaders(),
+      });
+      if (response.ok) {
+        return mapRealPost(await response.json());
+      }
+      if (response.status === 404) {
+        throw new Error('Publication introuvable');
+      }
+      throw new Error(`Erreur: ${response.status}`);
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      realApiAvailable = false;
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}`);
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération du post :', error);
-    throw error;
-  }
+
+  // --- Repli mock ---
+  const post = MOCK_POSTS.find((p) => p.id === postId);
+  if (!post) throw new Error('Publication introuvable');
+  return Promise.resolve(structuredClone(post));
 }
 
 /**
@@ -551,39 +693,49 @@ export async function getPostById(postId) {
  * @return {Promise<Object>} La nouvelle publication créée.
  */
 export async function republishPost(postId) {
-  if (USE_MOCK) {
-    const originalPost = MOCK_POSTS.find((p) => p.id === postId);
-    if (!originalPost) throw new Error('Publication introuvable');
-    const newPost = {
-      id: Date.now(),
-      author: currentUser.username,
-      avatar: currentUser.avatar,
-      mediaUrl: originalPost.mediaUrl,
-      isVideo: originalPost.isVideo,
-      caption: '🔄 Republié de ' + originalPost.author + ': ' + originalPost.caption,
-      likesCount: 0,
-      dislikesCount: 0,
-      visibility: 'public',
-      comments: [],
-      createdAt: "À l'instant",
-    };
-    MOCK_POSTS.unshift(newPost);
-    currentUser.posts.unshift(structuredClone(newPost));
-    return Promise.resolve({
-      success: true,
-      post: newPost,
-    });
+  // --- API réelle (MariaDB) : session requise ---
+  if (authToken && (await isRealApiAvailable())) {
+    try {
+      const response = await apiFetch(`/posts/${postId}/republish`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      if (response.status === 401) {
+        setAuthToken(null); // jeton expiré : repli mock
+      } else if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error(`Erreur: ${response.status}`);
+      }
+    } catch (error) {
+      if (!(error instanceof ApiUnavailable)) throw error;
+      console.warn('API indisponible — repli mock pour la republication');
+      realApiAvailable = false;
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/republish`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de la republication :', error);
-    throw error;
-  }
+
+  // --- Repli mock ---
+  const originalPost = MOCK_POSTS.find((p) => p.id === postId);
+  if (!originalPost) throw new Error('Publication introuvable');
+  const newPost = {
+    id: Date.now(),
+    author: currentUser.username,
+    avatar: currentUser.avatar,
+    mediaUrl: originalPost.mediaUrl,
+    isVideo: originalPost.isVideo,
+    caption: '🔄 Republié de ' + originalPost.author + ': ' + originalPost.caption,
+    likesCount: 0,
+    dislikesCount: 0,
+    visibility: 'public',
+    comments: [],
+    createdAt: "À l'instant",
+  };
+  MOCK_POSTS.unshift(newPost);
+  currentUser.posts.unshift(structuredClone(newPost));
+  return Promise.resolve({
+    success: true,
+    post: newPost,
+  });
 }
 
 /**
@@ -597,18 +749,18 @@ export async function republishPost(postId) {
  */
 export async function updateProfile(profileData) {
   // --- API réelle (MariaDB) ---
-  if (authToken && (await isRealUsersApiAvailable())) {
+  if (authToken && (await isRealApiAvailable())) {
     try {
       // Découpe le nom complet en prénom + nom pour la base.
       const parts = (profileData.name || '').trim().split(/\s+/);
       const prenom = parts.shift() || profileData.username;
       const nom = parts.join(' ');
 
-      const response = await usersFetch('/users/me', {
+      const response = await apiFetch('/users/me', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
+          ...authHeaders(),
         },
         body: JSON.stringify({
           pseudonyme: profileData.username,
@@ -633,7 +785,7 @@ export async function updateProfile(profileData) {
     } catch (error) {
       if (!(error instanceof ApiUnavailable)) throw error;
       console.warn('API indisponible — repli mock pour la mise à jour');
-      realUsersAvailable = false;
+      realApiAvailable = false;
     }
   }
 
@@ -660,17 +812,28 @@ export async function updateProfile(profileData) {
  * @return {Promise<Array<Object>>} Liste des publications tendance.
  */
 export async function getTrendingPosts() {
-  if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_TRENDING_POSTS));
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch('/posts/trending', {
+        headers: authHeaders(),
+      });
+      if (response.ok) {
+        const rows = await response.json();
+        return rows.map(mapRealPost);
+      }
+      console.error('Échec de récupération des tendances :', response.status);
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de récupération des tendances :', error);
+      }
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/trending`);
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération des tendances :', error);
-    return [];
-  }
+
+  // --- Repli mock ---
+  return Promise.resolve(structuredClone(MOCK_TRENDING_POSTS));
 }
 
 /**
@@ -678,17 +841,24 @@ export async function getTrendingPosts() {
  * @return {Promise<Array<Object>>} Liste des hashtags.
  */
 export async function getHashtags() {
-  if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_HASHTAGS));
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch('/hashtags');
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de récupération des hashtags :', error);
+      }
+    }
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/hashtags/trending`);
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération des hashtags :', error);
-    return [];
-  }
+
+  // --- Repli mock ---
+  return Promise.resolve(structuredClone(MOCK_HASHTAGS));
 }
 
 /**
@@ -702,11 +872,13 @@ export async function searchAll(query) {
     return Promise.resolve({users: [], hashtags: [], posts: []});
   }
 
+  const realAvailable = await isRealApiAvailable();
+
   // --- Utilisateurs : API réelle (MariaDB) avec repli mock ---
   let users = null;
-  if (await isRealUsersApiAvailable()) {
+  if (realAvailable) {
     try {
-      const response = await usersFetch(
+      const response = await apiFetch(
         `/users/search?q=${encodeURIComponent(q)}`,
       );
       if (response.ok) {
@@ -718,41 +890,84 @@ export async function searchAll(query) {
       }
     } catch (error) {
       if (error instanceof ApiUnavailable) {
-        realUsersAvailable = false;
+        realApiAvailable = false;
       } else {
         console.error('Échec de la recherche utilisateurs :', error);
       }
     }
   }
 
-  // Profils : auteurs uniques des publications (repli mock).
-  const usersMap = new Map();
-  for (const post of MOCK_POSTS) {
-    if (!usersMap.has(post.author)) {
-      usersMap.set(post.author, {
-        username: post.author,
-        avatar: post.avatar,
-        postsCount: MOCK_POSTS.filter((p) => p.author === post.author).length,
-      });
+  // --- Publications : API réelle (MariaDB) avec repli mock ---
+  let posts = null;
+  if (realAvailable) {
+    try {
+      const response = await apiFetch(
+        `/posts/search?q=${encodeURIComponent(q)}`,
+        {headers: authHeaders()},
+      );
+      if (response.ok) {
+        posts = (await response.json()).map(mapRealPost);
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de la recherche publications :', error);
+      }
     }
   }
+
+  // --- Hashtags : API réelle (MariaDB) avec repli mock ---
+  let hashtags = null;
+  if (realAvailable) {
+    try {
+      const response = await apiFetch('/hashtags');
+      if (response.ok) {
+        const all = await response.json();
+        const tagQuery = q.replace(/^#/, '');
+        hashtags = all.filter((h) =>
+          h.tag.toLowerCase().includes(tagQuery),
+        );
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de la recherche hashtags :', error);
+      }
+    }
+  }
+
+  // --- Replis mock ---
   if (users === null) {
+    const usersMap = new Map();
+    for (const post of MOCK_POSTS) {
+      if (!usersMap.has(post.author)) {
+        usersMap.set(post.author, {
+          username: post.author,
+          avatar: post.avatar,
+          postsCount: MOCK_POSTS.filter((p) => p.author === post.author).length,
+        });
+      }
+    }
     users = [...usersMap.values()].filter((u) =>
       u.username.toLowerCase().includes(q.replace(/^#/, '')),
     );
   }
 
-  // Hashtags : tags contenant la requête (sans le # initial).
-  const tagQuery = q.replace(/^#/, '');
-  const hashtags = MOCK_HASHTAGS.filter((h) =>
-    h.tag.toLowerCase().includes(tagQuery),
-  );
+  if (hashtags === null) {
+    const tagQuery = q.replace(/^#/, '');
+    hashtags = MOCK_HASHTAGS.filter((h) =>
+      h.tag.toLowerCase().includes(tagQuery),
+    );
+  }
 
-  // Publications : par auteur ou par caption.
-  const posts = MOCK_POSTS.filter((p) =>
-    p.author.toLowerCase().includes(q) ||
-    (p.caption || '').toLowerCase().includes(q),
-  );
+  if (posts === null) {
+    posts = MOCK_POSTS.filter((p) =>
+      p.author.toLowerCase().includes(q) ||
+      (p.caption || '').toLowerCase().includes(q),
+    );
+  }
 
   return {users, hashtags, posts};
 }
@@ -762,55 +977,28 @@ export async function searchAll(query) {
 // ============================================================
 
 /**
- * Récupère la liste des conversations.
+ * Récupère la liste des conversations (repli hors Socket.io).
  * @return {Promise<Array<Object>>} Liste des conversations.
  */
 export async function getConversations() {
-  if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_CONVERSATIONS));
-  }
-  try {
-    const response = await fetch(`${API_BASE_URL}/messages/conversations`);
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Échec de récupération des conversations :', error);
-    return [];
-  }
+  return Promise.resolve(structuredClone(MOCK_CONVERSATIONS));
 }
 
 /**
- * Envoie un message dans une conversation.
+ * Envoie un message dans une conversation (repli hors Socket.io).
  * @param {number} conversationId Identifiant de la conversation.
  * @param {string} text Contenu du message.
  * @return {Promise<Object>} Le message envoyé.
  */
 export async function sendMessage(conversationId, text) {
-  if (USE_MOCK) {
-    const conv = MOCK_CONVERSATIONS.find((c) => c.id === conversationId);
-    if (!conv) throw new Error('Conversation introuvable');
-    const newMessage = {
-      id: Date.now(),
-      sender: 'me',
-      text: text,
-      createdAt: "À l'instant",
-    };
-    conv.messages.push(newMessage);
-    return Promise.resolve(newMessage);
-  }
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/messages/conversations/${conversationId}`,
-      {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({text}),
-      },
-    );
-    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error("Échec de l'envoi du message :", error);
-    throw error;
-  }
+  const conv = MOCK_CONVERSATIONS.find((c) => c.id === conversationId);
+  if (!conv) throw new Error('Conversation introuvable');
+  const newMessage = {
+    id: Date.now(),
+    sender: 'me',
+    text: text,
+    createdAt: "À l'instant",
+  };
+  conv.messages.push(newMessage);
+  return Promise.resolve(newMessage);
 }
