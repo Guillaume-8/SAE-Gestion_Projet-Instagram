@@ -1,5 +1,5 @@
 CREATE TABLE Utilisateur(
-   id_utilisateur INT AUTO_INCREMENT PRIMARY KEY,
+   id_utilisateur INTEGER PRIMARY KEY AUTOINCREMENT,
    prenom VARCHAR(50),
    nom VARCHAR(50),
    pseudonyme VARCHAR(50),
@@ -11,7 +11,7 @@ CREATE TABLE Utilisateur(
 );
 
 CREATE TABLE Publication(
-   id_publication INT AUTO_INCREMENT PRIMARY KEY,
+   id_publication INTEGER PRIMARY KEY AUTOINCREMENT,
    texte_description TEXT,
    nom_fichier_photo VARCHAR(255),
    nom_fichier_video VARCHAR(255),
@@ -27,7 +27,7 @@ CREATE TABLE Publication(
 );
 
 CREATE TABLE Commentaire(
-   id_commentaire INT AUTO_INCREMENT PRIMARY KEY,
+   id_commentaire INTEGER PRIMARY KEY AUTOINCREMENT,
    contenu TEXT,
    date_commentaire DATETIME,
    nombre_like INT DEFAULT 0,
@@ -41,23 +41,24 @@ CREATE TABLE Commentaire(
 );
 
 CREATE TABLE Hashtag(
-   id_hashtag INT AUTO_INCREMENT PRIMARY KEY,
+   id_hashtag INTEGER PRIMARY KEY AUTOINCREMENT,
    nom_hashtag VARCHAR(50)
 );
 
 CREATE TABLE Signalement(
-   id_signalement INT AUTO_INCREMENT PRIMARY KEY,
+   id_signalement INTEGER PRIMARY KEY AUTOINCREMENT,
    motif VARCHAR(255),
-   statut VARCHAR(50),
+   statut VARCHAR(50) DEFAULT 'En attente',
+   est_automatique BOOLEAN DEFAULT 0,
    date_signalement DATETIME,
-   id_publication INT,
+   id_publication INT NULL,
    id_utilisateur INT NOT NULL,
    FOREIGN KEY(id_publication) REFERENCES Publication(id_publication),
    FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)
 );
 
 CREATE TABLE Bannissement(
-   id_bannissement INT AUTO_INCREMENT PRIMARY KEY,
+   id_bannissement INTEGER PRIMARY KEY AUTOINCREMENT,
    motif VARCHAR(255),
    duree_jour INT,
    est_definitif BOOLEAN DEFAULT 0,
@@ -67,13 +68,13 @@ CREATE TABLE Bannissement(
 );
 
 CREATE TABLE Groupe(
-   id_groupe INT AUTO_INCREMENT PRIMARY KEY,
+   id_groupe INTEGER PRIMARY KEY AUTOINCREMENT,
    nom_groupe VARCHAR(100),
    date_creation DATETIME
 );
 
 CREATE TABLE Message(
-   id_message INT AUTO_INCREMENT PRIMARY KEY,
+   id_message INTEGER PRIMARY KEY AUTOINCREMENT,
    contenu_message TEXT,
    url_vocal VARCHAR(255) DEFAULT NULL,
    date_envoie DATETIME,
@@ -84,7 +85,7 @@ CREATE TABLE Message(
 );
 
 CREATE TABLE Notification(
-   id_notification INT AUTO_INCREMENT PRIMARY KEY,
+   id_notification INTEGER PRIMARY KEY AUTOINCREMENT,
    libelle VARCHAR(255),
    est_lu BOOLEAN DEFAULT 0,
    id_utilisateur INT NOT NULL,
@@ -92,7 +93,7 @@ CREATE TABLE Notification(
 );
 
 CREATE TABLE Ami(
-   id_ami INT AUTO_INCREMENT PRIMARY KEY,
+   id_ami INTEGER PRIMARY KEY AUTOINCREMENT,
    statut VARCHAR(50),
    date_creation DATETIME,
    id_demandeur INT NOT NULL,
