@@ -119,4 +119,4 @@ INSERT INTO Signalement (motif, statut, date_signalement, est_automatique, id_ut
 
 --- Insert pour la table Concerner_Com ---
 INSERT INTO Concerner_Com (id_commentaire, id_signalement) VALUES
-(3, 2);
+(3, 1);
