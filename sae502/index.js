@@ -65,7 +65,7 @@ app.post('/api/upload', (req, res) => {
         Date_message: new Date(),
         reactions: []
       };
-      io.to(`group_${idGroupe}`).emit('nouveau_message', msg);
+      io.to(`group_${idGroupe}`).emit('receive_message', msg);
       res.json({ success: true, message: msg });
     } catch (dbErr) {
       console.error('Upload Error:', dbErr);
@@ -194,6 +194,7 @@ app.get('/api/conversations/:pseudonyme', async (req, res) => {
         return {
           id: g.id,
           name: g.name,
+          photo_groupe: g.photo_groupe,
           type: members.length === 2 ? 'DM' : 'GROUPE',
           members: members,
           lastMessage: lastMsg ? lastMsg.contenu_message : 'Discussion démarrée',
@@ -255,6 +256,16 @@ app.delete('/api/conversations/:idGroupe', async (req, res) => {
 io.on('connection', (socket) => {
   socket.on('join_group', (idGroupe) => {
     socket.join(`group_${idGroupe}`);
+  });
+
+  socket.on('typing', (data) => {
+    const { idGroupe, pseudonyme } = data;
+    socket.to(`group_${idGroupe}`).emit('typing', { pseudonyme, idGroupe });
+  });
+
+  socket.on('stop_typing', (data) => {
+    const { idGroupe, pseudonyme } = data;
+    socket.to(`group_${idGroupe}`).emit('stop_typing', { pseudonyme, idGroupe });
   });
 
   socket.on('send_message', async (data) => {

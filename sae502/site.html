@@ -59,6 +59,12 @@
     .message-container.mine .message-reactions { margin-left: 0; margin-right: 10px; align-self: flex-end; }
     .reaction-badge { background: #121212; border: 1px solid #363636; border-radius: 12px; padding: 2px 6px; font-size: 11px; cursor: default; }
 
+    .typing-indicator { display: flex; gap: 4px; padding: 12px 16px; background: #262626; border-radius: 22px; width: fit-content; align-items: center; }
+    .typing-dot { width: 6px; height: 6px; background: #a8a8a8; border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
     .message-actions { display: none; position: absolute; top: -15px; background: #262626; border: 1px solid #363636; border-radius: 16px; padding: 4px 8px; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; }
     .message-container.other .message-actions { left: 0; }
     .message-container.mine .message-actions { right: 0; }
@@ -160,7 +166,7 @@
   </div>
 
 <div class="messages-page">
-  <aside class="conversations-sidebar">
+  <aside class="conversations-sidebar" id="conversations-sidebar">
     <div class="sidebar-header">
       <h2>Messages</h2>
       <button class="btn-new-message" id="btn-new-message" title="Nouveau message">+</button>
@@ -333,7 +339,7 @@
         <div class="group-details-title">Nom du groupe</div>
         <div class="group-name-input-container">
           <input type="text" id="group-name-input" placeholder="Nom du groupe...">
-          <button onclick="saveGroupName()" title="Enregistrer">💾</button>
+          <button onclick="saveGroupName()" title="Enregistrer" style="background: #3797f0; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">Enregistrer</button>
         </div>
       </div>
       
@@ -538,6 +544,8 @@
         }
       }
       
+      document.getElementById('conversations-sidebar').style.display = 'none';
+      document.getElementById('group-details-sidebar').style.flex = '1';
       document.getElementById('group-details-sidebar').style.display = 'flex';
       document.getElementById('group-details-photo').src = getConvAvatar(conv);
     } catch (e) {
@@ -547,6 +555,8 @@
 
   function closeGroupDetails() {
     document.getElementById('group-details-sidebar').style.display = 'none';
+    document.getElementById('group-details-sidebar').style.flex = 'none';
+    document.getElementById('conversations-sidebar').style.display = 'flex';
   }
 
   function switchMediaTab(tab) {
@@ -720,6 +730,11 @@
     document.getElementById('chat-header-name').innerText = displayName;
     document.getElementById('chat-header-status').innerText = 'En ligne';
     document.getElementById('chat-header-avatar').src = avatarUrl;
+    
+    if (typeof activeTypers !== 'undefined') {
+      activeTypers.clear();
+      if (typeof updateTypingStatus === 'function') updateTypingStatus();
+    }
 
     localStorage.setItem(`read_date_${convId}`, new Date().toISOString());
     renderConversationsList();
@@ -890,6 +905,21 @@
   document.getElementById('chat-input').addEventListener('keyup', updateSendButtonState);
   document.getElementById('chat-input').addEventListener('change', updateSendButtonState);
 
+  let typingTimeout;
+  function handleTyping() {
+    if (!currentConversationId) return;
+    const currentUser = document.getElementById('currentUserInput').value.trim();
+    if (!currentUser) return;
+    
+    socket.emit('typing', { idGroupe: currentConversationId, pseudonyme: currentUser });
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      socket.emit('stop_typing', { idGroupe: currentConversationId, pseudonyme: currentUser });
+    }, 2000);
+  }
+  document.getElementById('chat-input').addEventListener('input', handleTyping);
+
   document.getElementById('chat-input-form').onsubmit = (e) => {
     e.preventDefault();
     const input = document.getElementById('chat-input');
@@ -897,6 +927,9 @@
     const currentUser = document.getElementById('currentUserInput').value.trim();
 
     if (!text || !currentConversationId) return;
+    
+    clearTimeout(typingTimeout);
+    socket.emit('stop_typing', { idGroupe: currentConversationId, pseudonyme: currentUser });
 
     socket.emit('send_message', {
       pseudonyme: currentUser,
@@ -1164,6 +1197,51 @@
     }
   };
 
+  let activeTypers = new Set();
+
+  socket.on('typing', (data) => {
+    if (data.idGroupe === currentConversationId) {
+      activeTypers.add(data.pseudonyme);
+      updateTypingStatus();
+    }
+  });
+
+  socket.on('stop_typing', (data) => {
+    if (data.idGroupe === currentConversationId) {
+      activeTypers.delete(data.pseudonyme);
+      updateTypingStatus();
+    }
+  });
+
+  function updateTypingStatus() {
+    const statusEl = document.getElementById('chat-header-status');
+    const box = document.getElementById('chat-messages');
+    let typingBubble = document.getElementById('typing-bubble');
+    
+    if (activeTypers.size > 0) {
+      const typers = Array.from(activeTypers);
+      if (typers.length === 1) {
+        statusEl.innerText = `${typers[0]} est en train d'écrire...`;
+      } else {
+        statusEl.innerText = `Plusieurs personnes écrivent...`;
+      }
+      
+      if (!typingBubble) {
+        typingBubble = document.createElement('div');
+        typingBubble.id = 'typing-bubble';
+        typingBubble.className = 'message-container other';
+        typingBubble.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+        box.appendChild(typingBubble);
+        box.scrollTop = box.scrollHeight;
+      }
+    } else {
+      statusEl.innerText = 'En ligne';
+      if (typingBubble) {
+        typingBubble.remove();
+      }
+    }
+  }
+
   socket.on('receive_message', (msg) => {
     const conv = conversationsData.find(c => c.id === msg.id_groupe);
     if (conv) {
@@ -1179,6 +1257,10 @@
           localStorage.setItem(`read_date_${msg.id_groupe}`, new Date().toISOString());
         }
         appendMessage(msg.id_message, msg.Pseudonyme_utilisateur, msg.Contenu_message, msg.Date_message, msg.reactions || [], false);
+        
+        if (document.getElementById('group-details-sidebar').style.display === 'flex') {
+          openGroupDetails();
+        }
       }
       
       renderConversationsList();
