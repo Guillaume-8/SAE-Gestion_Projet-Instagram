@@ -48,9 +48,10 @@ CREATE TABLE Hashtag(
 CREATE TABLE Signalement(
    id_signalement INTEGER PRIMARY KEY AUTOINCREMENT,
    motif VARCHAR(255),
-   statut VARCHAR(50),
+   statut VARCHAR(50) DEFAULT 'En attente',
+   est_automatique BOOLEAN DEFAULT 0,
    date_signalement DATETIME,
-   id_publication INT,
+   id_publication INT NULL,
    id_utilisateur INT NOT NULL,
    FOREIGN KEY(id_publication) REFERENCES Publication(id_publication),
    FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)

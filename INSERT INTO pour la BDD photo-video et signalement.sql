@@ -112,9 +112,10 @@ INSERT INTO Recevoir_Msg (id_utilisateur, id_message, est_lu, date_lecture) VALU
 (3, 3, 0, NULL);
 
 --- Insert pour la table Signalement ---
-INSERT INTO Signalement (motif, statut, date_signalement, id_publication, id_utilisateur) VALUES
-('Spam ou coup de gueule agressif contre une plateforme', 'en_attente', '2026-06-11 22:00:00', 3, 1),
-('Spam ou acharnement dans l''espace commentaire', 'en_attente', '2026-06-12 09:00:00', NULL, 2);
+INSERT INTO Signalement (motif, statut, date_signalement, est_automatique, id_utilisateur, id_publication) VALUES 
+('Spam abusif dans les commentaires', 'En attente', '2026-09-15 14:30:00', 0, 1, 3),
+('[ALERTE IA] Détection de contenu explicite/nudité', 'En attente', '2026-09-16 09:45:00', 1, NULL, 5),
+('Usurpation d identité', 'Traité', '2026-09-10 11:20:00', 0, 4, 2);
 
 --- Insert pour la table Concerner_Com ---
 INSERT INTO Concerner_Com (id_commentaire, id_signalement) VALUES
