@@ -7,3 +7,12 @@
 
 3. Vérifier que la base est en place (Création automatique):
    mysql -u root -p -e "SHOW TABLES FROM PhotoVideo;"
+   
+4. Lancer le serveur API (backend-api) puis le serveur de messagerie :
+   cd backend-api && npm install && node server.js
+
+Note : les mots de passe des comptes de test sont distribués par Eren
+en privé — ils ne sont volontairement PAS versionnés dans le dépôt.
+Les scripts historiques du binôme photo/vidéo sont archivés dans
+database/archive/ : ne PAS les réimporter après le dump complet,
+sinon les mots de passe hachés seraient écrasés par des hash factices.
