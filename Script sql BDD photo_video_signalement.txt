@@ -18,6 +18,7 @@ CREATE TABLE Publication(
    date_publication DATETIME,
    est_public BOOLEAN DEFAULT 1,
    nombre_like INT DEFAULT 0,
+   nombre_dislike INT DEFAULT 0,
    nombre_repost INT DEFAULT 0,
    nombre_signalement INT DEFAULT 0,
    est_cacher BOOLEAN DEFAULT 0,
