@@ -13,11 +13,12 @@ CREATE TABLE Utilisateur(
 CREATE TABLE Publication(
    id_publication INTEGER PRIMARY KEY AUTOINCREMENT,
    texte_description TEXT,
-   nom_fichier_photo VARCHAR(255),
-   nom_fichier_video VARCHAR(255),
+   url_photo TEXT,
+   url_video TEXT,
    date_publication DATETIME,
    est_public BOOLEAN DEFAULT 1,
    nombre_like INT DEFAULT 0,
+   nombre_dislike INT DEFAULT 0,
    nombre_repost INT DEFAULT 0,
    nombre_signalement INT DEFAULT 0,
    est_cacher BOOLEAN DEFAULT 0,
@@ -51,7 +52,7 @@ CREATE TABLE Signalement(
    statut VARCHAR(50) DEFAULT 'En attente',
    est_automatique BOOLEAN DEFAULT 0,
    date_signalement DATETIME,
-   id_publication INT NOT NULL,
+   id_publication INT NULL,
    id_utilisateur INT NULL,
    FOREIGN KEY(id_publication) REFERENCES Publication(id_publication),
    FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)
@@ -76,7 +77,7 @@ CREATE TABLE Groupe(
 CREATE TABLE Message(
    id_message INTEGER PRIMARY KEY AUTOINCREMENT,
    contenu_message TEXT,
-   url_vocal VARCHAR(255) DEFAULT NULL,
+   url_vocal TEXT,
    date_envoie DATETIME,
    id_expediteur INT NOT NULL,
    id_groupe INT NOT NULL,

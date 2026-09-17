@@ -27,13 +27,13 @@ INSERT INTO Hashtag (nom_hashtag) VALUES
 ('KeybladeMaster');
 
 --- Insert pour la table Publication ---
-INSERT INTO Publication (texte_description, nom_fichier_photo, nom_fichier_video, date_publication, est_public, nombre_like, nombre_repost, nombre_signalement, est_cacher, est_supprimer, id_utilisateur) VALUES
-('Premier partage sur LifeInvader, le réseau social officiel de Los Santos !', 'lifeinvader_post1.jpg', NULL, '2026-05-02 11:20:00', 1, 1, 1, 0, 0, 0, 1),
-('Journée calme et studieuse à l''auberge Amagi, le service géré par Yukiko est toujours au top.', 'amagi_inn.jpg', NULL, '2026-05-06 08:00:00', 1, 1, 0, 0, 0, 0, 2),
-('On attend toujours Steel Ball Run en anime dans de bonnes conditions sur la plateforme...', 'sbr_netflix.jpg', NULL, '2026-06-11 19:45:00', 1, 1, 1, 1, 0, 0, 3),
-('Petite création de canon plasma pour contrer les crises de colère de Bakugo en cours de soutien.', 'momo_mha.jpg', NULL, '2026-08-15 14:10:00', 1, 1, 0, 0, 0, 0, 4),
-('C''est un scandale absolu ! La politique de PlayStation pour 2028 signe la mort du jeu physique. Refusons le tout dématérialisé !', NULL, 'nodisk_rant.mp4', '2026-09-14 16:15:00', 1, 0, 0, 0, 0, 1, 3),
-('Opération d''exploration du Tartare prévue ce soir. Préparez vos Evokers.', 'tartarus_gate.jpg', NULL, '2026-09-15 08:00:00', 1, 0, 0, 0, 0, 0, 5);
+INSERT INTO Publication (texte_description, url_photo, url_video, date_publication, est_public, nombre_like, nombre_dislike, nombre_repost, nombre_signalement, est_cacher, est_supprimer, id_utilisateur) VALUES
+('Premier partage sur LifeInvader, le réseau social officiel de Los Santos !', 'https://api.lifeinvader.com/uploads/images/1a2b3c4d-5e6f-7a8b-9c0d.jpg', NULL, '2026-05-02 11:20:00', 1, 2, 0, 1, 0, 0, 0, 1),
+('Journée calme et studieuse à l''auberge Amagi, le service géré par Yukiko est toujours au top.', 'https://api.lifeinvader.com/uploads/images/2b3c4d5e-6f7a-8b9c-0d1e.jpg', NULL, '2026-05-06 08:00:00', 1, 0, 0, 0, 0, 0, 0, 2),
+('On attend toujours Steel Ball Run en anime dans de bonnes conditions sur la plateforme...', 'https://api.lifeinvader.com/uploads/images/3c4d5e6f-7a8b-9c0d-1e2f.jpg', NULL, '2026-06-11 19:45:00', 1, 1, 1, 1, 1, 0, 0, 3),
+('Petite création de canon plasma pour contrer les crises de colère de Bakugo en cours de soutien.', 'https://api.lifeinvader.com/uploads/images/4d5e6f7a-8b9c-0d1e-2f3a.jpg', NULL, '2026-08-15 14:10:00', 1, 3, 0, 0, 0, 0, 0, 4),
+('C''est un scandale absolu ! La politique de PlayStation pour 2028 signe la mort du jeu physique. Refusons le tout dématérialisé !', NULL, 'https://api.lifeinvader.com/uploads/videos/5e6f7a8b-9c0d-1e2f-3a4b.mp4', '2026-09-14 16:15:00', 1, 0, 3, 0, 0, 0, 1, 3),
+('Opération d''exploration du Tartare prévue ce soir. Préparez vos Evokers.', 'https://api.lifeinvader.com/uploads/images/6f7a8b9c-0d1e-2f3a-4b5c.jpg', NULL, '2026-09-15 08:00:00', 1, 1, 0, 0, 0, 0, 0, 5);
 
 --- Insert pour la table Bannissement ---
 INSERT INTO Bannissement (motif, duree_jour, est_definitif, date_debut, id_utilisateur) VALUES
@@ -91,9 +91,16 @@ INSERT INTO Contient_Tag (id_publication, id_hashtag) VALUES
 --- Insert pour la table Like_Publication ---
 INSERT INTO Like_Publication (id_utilisateur, id_publication, est_un_like) VALUES
 (2, 1, 1),
-(1, 2, 1),
+(3, 1, 1),
 (4, 3, 1),
-(3, 4, 1);
+(1, 3, 0),
+(1, 4, 1),
+(2, 4, 1), 
+(5, 4, 1),
+(1, 5, 0),
+(2, 5, 0),
+(4, 5, 0),
+(2, 6, 1);
 
 --- Insert pour la table Repartager ---
 INSERT INTO Repartager (id_utilisateur, id_publication, date_partage) VALUES
