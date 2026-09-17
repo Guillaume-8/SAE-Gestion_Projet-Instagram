@@ -246,7 +246,7 @@
     async function restorePost(postId) {
         await fetch('/api/admin/post/' + postId + '/restore', { method: 'PUT' });
         showToast("Signalement ignoré.");
-        loadReport();
+        loadReports();
     }
 
     loadReports();
