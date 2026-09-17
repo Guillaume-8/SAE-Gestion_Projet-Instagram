@@ -7,19 +7,25 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #050505; color: #f5f5f5; padding: 40px 20px; }
         
-        .header { max-width: 1200px; margin: 0 auto 30px; display: flex; align-items: center; justify-content: space-between; }
+        .header { max-width: 1200px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; }
         .header h1 { font-size: 28px; font-weight: 700; }
         
         .tabs { display: flex; gap: 15px; }
         .tab-btn { background: transparent; border: none; color: #a8a8a8; font-size: 16px; font-weight: 600; cursor: pointer; padding-bottom: 5px; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: #fff; border-bottom: 2px solid #0095f6; }
         
+        /* Barre de recherche (cachée par défaut) */
+        #search-container { max-width: 1200px; margin: 0 auto 20px; display: none; }
+        #search-banned { width: 100%; padding: 14px 20px; border-radius: 12px; border: 1px solid #363636; background: #121212; color: white; font-size: 15px; outline: none; transition: border 0.2s; }
+        #search-banned:focus { border-color: #0095f6; }
+
         .reports-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
         
         .report-card { background: #121212; border: 1px solid #262626; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
         .card-header { padding: 15px 20px; border-bottom: 1px solid #262626; display: flex; justify-content: space-between; align-items: center; background: #0a0a0a; }
         .badge-motif { background: rgba(237, 73, 86, 0.15); color: #ed4956; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .badge-success { background: rgba(92, 184, 92, 0.15); color: #5cb85c; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-warning { background: rgba(240, 173, 78, 0.15); color: #f0ad4e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .date { color: #a8a8a8; font-size: 12px; }
         
         .card-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
@@ -42,14 +48,13 @@
         .empty-state { text-align: center; padding: 60px; color: #a8a8a8; grid-column: 1 / -1; }
         .empty-icon { font-size: 40px; margin-bottom: 15px; }
 
-        /* MODALES (Fenêtres superposées) */
+        /* MODALES */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
         .modal { background: #121212; border: 1px solid #262626; border-radius: 16px; padding: 25px; width: 380px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal h3 { font-size: 18px; border-bottom: 1px solid #262626; padding-bottom: 10px; }
         .modal input, .modal select { background: #000; border: 1px solid #363636; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; }
         .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
         
-        /* Stats Utilisateur */
         .stats-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
         .stats-list li { background: #000; padding: 12px; border-radius: 8px; border: 1px solid #262626; display: flex; justify-content: space-between; font-size: 14px; }
         .stats-list strong { color: #ed4956; font-size: 16px; }
@@ -67,17 +72,22 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('pending')" id="tab-pending">En attente</button>
         <button class="tab-btn" onclick="switchTab('history')" id="tab-history">Historique</button>
+        <button class="tab-btn" onclick="switchTab('banned')" id="tab-banned">Utilisateurs Bannis</button>
     </div>
+</div>
+
+<div id="search-container">
+    <input type="text" id="search-banned" placeholder="🔍 Rechercher un pseudo ou un motif..." onkeyup="filterBanned()">
 </div>
 
 <div class="reports-grid" id="reports-list"></div>
 <div id="toast-container"></div>
 
-<!-- Modal : Bannissement -->
+<!-- Modal Bannissement -->
 <div id="ban-modal-overlay" class="modal-overlay">
     <div class="modal">
         <h3>🔨 Bannir l'utilisateur</h3>
-        <input type="text" id="ban-motif" placeholder="Motif officiel du bannissement..." autocomplete="off"/>
+        <input type="text" id="ban-motif" placeholder="Motif officiel..." autocomplete="off"/>
         <select id="ban-duration">
             <option value="7">1 Semaine</option>
             <option value="30">1 Mois</option>
@@ -85,18 +95,18 @@
         </select>
         <div class="modal-actions">
             <button class="btn btn-warning" onclick="closeModals()">Annuler</button>
-            <button class="btn btn-danger" onclick="confirmBan()">Confirmer le Ban</button>
+            <button class="btn btn-danger" onclick="confirmBan()">Bannir</button>
         </div>
     </div>
 </div>
 
-<!-- Modal : Casier (Stats Utilisateur) -->
+<!-- Modal Casier -->
 <div id="stats-modal-overlay" class="modal-overlay">
     <div class="modal">
         <h3 id="stats-title">Profil Modération</h3>
         <ul class="stats-list">
-            <li>Signalements contre lui : <strong id="stat-reports">0</strong></li>
-            <li>Posts supprimés par le staff : <strong id="stat-deleted">0</strong></li>
+            <li>Signalements reçus : <strong id="stat-reports">0</strong></li>
+            <li>Posts supprimés : <strong id="stat-deleted">0</strong></li>
             <li>Bannissements passés : <strong id="stat-bans">0</strong></li>
         </ul>
         <button class="btn btn-warning" onclick="closeModals()">Fermer</button>
@@ -106,12 +116,20 @@
 <script>
     let currentTab = 'pending';
     let userToBanId = null;
+    let allBannedUsers = []; // Sauvegarde pour la barre de recherche
 
     function switchTab(tab) {
         currentTab = tab;
         document.getElementById('tab-pending').classList.toggle('active', tab === 'pending');
         document.getElementById('tab-history').classList.toggle('active', tab === 'history');
-        tab === 'pending' ? loadReports() : loadHistory();
+        document.getElementById('tab-banned').classList.toggle('active', tab === 'banned');
+        
+        document.getElementById('search-container').style.display = (tab === 'banned') ? 'block' : 'none';
+        document.getElementById('search-banned').value = '';
+
+        if (tab === 'pending') loadReports();
+        else if (tab === 'history') loadHistory();
+        else loadBanned();
     }
 
     function showToast(message, isError = false) {
@@ -123,23 +141,18 @@
         setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
     }
 
-    // GESTION DES MODALES
     function closeModals() {
         document.getElementById('ban-modal-overlay').style.display = 'none';
         document.getElementById('stats-modal-overlay').style.display = 'none';
         document.getElementById('ban-motif').value = '';
     }
 
-    function openBanModal(userId) {
-        userToBanId = userId;
-        document.getElementById('ban-modal-overlay').style.display = 'flex';
-    }
+    function openBanModal(userId) { userToBanId = userId; document.getElementById('ban-modal-overlay').style.display = 'flex'; }
 
     async function confirmBan() {
         const motif = document.getElementById('ban-motif').value;
         const durationSelect = document.getElementById('ban-duration').value;
-        
-        if (!motif) return showToast("Veuillez entrer un motif.", true);
+        if (!motif) return showToast("Motif obligatoire.", true);
         
         const est_definitif = (durationSelect === 'lifetime');
         const duree_jour = est_definitif ? 9999 : parseInt(durationSelect);
@@ -151,7 +164,7 @@
         
         closeModals();
         if (res.ok) {
-            showToast(est_definitif ? "Utilisateur banni à vie." : `Utilisateur banni pour ${duree_jour} jours.`);
+            showToast(est_definitif ? "Banni à vie." : `Banni pour ${duree_jour} jours.`);
             loadReports();
         } else {
             const data = await res.json();
@@ -162,49 +175,40 @@
     async function openStatsModal(userId, pseudo) {
         const res = await fetch('/api/admin/user/' + userId + '/stats');
         const stats = await res.json();
-        
         document.getElementById('stats-title').innerText = "Casier de @" + pseudo;
         document.getElementById('stat-reports').innerText = stats.reports;
         document.getElementById('stat-deleted').innerText = stats.deletedPosts;
         document.getElementById('stat-bans').innerText = stats.bans;
-        
         document.getElementById('stats-modal-overlay').style.display = 'flex';
     }
 
-    // CHARGEMENT DES DONNÉES
+    // --- REQUÊTES D'AFFICHAGE ---
     async function loadReports() {
         const res = await fetch('/api/admin/reports');
         const reports = await res.json();
         const grid = document.getElementById('reports-list');
         grid.innerHTML = '';
-
         if (reports.length === 0) return grid.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><h3>Aucun signalement</h3></div>`;
 
         reports.forEach(report => {
             const dateStr = new Date(report.date_signalement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
             let imageHtml = report.nom_fichier_photo ? `<img src="${report.nom_fichier_photo}" class="post-image">` : '';
-
             grid.innerHTML += `
                 <div class="report-card">
-                    <div class="card-header">
-                        <span class="badge-motif">${report.motif}</span>
-                        <span class="date">${dateStr}</span>
-                    </div>
+                    <div class="card-header"><span class="badge-motif">${report.motif}</span><span class="date">${dateStr}</span></div>
                     <div class="card-body">
                         <div class="reporter-info">Signalé par <strong>${report.plaignant}</strong></div>
                         <div class="post-preview">
                             <span class="post-author" onclick="openStatsModal(${report.id_auteur}, '${report.auteur}')">@${report.auteur} 🔍</span>
-                            <p class="post-text">${report.texte_description || '<em>Média uniquement</em>'}</p>
-                            ${imageHtml}
+                            <p class="post-text">${report.texte_description || '<em>Média uniquement</em>'}</p>${imageHtml}
                         </div>
                     </div>
                     <div class="card-actions">
-                        <button class="btn btn-danger" onclick="deletePost(${report.id_publication})">Supprimer post</button>
+                        <button class="btn btn-danger" onclick="deletePost(${report.id_publication})">Supprimer</button>
                         <button class="btn btn-warning" onclick="openBanModal(${report.id_auteur})">Bannir</button>
                         <button class="btn btn-success" onclick="restorePost(${report.id_publication})">Ignorer</button>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
     }
 
@@ -213,29 +217,75 @@
         const history = await res.json();
         const grid = document.getElementById('reports-list');
         grid.innerHTML = '';
-
         if (history.length === 0) return grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><h3>Historique vide</h3></div>`;
 
         history.forEach(item => {
             const dateStr = new Date(item.date_signalement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
             grid.innerHTML += `
                 <div class="report-card">
-                    <div class="card-header">
-                        <span class="badge-success">${item.statut}</span>
-                        <span class="date">${dateStr}</span>
-                    </div>
+                    <div class="card-header"><span class="badge-success">${item.statut}</span><span class="date">${dateStr}</span></div>
                     <div class="card-body">
                         <div class="reporter-info">Motif : <strong>${item.motif}</strong></div>
-                        <div class="reporter-info">Signalé par : ${item.plaignant}</div>
-                        <div class="reporter-info" style="margin-top: 10px;">
-                            Auteur ciblé : <span class="post-author" onclick="openStatsModal(${item.id_auteur}, '${item.auteur}')">@${item.auteur} 🔍</span>
-                        </div>
+                        <div class="reporter-info">Auteur ciblé : <span class="post-author" onclick="openStatsModal(${item.id_auteur}, '${item.auteur}')">@${item.auteur} 🔍</span></div>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
     }
 
+    // --- NOUVEAU : GESTION DES BANNIS ---
+    async function loadBanned() {
+        const res = await fetch('/api/admin/banned-users');
+        allBannedUsers = await res.json();
+        renderBanned(allBannedUsers);
+    }
+
+    function renderBanned(users) {
+        const grid = document.getElementById('reports-list');
+        grid.innerHTML = '';
+        if (users.length === 0) return grid.innerHTML = `<div class="empty-state"><div class="empty-icon">😇</div><h3>Aucun utilisateur banni</h3></div>`;
+
+        users.forEach(b => {
+            const isLife = b.est_definitif;
+            const badgeClass = isLife ? "badge-motif" : "badge-warning";
+            const durationText = isLife ? "Banni à vie" : `Banni ${b.duree_jour} jours`;
+            
+            let endStr = "Jamais";
+            if (!isLife) {
+                let d = new Date(b.date_debut);
+                d.setDate(d.getDate() + b.duree_jour);
+                endStr = d.toLocaleDateString('fr-FR');
+            }
+
+            grid.innerHTML += `
+                <div class="report-card">
+                    <div class="card-header"><span class="${badgeClass}">${durationText}</span><span class="date">Fin : ${endStr}</span></div>
+                    <div class="card-body">
+                        <div class="post-preview">
+                            <span class="post-author" onclick="openStatsModal(${b.id_utilisateur}, '${b.pseudonyme}')">@${b.pseudonyme} 🔍</span>
+                            <p class="post-text" style="margin-top: 10px;">Raison : <strong>${b.motif}</strong></p>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-success" onclick="unbanUser(${b.id_bannisement})">Révoquer la sanction</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function filterBanned() {
+        const term = document.getElementById('search-banned').value.toLowerCase();
+        const filtered = allBannedUsers.filter(u => u.pseudonyme.toLowerCase().includes(term) || u.motif.toLowerCase().includes(term));
+        renderBanned(filtered);
+    }
+
+    async function unbanUser(banId) {
+        if (!confirm("Débannir cet utilisateur ? Il pourra de nouveau se connecter.")) return;
+        await fetch('/api/admin/ban/' + banId, { method: 'DELETE' });
+        showToast("Bannissement révoqué avec succès !");
+        loadBanned(); // Rafraîchit la liste
+    }
+
+    // --- ACTIONS SIMPLES ---
     async function deletePost(postId) {
         if (!confirm('Supprimer définitivement ?')) return;
         await fetch('/api/admin/post/' + postId, { method: 'DELETE' });

@@ -104,5 +104,28 @@ router.put('/user/:id/ban', isAdmin, async (req, res) => {
         res.json({ message: "Utilisateur banni." });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
+// NOUVELLE ROUTE : Lister les utilisateurs bannis avec tri
+router.get('/banned-users', isAdmin, async (req, res) => {
+    try {
+        const db = await getDb();
+        // On trie par : définitif en premier, puis par durée la plus longue, puis par date
+        const banned = await db.all(`
+             SELECT b.id_bannisement, b.motif, b.duree_jour, b.est_definitif, b.date_debut, 
+                    u.id_utilisateur, u.pseudonyme
+             FROM Bannissement b
+             JOIN Utilisateur u ON b.id_utilisateur = u.id_utilisateur
+             ORDER BY b.est_definitif DESC, b.duree_jour DESC, b.date_debut DESC
+        `);
+        res.json(banned);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
+// NOUVELLE ROUTE : Révoquer un bannissement (Débannir)
+router.delete('/ban/:id', isAdmin, async (req, res) => {
+    try {
+        const db = await getDb();
+        await db.run(`DELETE FROM Bannissement WHERE id_bannisement = ?`, [req.params.id]);
+        res.json({ message: "Le bannissement a été révoqué." });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 module.exports = router;
