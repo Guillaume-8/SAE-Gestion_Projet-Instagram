@@ -1,0 +1,17 @@
+/********************************************************************************
+ * DOCUMENTATION DES REQUÊTES SQL - PROJET LIFEINVADER
+ * Auteur : Pôle Base de Données / Cybersécurité
+ * 
+ * RÈGLES IMPORTANTES POUR LE BACKEND / FRONTEND
+ * 
+ * 1. GESTION DES VARIABLES :
+ * Les requêtes ci-dessous n'ont plus de valeurs "en dur" (comme id=42 ou id=1).
+ * J'ai utilisé des marqueurs comme `:variable` ou `?`. 
+ * Dans le backend, vous DEVEZ utiliser des requêtes préparées pour injecter 
+ * vos propres variables. Ne concaténez jamais le texte pour éviter les Injections SQL.
+ * 
+ * 2. EXÉCUTION GROUPÉE (TRANSACTIONS) :
+ * Quand vous voyez "BEGIN TRANSACTION;" et "COMMIT;", cela signifie que les requêtes
+ * à l'intérieur DOIVENT être exécutées ensemble, instantanément, SANS AUCUN DÉLAI. 
+ * Si une requête échoue, il faut faire un "ROLLBACK" côté backend.
+ ********************************************************************************/
