@@ -1,15 +1,15 @@
+# Dépendances
 node_modules/
-.env
+
+# Médias uploadés par les utilisateurs (ne pas versionner)
+backend-api/uploads/*
+!backend-api/uploads/.gitkeep
+
+# Divers
 *.log
 .DS_Store
-*:Zone.Identifier
-.docusaurus/
-build/
+Thumbs.db
 
-# Certificats et clés privées
 certs/
-*.pem
-*.key
-*.xdb
+.env
 
-backend-messagerie/database_lifeinvader.db

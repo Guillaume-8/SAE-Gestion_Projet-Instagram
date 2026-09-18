@@ -526,6 +526,74 @@ app.put('/api/users/me', authRequired, async (req, res) => {
 });
 
 // ============================================================
+//  PROFIL PUBLIC D'UN UTILISATEUR
+// ============================================================
+
+/** GET /api/users/:pseudonyme — profil public + publications. */
+app.get('/api/users/:pseudonyme', async (req, res) => {
+  try {
+    const pseudo = String(req.params.pseudonyme || '').trim();
+    const [rows] = await db.query(
+      'SELECT * FROM Utilisateur WHERE pseudonyme = ?',
+      [pseudo],
+    );
+    const user = rows[0];
+    if (!user) {
+      res.status(404).json({error: 'Utilisateur introuvable'});
+      return;
+    }
+
+    const [[p]] = await db.query(
+      'SELECT COUNT(*) AS c FROM Publication WHERE id_utilisateur = ?',
+      [user.id_utilisateur],
+    );
+    const [[f]] = await db.query(
+      'SELECT COUNT(*) AS c FROM Ami WHERE id_receveur = ?',
+      [user.id_utilisateur],
+    );
+    const [[g]] = await db.query(
+      'SELECT COUNT(*) AS c FROM Ami WHERE id_demandeur = ?',
+      [user.id_utilisateur],
+    );
+
+    let posts = [];
+    try {
+      const [prows] = await db.query(
+        `SELECT id_publication, nom_fichier_photo, nom_fichier_video
+         FROM Publication
+         WHERE id_utilisateur = ? AND est_supprimer = 0
+         ORDER BY date_publication DESC`,
+        [user.id_utilisateur],
+      );
+      posts = prows
+        .filter((r) => r.nom_fichier_photo || r.nom_fichier_video)
+        .map((r) => ({
+          id: r.id_publication,
+          mediaUrl: '/api/users/media/' +
+            encodeURIComponent(r.nom_fichier_photo || r.nom_fichier_video),
+          isVideo: !r.nom_fichier_photo && Boolean(r.nom_fichier_video),
+        }));
+    } catch (postErr) {
+      console.warn('Publications indisponibles :', postErr.message);
+    }
+
+    res.json({
+      username: user.pseudonyme,
+      name: [user.prenom, user.nom].filter(Boolean).join(' ').trim(),
+      avatar: user.photo_profil || null,
+      bio: user.bio || '',
+      postsCount: p.c,
+      followersCount: f.c,
+      followingCount: g.c,
+      posts,
+    });
+  } catch (err) {
+    console.error('Erreur profil public :', err.message);
+    res.status(500).json({error: 'Erreur serveur'});
+  }
+});
+
+// ============================================================
 //  PUBLICATIONS
 // ============================================================
 

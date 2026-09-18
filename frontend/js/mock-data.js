@@ -364,6 +364,8 @@ export const MOCK_USER = {
   name: 'Eren',
   avatar: makeAvatar('eren_rt'),
   bio: 'Responsable Front-End | BUT R&T 3ème année | SAÉ 5.02',
+  gender: 'male',
+  showGender: true,
   postsCount: EREN_POSTS.length,
   followersCount: 42,
   followingCount: 28,
@@ -419,5 +421,41 @@ export const MOCK_CONVERSATIONS = [
     messages: [
       {id: 1, sender: 'them', text: 'Yanis : Réunion demain à 14h', createdAt: 'Hier 16:00'},
     ],
+  },
+];
+
+/**
+ * Historique d'activité du compte (page Paramètres > Statut du compte).
+ */
+export const MOCK_ACTIVITY = [
+  {id: 1, icon: '📷', text: 'Publication de "Déploiement du serveur Apache validé en HTTPS !"', date: 'Il y a 10 minutes'},
+  {id: 2, icon: '❤️', text: 'Vous avez aimé la publication de tanguy_rt', date: 'Il y a 45 minutes'},
+  {id: 3, icon: '👥', text: 'guillaume_rt a commencé à vous suivre', date: 'Il y a 2 heures'},
+  {id: 4, icon: '💬', text: 'Nouveau commentaire de mathias_rt sur votre publication', date: 'Il y a 3 heures'},
+  {id: 5, icon: '🔐', text: 'Connexion depuis un nouvel appareil', date: 'Hier à 18:42'},
+  {id: 6, icon: '✏️', text: 'Modification de votre biographie', date: 'Il y a 2 jours'},
+];
+
+/**
+ * FAQ du centre d'aide (page Paramètres > Aide).
+ * Doublon volontaire côté settings.js si listes divergent : cette
+ * exportation sert de source unique pour les vues qui en ont besoin.
+ */
+export const MOCK_FAQ = [
+  {
+    question: 'Comment modifier mon profil ?',
+    answer: 'Rendez-vous dans Paramètres > Modifier le profil pour changer votre nom, votre biographie ou votre photo.',
+  },
+  {
+    question: 'Comment fonctionne la confidentialité de mes publications ?',
+    answer: 'Chaque publication peut être définie comme publique ou visible uniquement par vos amis, au moment de la publier.',
+  },
+  {
+    question: 'Comment signaler un contenu inapproprié ?',
+    answer: 'Ouvrez la publication concernée puis cliquez sur le bouton 🚩 Signaler, ou utilisez Paramètres > Aide > Signaler un problème.',
+  },
+  {
+    question: 'Comment supprimer un message envoyé ?',
+    answer: 'Cette fonctionnalité est en cours de développement et sera bientôt disponible dans la messagerie.',
   },
 ];

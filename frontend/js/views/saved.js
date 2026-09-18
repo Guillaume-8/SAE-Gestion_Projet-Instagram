@@ -49,7 +49,8 @@ export async function mount() {
   const grid = document.getElementById('saved-grid');
   if (!grid) return;
 
-  try {
+  const renderSavedPosts = async () => {
+    try {
     const posts = await getSavedPosts();
 
     if (!posts || posts.length === 0) {
@@ -63,22 +64,24 @@ export async function mount() {
       return;
     }
 
-    grid.innerHTML = posts.map(createSavedTileHtml).join('');
+      grid.innerHTML = posts.map(createSavedTileHtml).join('');
 
-    // Dégradé de remplacement si une image locale est manquante
-    attachMediaFallback(grid);
+      // Dégradé de remplacement si une image locale est manquante
+      attachMediaFallback(grid);
 
-    grid.querySelectorAll('.saved-tile').forEach((tile) => {
-      tile.addEventListener('click', () => {
-        const postId = parseInt(tile.dataset.postId, 10);
-        const post = posts.find((p) => p.id === postId);
-        if (post) {
-          showPostModal(post);
-        }
+      grid.querySelectorAll('.saved-tile').forEach((tile) => {
+        tile.addEventListener('click', () => {
+          const postId = Number(tile.dataset.postId);
+          const post = posts.find((item) => item.id === postId);
+          if (post) showPostModal(post);
+        });
       });
-    });
-  } catch (error) {
-    grid.innerHTML = '<p class="error-message">Erreur de chargement.</p>';
-    console.error('Erreur publications enregistrées :', error);
-  }
+    } catch (error) {
+      grid.innerHTML = '<p class="error-message">Erreur de chargement.</p>';
+      console.error('Erreur publications enregistrées :', error);
+    }
+  };
+
+  await renderSavedPosts();
+  window.addEventListener('saved-post-changed', renderSavedPosts);
 }

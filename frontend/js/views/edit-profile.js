@@ -5,6 +5,7 @@
  */
 
 import { getCurrentUser, updateProfile } from '../api.js';
+import {showToast} from '../toast.js';
 
 /**
  * Rend le squelette HTML de la vue Edit Profile.
@@ -115,7 +116,7 @@ function handleAvatarFileSelect() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez choisir un fichier image (PNG, JPEG, WebP ou GIF).');
+      showToast('Veuillez choisir un fichier image (PNG, JPEG, WebP ou GIF).', 'error');
       fileInput.value = '';
       return;
     }

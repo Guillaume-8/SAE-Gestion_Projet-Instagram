@@ -1,3 +1,4 @@
+
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 
@@ -12,7 +13,7 @@ async function getDb() {
     });
     // Active la prise en compte des clés étrangères
     await db.run('PRAGMA foreign_keys = ON;');
-    
+
     // Création de la table Reaction_Message si elle n'existe pas
     await db.run(`
       CREATE TABLE IF NOT EXISTS Reaction_Message(
@@ -22,6 +23,17 @@ async function getDb() {
         emoji VARCHAR(10),
         FOREIGN KEY(id_message) REFERENCES Message(id_message),
         FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)
+      )
+    `);
+
+    // Création de la table Message_History si elle n'existe pas
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS Message_History(
+        id_history INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_message INT NOT NULL,
+        ancien_contenu TEXT NOT NULL,
+        date_modification DATETIME NOT NULL,
+        FOREIGN KEY(id_message) REFERENCES Message(id_message) ON DELETE CASCADE
       )
     `);
   }
@@ -108,14 +120,15 @@ async function obtenirMessagesGroupe(idGroupe) {
         m.id_message,
         m.contenu_message AS Contenu_message,
         m.date_envoie AS Date_message,
-        u.pseudonyme AS Pseudonyme_utilisateur
+        u.pseudonyme AS Pseudonyme_utilisateur,
+        CASE WHEN (SELECT COUNT(*) FROM Message_History mh WHERE mh.id_message = m.id_message) > 0 THEN 1 ELSE 0 END AS est_modifie
      FROM Message m
      JOIN Utilisateur u ON m.id_expediteur = u.id_utilisateur
      WHERE m.id_groupe = ?
      ORDER BY m.date_envoie ASC`,
     [idGroupe]
   );
-  
+
   // Pour chaque message, récupérer les réactions
   for (const msg of messages) {
     const reactions = await database.all(
@@ -123,11 +136,11 @@ async function obtenirMessagesGroupe(idGroupe) {
        FROM Reaction_Message r 
        JOIN Utilisateur u ON r.id_utilisateur = u.id_utilisateur 
        WHERE r.id_message = ?`,
-       [msg.id_message]
+      [msg.id_message]
     );
     msg.reactions = reactions;
   }
-  
+
   return messages;
 }
 
@@ -169,7 +182,7 @@ async function supprimerConversationUtilisateur(idGroupe, pseudonyme) {
  */
 async function ajouterReaction(idMessage, pseudonyme, emoji) {
   const database = await getDb();
-  
+
   const user = await database.get(
     'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
     [pseudonyme]
@@ -206,6 +219,135 @@ async function obtenirTousLesUtilisateurs() {
   return users.map(u => u.pseudonyme);
 }
 
+/**
+ * Supprime un message (et ses réactions)
+ */
+async function supprimerMessage(idMessage, pseudonyme) {
+  const database = await getDb();
+
+  const user = await database.get(
+    'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
+    [pseudonyme]
+  );
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  const msg = await database.get(
+    'SELECT id_expediteur FROM Message WHERE id_message = ?',
+    [idMessage]
+  );
+
+  if (!msg || msg.id_expediteur !== user.id_utilisateur) {
+    throw new Error("Non autorisé à supprimer ce message");
+  }
+
+  // Delete history and reactions first to avoid foreign key constraints
+  await database.run('DELETE FROM Message_History WHERE id_message = ?', [idMessage]);
+  await database.run('DELETE FROM Reaction_Message WHERE id_message = ?', [idMessage]);
+  // Delete the message
+  await database.run('DELETE FROM Message WHERE id_message = ?', [idMessage]);
+}
+
+/**
+ * Modifie un message (s'il date de moins de 10 min)
+ */
+async function modifierMessage(idMessage, pseudonyme, nouveauContenu) {
+  const database = await getDb();
+
+  const user = await database.get(
+    'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
+    [pseudonyme]
+  );
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  const msg = await database.get(
+    'SELECT id_expediteur, date_envoie FROM Message WHERE id_message = ?',
+    [idMessage]
+  );
+
+  if (!msg || msg.id_expediteur !== user.id_utilisateur) {
+    throw new Error("Non autorisé à modifier ce message");
+  }
+
+  const now = new Date();
+  const sentDate = new Date(msg.date_envoie);
+  const diffMinutes = (now - sentDate) / (1000 * 60);
+
+  if (diffMinutes > 10) {
+    throw new Error("Délai de 10 minutes dépassé pour la modification");
+  }
+
+  // Obtenir le contenu actuel du message pour l'historique
+  const currentMsg = await database.get('SELECT contenu_message FROM Message WHERE id_message = ?', [idMessage]);
+
+  if (currentMsg && currentMsg.contenu_message !== nouveauContenu) {
+    await database.run(
+      'INSERT INTO Message_History (id_message, ancien_contenu, date_modification) VALUES (?, ?, ?)',
+      [idMessage, currentMsg.contenu_message, now.toISOString()]
+    );
+  }
+
+  await database.run(
+    'UPDATE Message SET contenu_message = ? WHERE id_message = ?',
+    [nouveauContenu, idMessage]
+  );
+}
+
+/**
+ * Récupère les 3 dernières modifications d'un message
+ */
+async function obtenirHistoriqueMessage(idMessage) {
+  const database = await getDb();
+  return await database.all(
+    'SELECT ancien_contenu, date_modification FROM Message_History WHERE id_message = ? ORDER BY date_modification DESC LIMIT 3',
+    [idMessage]
+  );
+}
+
+/**
+ * Récupère les détails d'un groupe (nom et membres)
+ */
+async function obtenirDetailsGroupe(idGroupe) {
+  const database = await getDb();
+  const groupe = await database.get('SELECT nom_groupe, photo_groupe FROM Groupe WHERE id_groupe = ?', [idGroupe]);
+  const membres = await database.all(
+    `SELECT u.pseudonyme 
+     FROM Appartient_Groupe ag 
+     JOIN Utilisateur u ON ag.id_utilisateur = u.id_utilisateur 
+     WHERE ag.id_groupe = ?`,
+    [idGroupe]);
+
+  const mediaResult = await database.all(
+    `SELECT contenu_message
+     FROM Message
+     WHERE id_groupe = ? AND (contenu_message LIKE '%[IMAGE]:%' OR contenu_message LIKE '%[VIDEO]:%')
+     ORDER BY date_envoie DESC`,
+    [idGroupe]);
+
+  if (!groupe) return null;
+  return {
+    nom_groupe: groupe.nom_groupe,
+    photo_groupe: groupe.photo_groupe,
+    membres: membres.map(m => m.pseudonyme),
+    media: mediaResult.map(m => m.contenu_message)
+  };
+}
+
+/**
+ * Modifie le nom d'un groupe
+ */
+async function modifierNomGroupe(idGroupe, nouveauNom) {
+  const database = await getDb();
+  await database.run('UPDATE Groupe SET nom_groupe = ? WHERE id_groupe = ?', [nouveauNom, idGroupe]);
+}
+
+/**
+ * Modifie la photo d'un groupe
+ */
+async function modifierPhotoGroupe(idGroupe, cheminPhoto) {
+  const database = await getDb();
+  await database.run('UPDATE Groupe SET photo_groupe = ? WHERE id_groupe = ?', [cheminPhoto, idGroupe]);
+}
+
 module.exports = {
   getDb,
   ajouterUtilisateur,
@@ -215,6 +357,12 @@ module.exports = {
   obtenirMembresGroupe,
   supprimerConversationUtilisateur,
   ajouterReaction,
-  obtenirTousLesUtilisateurs
+  obtenirTousLesUtilisateurs,
+  supprimerMessage,
+  modifierMessage,
+  obtenirHistoriqueMessage,
+  obtenirDetailsGroupe,
+  modifierNomGroupe,
+  modifierPhotoGroupe
 };
 

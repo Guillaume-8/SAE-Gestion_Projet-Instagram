@@ -11,9 +11,12 @@ import {
   republishPost,
   reportPost,
   addComment,
+  toggleSavedPost,
 } from './api.js';
 import { showPostModal } from './post-modal.js';
 import { attachMediaFallback } from './media-fallback.js';
+import {showToast} from './toast.js';
+import {addNotification} from './notification.js';
 
 /**
  * Échappe les caractères HTML pour éviter les injections XSS.
@@ -24,6 +27,19 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = String(text);
   return div.innerHTML;
+}
+
+/**
+ * Génère une légende en transformant les hashtags en liens cliquables
+ * vers la page Tendances avec le filtre pré-appliqué.
+ * @param {string} caption Légende de la publication.
+ * @return {string} Légende sécurisée et interactive.
+ */
+function createCaptionHtml(caption) {
+  return escapeHtml(caption).replace(
+    /(^|\s)(#[\p{L}\p{N}_]+)/gu,
+    '$1<a class="caption-hashtag" href="#/explore?tag=$2">$2</a>',
+  );
 }
 
 /**
@@ -59,7 +75,7 @@ function createPostElement(post) {
   const dislikedClass = post.disliked ? ' active' : '';
 
   return `
-    <article class="post-card" data-post-id="${post.id}">
+    <article class="post-card" data-post-id="${post.id}" data-author="${escapeHtml(post.author)}">
       <header class="post-header">
         <div class="post-user">
           <img src="${post.avatar}" alt="${post.author}" class="avatar">
@@ -82,6 +98,7 @@ function createPostElement(post) {
           <span class="dislike-count">${post.dislikesCount}</span>
         </button>
         <button class="action-btn btn-republish" title="Republier">🔄 Republier</button>
+        <button class="action-btn btn-save${post.saved ? ' active' : ''}" title="Enregistrer">🔖</button>
         <button class="action-btn btn-comments-toggle" title="Commentaires">
           💬 <span class="comments-count">${commentsCount}</span>
         </button>
@@ -90,7 +107,7 @@ function createPostElement(post) {
       <div class="post-body">
         <div class="post-likes"><span class="like-count">${post.likesCount}</span> J'aime</div>
         <p class="post-caption">
-          <strong>${escapeHtml(post.author)}</strong> ${escapeHtml(post.caption)}
+          <strong>${escapeHtml(post.author)}</strong> ${createCaptionHtml(post.caption)}
         </p>
         <button class="btn-view-comments">
           Voir les ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}
@@ -135,6 +152,21 @@ async function handleLike(article, postId) {
     const dislikeBtn = article.querySelector('.btn-dislike');
     dislikeBtn.classList.toggle('active', result.disliked);
     article.querySelector('.dislike-count').textContent = result.dislikesCount;
+
+    const postAuthor = article.dataset.author;
+    if (newLikedState) {
+      addNotification('like', `Vous avez aimé la publication de ${postAuthor}`, {postId});
+    }
+
+    // Émettre l'événement Socket.io en cas d'ajout de "Like"
+    if (newLikedState && window.socket) {
+      const currentPseudo = localStorage.getItem('instaclone_user') || 'Moi';
+      window.socket.emit('like_post', {
+        postId: postId,
+        author: postAuthor,
+        likedBy: currentPseudo,
+      });
+    }
   } catch (error) {
     likeBtn.classList.toggle('active', isCurrentlyLiked);
     console.error('Erreur lors du like :', error);
@@ -159,6 +191,14 @@ async function handleDislike(article, postId) {
   try {
     const result = await toggleDislike(postId, newDislikedState);
     article.querySelector('.dislike-count').textContent = result.dislikesCount;
+
+    if (newDislikedState) {
+      addNotification(
+        'dislike',
+        `Vous n'avez pas aimé la publication de ${article.dataset.author}`,
+        {postId},
+      );
+    }
     const likeBtn = article.querySelector('.btn-like');
     likeBtn.classList.toggle('active', result.liked);
     article.querySelector('.like-count').textContent = result.likesCount;
@@ -177,10 +217,34 @@ async function handleDislike(article, postId) {
 async function handleRepublish(postId) {
   try {
     await republishPost(postId);
-    showNotification('Publication republié avec succès ! ✓');
+    addNotification('republish', 'Vous avez republié une publication', {postId});
+    showToast('Publication republiée avec succès !', 'success');
   } catch (error) {
     console.error('Erreur lors de la republication :', error);
-    showNotification('Échec de la republication', true);
+    showToast('Échec de la republication', 'error');
+  }
+}
+
+/**
+ * Gère l'enregistrement ou le retrait d'une publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {number} postId Identifiant de la publication.
+ */
+async function handleSave(article, postId) {
+  const saveBtn = article.querySelector('.btn-save');
+  const saved = !saveBtn.classList.contains('active');
+  saveBtn.disabled = true;
+
+  try {
+    await toggleSavedPost(postId, saved);
+    saveBtn.classList.toggle('active', saved);
+    if (saved) {
+      addNotification('save', 'Vous avez enregistré une publication', {postId});
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'enregistrement :", error);
+  } finally {
+    saveBtn.disabled = false;
   }
 }
 
@@ -241,12 +305,13 @@ async function handleReport(article, postId) {
 
     try {
       await reportPost(postId, selectedReason);
-      showNotification('Publication signalée. Merci pour votre contribution.');
+      addNotification('report', 'Vous avez signalé une publication', {postId});
+      showToast('Publication signalée. Merci pour votre contribution.');
       article.querySelector('.btn-report').textContent = 'Signalée ✓';
       article.querySelector('.btn-report').disabled = true;
     } catch (error) {
       console.error('Erreur lors du signalement :', error);
-      showNotification('Échec du signalement', true);
+      showToast('Échec du signalement', 'error');
     }
   });
 }
@@ -276,6 +341,11 @@ async function handleAddComment(article, postId, text) {
 
   try {
     const newComment = await addComment(postId, text);
+    addNotification(
+      'comment',
+      `Vous avez commenté la publication de ${article.dataset.author}`,
+      {postId},
+    );
     const commentHtml = createCommentElement(newComment);
     commentsList.insertAdjacentHTML('beforeend', commentHtml);
 
@@ -290,32 +360,11 @@ async function handleAddComment(article, postId, text) {
 
     input.value = '';
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du commentaire :', error);
-    showNotification('Échec de l\'ajout du commentaire', true);
+    console.error("Erreur lors de l'ajout du commentaire :", error);
+    showToast("Échec de l'ajout du commentaire", 'error');
   } finally {
     form.querySelector('.btn-send-comment').disabled = false;
   }
-}
-
-/**
- * Affiche une notification temporaire à l'utilisateur.
- * @param {string} message Message à afficher.
- * @param {boolean} isError Indique s'il s'agit d'une erreur.
- */
-function showNotification(message, isError = false) {
-  const notif = document.createElement('div');
-  notif.className = `toast-notification${isError ? ' toast-error' : ''}`;
-  notif.textContent = message;
-  document.body.appendChild(notif);
-
-  requestAnimationFrame(() => notif.classList.add('toast-visible'));
-
-  setTimeout(() => {
-    notif.classList.remove('toast-visible');
-    notif.addEventListener('transitionend', () => notif.remove(), {
-      once: true,
-    });
-  }, 3000);
 }
 
 /**
@@ -324,6 +373,10 @@ function showNotification(message, isError = false) {
  */
 function setupEventDelegation(container) {
   container.addEventListener('click', async (event) => {
+    // Les hashtags des légendes filtrent la page Tendances.
+    const hashtagLink = event.target.closest('.caption-hashtag');
+    if (hashtagLink) return; // navigation naturelle via href="#/explore?tag=…"
+
     const article = event.target.closest('.post-card');
     if (!article) return;
 
@@ -341,6 +394,11 @@ function setupEventDelegation(container) {
 
     if (event.target.closest('.btn-republish')) {
       handleRepublish(postId);
+      return;
+    }
+
+    if (event.target.closest('.btn-save')) {
+      handleSave(article, postId);
       return;
     }
 
@@ -405,7 +463,7 @@ export async function mount() {
   attachMediaFallback(container);
 
   setupEventDelegation(container);
-  
+
   // Ajouter les event listeners pour ouvrir le modal
   posts.forEach((post) => {
     const mediaElements = document.querySelectorAll(`[data-post-id="${post.id}"].post-media-clickable`);

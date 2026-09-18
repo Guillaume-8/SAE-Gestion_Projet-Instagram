@@ -2,8 +2,10 @@
  * @fileoverview Modal pour afficher les détails d'une publication.
  */
 
-import { toggleLike, toggleDislike, sharePost, republishPost, reportPost, getPostById } from './api.js';
+import { toggleLike, toggleDislike, toggleSavedPost, republishPost, reportPost, getPostById } from './api.js';
 import { attachMediaFallback } from './media-fallback.js';
+import {showToast} from './toast.js';
+import {addNotification} from './notification.js';
 
 /**
  * Échappe les caractères HTML.
@@ -18,7 +20,7 @@ function escapeHtml(text) {
 
 /**
  * Ouvre le modal avec les détails d'une publication.
- * @param {Object} post Données de la publication.
+ * @param {Object} partialPost Données de la publication.
  */
 let modalOpenToken = 0;
 
@@ -93,11 +95,14 @@ function renderModal(post) {
             </div>
             
             <div class="post-modal-actions">
-              <button class="btn-modal-like" data-post-id="${post.id}" title="J'aime">
+              <button class="btn-modal-like${post.liked ? ' active' : ''}" data-post-id="${post.id}" title="J'aime">
                 ❤️ <span class="modal-like-count">${post.likesCount || 0}</span>
               </button>
-              <button class="btn-modal-dislike" data-post-id="${post.id}" title="Je n'aime pas">
+              <button class="btn-modal-dislike${post.disliked ? ' active' : ''}" data-post-id="${post.id}" title="Je n'aime pas">
                 👎 <span class="modal-dislike-count">${post.dislikesCount || 0}</span>
+              </button>
+              <button class="btn-modal-save${post.saved ? ' active' : ''}" data-post-id="${post.id}" title="Enregistrer">
+                🔖 Enregistrer
               </button>
               <button class="btn-modal-republish" data-post-id="${post.id}" title="Republier">
                 🔄 Republier
@@ -136,11 +141,13 @@ function renderModal(post) {
       if (likeCountSpan) likeCountSpan.textContent = post.likesCount;
       if (dislikeCountSpan) dislikeCountSpan.textContent = post.dislikesCount;
       
-      // Mettre à jour les états des boutons like/dislike
+      // Mettre à jour les états des boutons like/dislike/enregistrer
       const likeBtn = document.querySelector('.btn-modal-like');
       const dislikeBtn = document.querySelector('.btn-modal-dislike');
+      const saveBtn = document.querySelector('.btn-modal-save');
       if (likeBtn) likeBtn.classList.toggle('active', post.liked);
       if (dislikeBtn) dislikeBtn.classList.toggle('active', post.disliked);
+      if (saveBtn) saveBtn.classList.toggle('active', post.saved);
       
       // Mettre à jour les commentaires
       const commentsContainer = document.getElementById('post-modal-comments');
@@ -180,6 +187,7 @@ function renderModal(post) {
   document.getElementById('post-modal-content').addEventListener('click', async (e) => {
     const likeBtn = e.target.closest('.btn-modal-like');
     const dislikeBtn = e.target.closest('.btn-modal-dislike');
+    const saveBtn = e.target.closest('.btn-modal-save');
     const republishBtn = e.target.closest('.btn-modal-republish');
     const reportBtn = e.target.closest('.btn-modal-report');
     const commentLikeBtn = e.target.closest('.btn-comment-like');
@@ -190,6 +198,21 @@ function renderModal(post) {
       try {
         const newLikeState = !post.liked;
         await toggleLike(post.id, newLikeState);
+
+        if (newLikeState) {
+          addNotification('like', `Vous avez aimé la publication de ${post.author}`, {postId: post.id});
+        }
+
+        // Émission de la notification Socket.io
+        if (newLikeState && window.socket) {
+          const currentPseudo = localStorage.getItem('instaclone_user') || 'Moi';
+          window.socket.emit('like_post', {
+            postId: post.id,
+            author: post.author,
+            likedBy: currentPseudo,
+          });
+        }
+
         await updateModalData();
       } catch (error) {
         console.error('Erreur like:', error);
@@ -200,16 +223,40 @@ function renderModal(post) {
       try {
         const newDislikeState = !post.disliked;
         await toggleDislike(post.id, newDislikeState);
+
+        if (newDislikeState) {
+          addNotification('dislike', `Vous n'avez pas aimé la publication de ${post.author}`, {postId: post.id});
+        }
         await updateModalData();
       } catch (error) {
         console.error('Erreur dislike:', error);
+      }
+    }
+
+    if (saveBtn) {
+      try {
+        const saved = !saveBtn.classList.contains('active');
+        await toggleSavedPost(post.id, saved);
+        saveBtn.classList.toggle('active', saved);
+        if (saved) {
+          addNotification('save', 'Vous avez enregistré une publication', {postId: post.id});
+        }
+        post.saved = saved;
+        window.dispatchEvent(
+          new CustomEvent('saved-post-changed', {
+            detail: {postId: post.id, saved},
+          }),
+        );
+      } catch (error) {
+        console.error("Erreur lors de l'enregistrement :", error);
       }
     }
     
     if (republishBtn) {
       try {
         await republishPost(post.id);
-        alert('Publication republié avec succès !');
+        addNotification('republish', 'Vous avez republié une publication', {postId: post.id});
+        showToast('Publication republiée avec succès !', 'success');
         await updateModalData();
       } catch (error) {
         console.error('Erreur republication:', error);
@@ -219,7 +266,8 @@ function renderModal(post) {
     if (reportBtn) {
       try {
         await reportPost(post.id, 'Signalement depuis le modal');
-        alert('Publication signalée!');
+        addNotification('report', 'Vous avez signalé une publication', {postId: post.id});
+        showToast('Publication signalée.', 'success');
       } catch (error) {
         console.error('Erreur signalement:', error);
       }
@@ -227,13 +275,14 @@ function renderModal(post) {
     
     // Actions sur les commentaires
     if (commentLikeBtn) {
-      const commentId = parseInt(commentLikeBtn.dataset.commentId);
+      const commentId = parseInt(commentLikeBtn.dataset.commentId, 10);
       const comment = post.comments.find(c => c.id === commentId);
       if (comment) {
         comment.liked = !comment.liked;
         if (comment.liked) {
           comment.likesCount = (comment.likesCount || 0) + 1;
           commentLikeBtn.style.opacity = '1';
+          addNotification('like', `Vous avez aimé le commentaire de ${comment.author}`, {postId: post.id});
         } else {
           comment.likesCount = Math.max(0, (comment.likesCount || 1) - 1);
           commentLikeBtn.style.opacity = '0.6';
@@ -242,13 +291,14 @@ function renderModal(post) {
     }
     
     if (commentDislikeBtn) {
-      const commentId = parseInt(commentDislikeBtn.dataset.commentId);
+      const commentId = parseInt(commentDislikeBtn.dataset.commentId, 10);
       const comment = post.comments.find(c => c.id === commentId);
       if (comment) {
         comment.disliked = !comment.disliked;
         if (comment.disliked) {
           comment.dislikesCount = (comment.dislikesCount || 0) + 1;
           commentDislikeBtn.style.opacity = '1';
+          addNotification('dislike', `Vous n'avez pas aimé le commentaire de ${comment.author}`, {postId: post.id});
         } else {
           comment.dislikesCount = Math.max(0, (comment.dislikesCount || 1) - 1);
           commentDislikeBtn.style.opacity = '0.6';
@@ -257,9 +307,10 @@ function renderModal(post) {
     }
     
     if (commentReportBtn) {
-      const commentId = parseInt(commentReportBtn.dataset.commentId);
+      const commentId = parseInt(commentReportBtn.dataset.commentId, 10);
       await reportPost(post.id, `Signalement de commentaire #${commentId}`);
-      alert('Commentaire signalé!');
+      addNotification('report', 'Vous avez signalé un commentaire', {postId: post.id});
+      showToast('Commentaire signalé.', 'success');
     }
   });
 }

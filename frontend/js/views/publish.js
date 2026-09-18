@@ -3,6 +3,8 @@
  */
 
 import { createPost } from '../api.js';
+import {showToast} from '../toast.js';
+import {addNotification} from '../notification.js';
 
 let selectedFile = null;
 let selectedMediaType = null;
@@ -175,27 +177,6 @@ function resetMediaSelection() {
 }
 
 /**
- * Affiche une notification toast.
- * @param {string} message Message à afficher.
- * @param {boolean} isError Indique s'il s'agit d'une erreur.
- */
-function showNotification(message, isError = false) {
-  const notif = document.createElement('div');
-  notif.className = 'toast-notification' + (isError ? ' toast-error' : '');
-  notif.textContent = message;
-  document.body.appendChild(notif);
-
-  requestAnimationFrame(() => notif.classList.add('toast-visible'));
-
-  setTimeout(() => {
-    notif.classList.remove('toast-visible');
-    notif.addEventListener('transitionend', () => notif.remove(), {
-      once: true,
-    });
-  }, 3000);
-}
-
-/**
  * Gère la soumission du formulaire de publication.
  */
 async function handlePublishSubmit() {
@@ -224,7 +205,8 @@ async function handlePublishSubmit() {
       visibility: visibility,
     });
 
-    showNotification('Publication créée avec succès !');
+    addNotification('info', 'Votre publication a été mise en ligne');
+    showToast('Publication créée avec succès !', 'success');
 
     document.getElementById('publish-form').reset();
     document.getElementById('char-count').textContent = '0';

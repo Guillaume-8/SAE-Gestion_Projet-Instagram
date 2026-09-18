@@ -271,6 +271,14 @@ export async function mount() {
       sessionStorage.removeItem('explore-pending-filter');
       applyQuery(pending);
     }
+
+    // Filtre directement dans l'URL (#/explore?tag=#xxx) : liens
+    // cliquables depuis les légendes du fil et les puces hashtags.
+    const queryString = window.location.hash.split('?')[1] || '';
+    const initialTag = new URLSearchParams(queryString).get('tag');
+    if (initialTag) {
+      applyQuery(initialTag);
+    }
   } catch (error) {
     grid.innerHTML = '<p class="error-message">Erreur lors du chargement des tendances.</p>';
     console.error('Erreur explore :', error);

@@ -14,24 +14,96 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
-app.use(express.json());
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
+// Le front-end est servi par Apache (443/80).
+// Ce serveur n'expose que l'API, Socket.io et les médias.
+
 app.use('/uploads', express.static(uploadsDir));
 
-// Le front-end est servi par Apache (port 443/80).
+const multer = require('multer');
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir)
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + '_' + Math.random().toString(36).substr(2, 9) + ext);
+  }
+});
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 200 * 1024 * 1024 } // 200 MB limit
+});
+
+app.post('/api/upload', (req, res) => {
+  upload.single('media')(req, res, async function (err) {
+    if (err) {
+      console.error('Multer Error:', err);
+      return res.status(500).json({ error: 'Upload failed: ' + err.message });
+    }
+    try {
+      const { pseudonyme, idGroupe, mediaType, replyData } = req.body;
+      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+      let prefix = mediaType === 'video' ? '[VIDEO]:' : '[IMAGE]:';
+      let finalContenu = `${prefix}/uploads/${req.file.filename}`;
+      
+      if (replyData && replyData !== 'null' && replyData !== '') {
+        let parsedReply;
+        try { parsedReply = JSON.parse(replyData); } catch(e) {}
+        if (parsedReply) {
+          const replyBase64 = Buffer.from(JSON.stringify(parsedReply)).toString('base64');
+          finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+        }
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, parseInt(idGroupe), finalContenu);
+      const msg = {
+        id_message: idMessage,
+        Pseudonyme_utilisateur: pseudonyme,
+        id_groupe: parseInt(idGroupe),
+        Contenu_message: finalContenu,
+        Date_message: new Date(),
+        reactions: []
+      };
+      io.to(`group_${idGroupe}`).emit('receive_message', msg);
+      res.json({ success: true, message: msg });
+    } catch (dbErr) {
+      console.error('Upload Error:', dbErr);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+});
+
+app.post('/api/upload-group-photo', (req, res) => {
+  upload.single('photo')(req, res, async function (err) {
+    if (err) {
+      console.error('Multer Error:', err);
+      return res.status(500).json({ error: 'Upload failed: ' + err.message });
+    }
+    try {
+      const { idGroupe } = req.body;
+      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+      const cheminPhoto = `/uploads/${req.file.filename}`;
+      await bdd.modifierPhotoGroupe(parseInt(idGroupe), cheminPhoto);
+      
+      io.to(`group_${idGroupe}`).emit('group_photo_changed', { idGroupe: parseInt(idGroupe), photo: cheminPhoto });
+      res.json({ success: true, photo: cheminPhoto });
+    } catch (dbErr) {
+      console.error('Group Photo Upload Error:', dbErr);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+});
+
+// Le front-end est servi par Apache (443/80).
 // Ce serveur n'expose que l'API et Socket.io.
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     message: 'API Messagerie SAE502 en cours d execution',
-    endpoints: [
-      'GET  /api/conversations/:pseudonyme',
-      'GET  /api/messages/:idGroupe',
-      'GET  /api/utilisateurs',
-      'POST /api/dm',
-      'POST /api/groupe',
-      'DELETE /api/conversations/:idGroupe',
-    ],
-    socketio: 'WebSocket /socket.io',
   });
 });
 
@@ -108,7 +180,7 @@ app.get('/api/conversations/:pseudonyme', async (req, res) => {
     if (!user) return res.json([]);
 
     const groupes = await db.all(
-      `SELECT g.id_groupe AS id, g.nom_groupe AS name 
+      `SELECT g.id_groupe AS id, g.nom_groupe AS name, g.photo_groupe
        FROM Groupe g
        JOIN Appartient_Groupe ag ON g.id_groupe = ag.id_groupe
        WHERE ag.id_utilisateur = ?`,
@@ -129,6 +201,7 @@ app.get('/api/conversations/:pseudonyme', async (req, res) => {
         return {
           id: g.id,
           name: g.name,
+          photo_groupe: g.photo_groupe,
           type: members.length === 2 ? 'DM' : 'GROUPE',
           members: members,
           lastMessage: lastMsg ? lastMsg.contenu_message : 'Discussion démarrée',
@@ -153,6 +226,27 @@ app.get('/api/utilisateurs', async (req, res) => {
   }
 });
 
+app.get('/api/message-history/:idMessage', async (req, res) => {
+  try {
+    const { idMessage } = req.params;
+    const history = await bdd.obtenirHistoriqueMessage(idMessage);
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/groupe/:idGroupe/details', async (req, res) => {
+  try {
+    const { idGroupe } = req.params;
+    const details = await bdd.obtenirDetailsGroupe(idGroupe);
+    if (!details) return res.status(404).json({ error: "Groupe introuvable" });
+    res.json(details);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/conversations/:idGroupe', async (req, res) => {
   try {
     const { idGroupe } = req.params;
@@ -171,16 +265,33 @@ io.on('connection', (socket) => {
     socket.join(`group_${idGroupe}`);
   });
 
+  socket.on('typing', (data) => {
+    const { idGroupe, pseudonyme } = data;
+    socket.to(`group_${idGroupe}`).emit('typing', { pseudonyme, idGroupe });
+  });
+
+  socket.on('stop_typing', (data) => {
+    const { idGroupe, pseudonyme } = data;
+    socket.to(`group_${idGroupe}`).emit('stop_typing', { pseudonyme, idGroupe });
+  });
+
   socket.on('send_message', async (data) => {
     try {
-      const { pseudonyme, idGroupe, contenu } = data;
-      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+      const { pseudonyme, idGroupe, contenu, replyData } = data;
+      
+      let finalContenu = contenu;
+      if (replyData) {
+        const replyBase64 = Buffer.from(JSON.stringify(replyData)).toString('base64');
+        finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, finalContenu);
 
       const msg = {
         id_message: idMessage,
         Pseudonyme_utilisateur: pseudonyme,
         id_groupe: idGroupe,
-        Contenu_message: contenu,
+        Contenu_message: finalContenu,
         Date_message: new Date(),
         reactions: []
       };
@@ -191,23 +302,61 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('send_image', async (data) => {
+  socket.on('send_media', async (data) => {
     try {
-      const { pseudonyme, idGroupe, imageBase64, extension } = data;
+      const { pseudonyme, idGroupe, mediaBase64, extension, mediaType, replyData } = data;
       const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
       const filepath = path.join(__dirname, 'uploads', filename);
       
-      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+      const base64Data = mediaBase64.replace(/^data:(image|video)\/\w+;base64,/, "");
       fs.writeFileSync(filepath, base64Data, 'base64');
       
-      const contenu = `[IMAGE]:/uploads/${filename}`;
-      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, contenu);
+      let prefix = mediaType === 'video' ? '[VIDEO]:' : '[IMAGE]:';
+      let finalContenu = `${prefix}/uploads/${filename}`;
+      if (replyData) {
+        const replyBase64 = Buffer.from(JSON.stringify(replyData)).toString('base64');
+        finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, finalContenu);
 
       const msg = {
         id_message: idMessage,
         Pseudonyme_utilisateur: pseudonyme,
         id_groupe: idGroupe,
-        Contenu_message: contenu,
+        Contenu_message: finalContenu,
+        Date_message: new Date(),
+        reactions: []
+      };
+
+      io.to(`group_${idGroupe}`).emit('receive_message', msg);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  socket.on('send_audio', async (data) => {
+    try {
+      const { pseudonyme, idGroupe, audioBase64, extension, replyData } = data;
+      const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
+      const filepath = path.join(__dirname, 'uploads', filename);
+      
+      const base64Data = audioBase64.replace(/^data:audio\/\w+(?:;\w+=\w+)?;base64,/, "");
+      fs.writeFileSync(filepath, base64Data, 'base64');
+      
+      let finalContenu = `[AUDIO]:/uploads/${filename}`;
+      if (replyData) {
+        const replyBase64 = Buffer.from(JSON.stringify(replyData)).toString('base64');
+        finalContenu = `[REPLY:${replyBase64}]${finalContenu}`;
+      }
+
+      const idMessage = await bdd.ajouterMessage(pseudonyme, idGroupe, finalContenu);
+
+      const msg = {
+        id_message: idMessage,
+        Pseudonyme_utilisateur: pseudonyme,
+        id_groupe: idGroupe,
+        Contenu_message: finalContenu,
         Date_message: new Date(),
         reactions: []
       };
@@ -223,6 +372,38 @@ io.on('connection', (socket) => {
       const { idMessage, pseudonyme, emoji, idGroupe } = data;
       const action = await bdd.ajouterReaction(idMessage, pseudonyme, emoji);
       io.to(`group_${idGroupe}`).emit('receive_reaction', { idMessage, pseudonyme, emoji, action });
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  socket.on('delete_message', async (data) => {
+    try {
+      const { idMessage, pseudonyme, idGroupe } = data;
+      await bdd.supprimerMessage(idMessage, pseudonyme);
+      io.to(`group_${idGroupe}`).emit('message_deleted', { idMessage });
+    } catch (err) {
+      socket.emit('message_error', { message: err.message });
+      console.error(err);
+    }
+  });
+
+  socket.on('edit_message', async (data) => {
+    try {
+      const { idMessage, pseudonyme, nouveauContenu, idGroupe } = data;
+      await bdd.modifierMessage(idMessage, pseudonyme, nouveauContenu);
+      io.to(`group_${idGroupe}`).emit('message_edited', { idMessage, nouveauContenu });
+    } catch (err) {
+      socket.emit('message_error', { message: err.message });
+      console.error(err);
+    }
+  });
+
+  socket.on('change_group_name', async (data) => {
+    try {
+      const { idGroupe, nouveauNom } = data;
+      await bdd.modifierNomGroupe(idGroupe, nouveauNom);
+      io.to(`group_${idGroupe}`).emit('group_name_changed', { idGroupe, nouveauNom });
     } catch (err) {
       console.error(err);
     }

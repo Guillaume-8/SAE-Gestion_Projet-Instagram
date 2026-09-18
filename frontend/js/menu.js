@@ -4,6 +4,7 @@
  */
 
 import { logoutUser } from './api.js';
+import { initNotifications } from './notification.js';
 
 // ============================================================
 //  MODE SOMBRE / CLAIR
@@ -54,8 +55,12 @@ function updateThemeLabel() {
  * Bascule l'affichage du menu dropdown.
  */
 function toggleMenu() {
-  const dropdown = document.getElementById('menu-dropdown');
+  let dropdown = document.getElementById('menu-dropdown');
   const btn = document.getElementById('btn-hamburger');
+  if (!dropdown) {
+    buildMenu();
+    dropdown = document.getElementById('menu-dropdown');
+  }
   if (!dropdown) return;
 
   const isOpen = dropdown.classList.contains('menu-open');
@@ -64,7 +69,7 @@ function toggleMenu() {
     closeMenu();
   } else {
     dropdown.classList.add('menu-open');
-    btn.classList.add('hamburger-active');
+    if (btn) btn.classList.add('hamburger-active');
     updateThemeLabel();
   }
 }
@@ -242,6 +247,9 @@ function showToast(message, isError = false) {
 
 document.addEventListener('DOMContentLoaded', () => {
   buildMenu();
+
+  // Centre de notifications : pastille + écouteurs Socket.io
+  initNotifications();
 
   const btn = document.getElementById('btn-hamburger');
   if (btn) {

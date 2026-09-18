@@ -14,7 +14,7 @@ export function render() {
   return `
     <div class="login-page">
       <div class="login-card">
-        <h1 class="login-logo">InstaClone</h1>
+        <h1 class="login-logo">LifeInvader</h1>
         <p class="login-subtitle">SAÉ 5.02 — BUT R&T</p>
 
         <form id="auth-form" class="auth-form">

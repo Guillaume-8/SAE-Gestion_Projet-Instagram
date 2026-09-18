@@ -13,6 +13,7 @@ MariaDB **PhotoVideo** au front-end. Écoute sur le **port 3001**
 | POST    | `/api/auth/login`         | Connexion par pseudonyme **ou** email      | Non  |
 | GET     | `/api/users`              | Liste des pseudonymes                      | Non  |
 | GET     | `/api/users/search?q=`    | Recherche d'utilisateurs                   | Non  |
+| GET     | `/api/users/:pseudonyme`  | Profil public + publications d'un utilisateur | Non |
 | GET     | `/api/users/me`           | Profil complet + stats + publications      | Oui  |
 | PUT     | `/api/users/me`           | Mise à jour du profil                       | Oui  |
 | GET     | `/api/posts`              | Fil d'actualité (état like si connecté)    | Non  |

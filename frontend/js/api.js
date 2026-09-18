@@ -18,6 +18,7 @@ import {
   MOCK_TRENDING_POSTS,
   MOCK_HASHTAGS,
   MOCK_SAVED_POSTS,
+  MOCK_ACTIVITY,
   makeAvatar,
 } from './mock-data.js';
 
@@ -970,6 +971,218 @@ export async function searchAll(query) {
   }
 
   return {users, hashtags, posts};
+}
+
+// ============================================================
+//  AMIS & PROFILS PUBLICS
+// ============================================================
+
+/**
+ * Récupère la liste des pseudonymes des utilisateurs.
+ * @return {Promise<Array<string>>} Pseudonymes.
+ */
+export async function getUsers() {
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch('/users');
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec du chargement des utilisateurs :', error);
+      }
+    }
+  }
+
+  // --- Repli mock : auteurs des publications ---
+  const authors = [...new Set(MOCK_POSTS.map((p) => p.author))];
+  return Promise.resolve(authors);
+}
+
+/**
+ * Récupère la liste d'amis (abonnements) de l'utilisateur.
+ * @return {Promise<Array<string>>} Pseudonymes suivis.
+ */
+export async function getFriendsList() {
+  return getUsers();
+}
+
+/**
+ * Récupère le profil public d'un utilisateur (ses publications,
+ * statistiques…). Permet la consultation des profils d'autrui via
+ * #/profile?user=pseudonyme.
+ * @param {string} username Pseudonyme consulté.
+ * @return {Promise<Object>} Profil au format front.
+ */
+export async function getUserProfile(username) {
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = await apiFetch(
+        `/users/${encodeURIComponent(username)}`,
+      );
+      if (response.ok) {
+        const user = await response.json();
+        return {
+          ...user,
+          avatar: user.avatar || makeAvatar(user.username || 'user'),
+          posts: (user.posts || []).map((p) => ({...p})),
+        };
+      }
+      // 404 : utilisateur inconnu côté base → repli mock.
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error('Échec de récupération du profil utilisateur :', error);
+      }
+    }
+  }
+
+  // --- Repli mock : reconstruit le profil depuis les données simulées ---
+  const authoredPosts = [...MOCK_POSTS, ...MOCK_TRENDING_POSTS].filter(
+    (post) => post.author === username,
+  );
+  // Un même post peut figurer à la fois dans le fil et dans les tendances.
+  const posts = authoredPosts.filter(
+    (post, index) => authoredPosts.findIndex((item) => item.id === post.id) === index,
+  );
+  const conversation = MOCK_CONVERSATIONS.find((conv) => conv.name === username);
+  const hasCommented = MOCK_POSTS.some((post) =>
+    post.comments.some((comment) => comment.author === username),
+  );
+
+  if (posts.length === 0 && !conversation && !hasCommented) {
+    throw new Error('Utilisateur introuvable');
+  }
+
+  const postWithAvatar = posts.find((post) => post.avatar);
+  const avatar =
+    (postWithAvatar && postWithAvatar.avatar) ||
+    (conversation && conversation.avatar) ||
+    makeAvatar(username);
+
+  return Promise.resolve(
+    structuredClone({
+      username,
+      name: '',
+      avatar,
+      bio: '',
+      postsCount: posts.length,
+      followersCount: 0,
+      followingCount: 0,
+      posts,
+    }),
+  );
+}
+
+/**
+ * Récupère les publications où l'utilisateur est identifié (@pseudo).
+ * @param {string} username Pseudonyme recherché.
+ * @return {Promise<Array<Object>>} Publications concernées.
+ */
+export async function getTaggedPosts(username) {
+  const mention = new RegExp(`(^|\\s)@${username}(?=\\s|$|[.,!?])`, 'i');
+  return Promise.resolve(
+    structuredClone(MOCK_POSTS.filter((post) => mention.test(post.caption || ''))),
+  );
+}
+
+/**
+ * Enregistre ou retire une publication des favoris.
+ * @param {number} postId Identifiant de la publication.
+ * @param {boolean} saved État souhaité.
+ * @return {Promise<Object>} Nouvel état.
+ */
+export async function toggleSavedPost(postId, saved) {
+  const post = MOCK_POSTS.find((item) => item.id === postId);
+  const savedIndex = MOCK_SAVED_POSTS.findIndex((item) => item.id === postId);
+
+  if (saved && savedIndex === -1) {
+    const source = post || currentUser.posts.find((item) => item.id === postId);
+    if (!source) throw new Error('Publication introuvable');
+    MOCK_SAVED_POSTS.push(structuredClone(source));
+  } else if (!saved && savedIndex !== -1) {
+    MOCK_SAVED_POSTS.splice(savedIndex, 1);
+  }
+
+  if (post) post.saved = saved;
+  return Promise.resolve({saved});
+}
+
+// ============================================================
+//  SUPPORT & COMPTE
+// ============================================================
+
+/**
+ * Signale un problème technique.
+ * @param {Object} data {subject, description}.
+ * @return {Promise<Object>} Résultat avec identifiant de ticket.
+ */
+export async function reportIssue({subject, description}) {
+  if (!subject || !description) {
+    throw new Error('Veuillez remplir tous les champs');
+  }
+  const ticketId = `PB-${Date.now().toString().slice(-6)}`;
+  console.info(`[MOCK] Signalement "${subject}" enregistré (${ticketId}) : ${description}`);
+  return Promise.resolve({success: true, ticketId});
+}
+
+/**
+ * Contacte le support.
+ * @param {Object} data {subject, message}.
+ * @return {Promise<Object>} Résultat.
+ */
+export async function contactSupport({subject, message}) {
+  if (!subject || !message) {
+    throw new Error('Veuillez remplir tous les champs');
+  }
+  console.info(`[MOCK] Message support "${subject}" : ${message}`);
+  return Promise.resolve({success: true});
+}
+
+/**
+ * Envoie une suggestion d'amélioration.
+ * @param {string} message Contenu de la suggestion.
+ * @return {Promise<Object>} Résultat.
+ */
+export async function sendSuggestion(message) {
+  if (!message) {
+    throw new Error('Veuillez écrire votre suggestion');
+  }
+  console.info(`[MOCK] Suggestion reçue : ${message}`);
+  return Promise.resolve({success: true});
+}
+
+/**
+ * Récupère l'historique d'activité du compte.
+ * @return {Promise<Array<Object>>} Activités récentes.
+ */
+export async function getAccountActivity() {
+  return Promise.resolve(structuredClone(MOCK_ACTIVITY));
+}
+
+/**
+ * Bascule le compte en mode restreint (ou actif).
+ * @param {boolean} restricted État souhaité.
+ * @return {Promise<Object>} Résultat.
+ */
+export async function setAccountRestricted(restricted) {
+  currentUser.accountStatus = restricted ? 'restricted' : 'active';
+  return Promise.resolve({success: true, user: structuredClone(currentUser)});
+}
+
+/**
+ * Désactive le compte de l'utilisateur connecté.
+ * @return {Promise<Object>} Résultat.
+ */
+export async function deactivateAccount() {
+  currentUser.accountStatus = 'deactivated';
+  return Promise.resolve({success: true});
 }
 
 // ============================================================
