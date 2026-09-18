@@ -361,6 +361,10 @@ export const MOCK_USER = {
   id: 1,
   username: 'eren_rt',
   name: 'Eren',
+  gender: 'unspecified',
+  showGender: false,
+  // Un modérateur voit aussi les publications signalées des autres utilisateurs.
+  isModerator: false,
   avatar: makeAvatar('eren_rt'),
   bio: 'Responsable Front-End | BUT R&T 3ème année | SAÉ 5.02',
   postsCount: EREN_POSTS.length,
@@ -368,6 +372,13 @@ export const MOCK_USER = {
   followingCount: 28,
   posts: EREN_POSTS.map(({id, mediaUrl, isVideo}) => ({id, mediaUrl, isVideo})),
 };
+
+/**
+ * Signalements en attente de décision d'un modérateur. Deux origines :
+ * `automatic: true` pour la détection d'images (nudité, doigt d'honneur),
+ * `automatic: false` pour un signalement fait par un utilisateur.
+ */
+export const MOCK_REPORTS = [];
 
 export const MOCK_CONVERSATIONS = [
   {

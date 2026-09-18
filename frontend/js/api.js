@@ -10,6 +10,7 @@ import {
   MOCK_TRENDING_POSTS,
   MOCK_HASHTAGS,
   MOCK_SAVED_POSTS,
+  MOCK_REPORTS,
 } from './mock-data.js';
 
 const USE_MOCK = true;
@@ -17,6 +18,46 @@ const API_BASE_URL = '/api';
 
 // Variable globale pour stocker l'utilisateur actuellement connecté
 let currentUser = structuredClone(MOCK_USER);
+
+/**
+ * Indique si une publication signalée peut être montrée à l'utilisateur courant.
+ *
+ * Une publication signalée (automatiquement par l'analyse d'image, ou par un
+ * utilisateur) reste visible pour son auteur et pour les modérateurs, mais
+ * disparaît pour tous les autres tant qu'un modérateur ne l'a pas approuvée.
+ *
+ * @param {Object} post Publication à filtrer.
+ * @return {boolean} true si la publication peut être affichée.
+ */
+function isVisibleToCurrentUser(post) {
+  if (post.moderationStatus !== 'pending' && post.moderationStatus !== 'rejected') {
+    return true;
+  }
+  return currentUser.isModerator === true || post.author === currentUser.username;
+}
+
+/**
+ * Enregistre un signalement et masque la publication en attendant un modérateur.
+ *
+ * @param {Object} post Publication concernée.
+ * @param {string} reason Motif affiché au modérateur.
+ * @param {Object=} details Informations complémentaires (zones détectées…).
+ * @return {Object} Le signalement créé.
+ */
+function addReport(post, reason, details = {}) {
+  post.moderationStatus = 'pending';
+  const report = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    postId: post.id,
+    postAuthor: post.author,
+    reason,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    ...details,
+  };
+  MOCK_REPORTS.push(report);
+  return report;
+}
 
 // ============================================================
 //  FIL D'ACTUALITÉ
@@ -28,7 +69,14 @@ let currentUser = structuredClone(MOCK_USER);
  */
 export async function getFeedPosts() {
   if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_POSTS));
+    return Promise.resolve(
+      structuredClone(
+        MOCK_POSTS.filter(isVisibleToCurrentUser).map((post) => ({
+          ...post,
+          saved: MOCK_SAVED_POSTS.some((savedPost) => savedPost.id === post.id),
+        })),
+      ),
+    );
   }
   try {
     const response = await fetch(`${API_BASE_URL}/posts`);
@@ -46,7 +94,12 @@ export async function getFeedPosts() {
  */
 export async function getSavedPosts() {
   if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_SAVED_POSTS));
+    return Promise.resolve(
+      structuredClone(
+        MOCK_SAVED_POSTS.filter(isVisibleToCurrentUser)
+          .map((post) => ({...post, saved: true})),
+      ),
+    );
   }
   try {
     const response = await fetch(`${API_BASE_URL}/users/me/saved`);
@@ -59,12 +112,82 @@ export async function getSavedPosts() {
 }
 
 /**
+ * Récupère les publications qui mentionnent l'utilisateur connecté.
+ * @param {string} username Nom d'utilisateur à rechercher.
+ * @return {Promise<Array<Object>>} Publications mentionnant l'utilisateur.
+ */
+export async function getTaggedPosts(username) {
+  if (USE_MOCK) {
+    const mention = new RegExp(`(^|\\s)@${username}(?=\\s|$|[.,!?])`, 'i');
+    return Promise.resolve(
+      structuredClone(
+        MOCK_POSTS.filter(
+          (post) => mention.test(post.caption || '') && isVisibleToCurrentUser(post),
+        ),
+      ),
+    );
+  }
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/users/${encodeURIComponent(username)}/tagged`,
+    );
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de récupération des publications identifiées :', error);
+    return [];
+  }
+}
+
+/**
+ * Enregistre ou retire une publication des publications enregistrées.
+ * @param {number} postId Identifiant de la publication.
+ * @param {boolean} saved État souhaité.
+ * @return {Promise<Object>} Nouvel état d'enregistrement.
+ */
+export async function toggleSavedPost(postId, saved) {
+  if (USE_MOCK) {
+    const post = MOCK_POSTS.find((item) => item.id === postId);
+    const savedIndex = MOCK_SAVED_POSTS.findIndex((item) => item.id === postId);
+
+    if (saved && savedIndex === -1) {
+      const source = post || currentUser.posts.find((item) => item.id === postId);
+      if (!source) throw new Error('Publication introuvable');
+      MOCK_SAVED_POSTS.push(structuredClone(source));
+    } else if (!saved && savedIndex !== -1) {
+      MOCK_SAVED_POSTS.splice(savedIndex, 1);
+    }
+
+    if (post) post.saved = saved;
+    return Promise.resolve({saved});
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/posts/${postId}/saved`, {
+      method: saved ? 'POST' : 'DELETE',
+    });
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Échec de l'enregistrement de la publication :", error);
+    throw error;
+  }
+}
+
+/**
  * Crée une nouvelle publication.
+ *
+ * Si l'analyse d'image a repéré quelque chose (voir js/moderation.js), la
+ * publication est créée quand même mais signalée automatiquement : elle n'est
+ * alors visible que par son auteur et les modérateurs (voir addReport).
+ *
  * @param {Object} postData Données de la publication.
+ * @param {Array<Object>=} postData.moderationDetections Zones repérées à
+ *     l'analyse ; une liste non vide déclenche le signalement automatique.
  * @return {Promise<Object>} La publication créée.
  */
 export async function createPost(postData) {
   if (USE_MOCK) {
+    const detections = postData.moderationDetections || [];
     const newPost = {
       id: Date.now(),
       author: MOCK_USER.username,
@@ -80,6 +203,12 @@ export async function createPost(postData) {
       comments: [],
       createdAt: "À l'instant",
     };
+    if (detections.length > 0) {
+      addReport(newPost, 'Détection automatique à la publication', {
+        automatic: true,
+        labels: detections.map((zone) => zone.label),
+      });
+    }
     MOCK_POSTS.unshift(newPost);
     return Promise.resolve(newPost);
   }
@@ -88,6 +217,12 @@ export async function createPost(postData) {
     formData.append('media', postData.mediaFile);
     formData.append('caption', postData.caption);
     formData.append('visibility', postData.visibility);
+    // Le serveur doit refaire l'analyse de son côté : ce champ n'est qu'une
+    // indication, un client modifié pourrait l'omettre.
+    formData.append(
+      'moderationLabels',
+      JSON.stringify((postData.moderationDetections || []).map((z) => z.label)),
+    );
     const response = await fetch(`${API_BASE_URL}/posts`, {
       method: 'POST',
       body: formData,
@@ -216,7 +351,13 @@ export async function sharePost(postId) {
  */
 export async function reportPost(postId, reason) {
   if (USE_MOCK) {
-    console.info(`[MOCK] Publication ${postId} signalée : ${reason}`);
+    const post = MOCK_POSTS.find((p) => p.id === postId);
+    if (!post) throw new Error('Publication introuvable');
+    const report = addReport(post, reason, {
+      automatic: false,
+      reportedBy: currentUser.username,
+    });
+    console.info('[MOCK] Signalement enregistré :', report);
     return Promise.resolve({success: true});
   }
   try {
@@ -265,7 +406,7 @@ export async function addComment(postId, text) {
     if (!post) throw new Error('Publication introuvable');
     const newComment = {
       id: Date.now(),
-      author: 'moi',
+      author: currentUser.username,
       text: text,
       createdAt: "À l'instant",
     };
@@ -380,6 +521,58 @@ export async function getCurrentUser() {
 }
 
 /**
+ * Récupère le profil public d'un utilisateur à partir de son nom d'utilisateur.
+ * @param {string} username Nom d'utilisateur.
+ * @return {Promise<Object>} Données du profil.
+ */
+export async function getUserProfile(username) {
+  if (USE_MOCK) {
+    const authoredPosts = [...MOCK_POSTS, ...MOCK_TRENDING_POSTS].filter(
+      (post) => post.author === username && isVisibleToCurrentUser(post),
+    );
+    // Un même post peut figurer à la fois dans le fil et dans les tendances.
+    const posts = authoredPosts.filter(
+      (post, index) => authoredPosts.findIndex((item) => item.id === post.id) === index,
+    );
+    const conversation = MOCK_CONVERSATIONS.find((conv) => conv.name === username);
+    const hasCommented = MOCK_POSTS.some((post) =>
+      post.comments.some((comment) => comment.author === username),
+    );
+
+    if (posts.length === 0 && !conversation && !hasCommented) {
+      throw new Error('Utilisateur introuvable');
+    }
+
+    const postWithAvatar = posts.find((post) => post.avatar);
+    const avatar =
+      (postWithAvatar && postWithAvatar.avatar) ||
+      (conversation && conversation.avatar) ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
+
+    return Promise.resolve(
+      structuredClone({
+        username,
+        name: '',
+        avatar,
+        bio: '',
+        postsCount: posts.length,
+        followersCount: 0,
+        followingCount: 0,
+        posts,
+      }),
+    );
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(username)}`);
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Échec de récupération du profil utilisateur :', error);
+    throw error;
+  }
+}
+
+/**
  * Récupère un post spécifique par son ID (données fraîches).
  * @param {number} postId Identifiant de la publication.
  * @return {Promise<Object>} Les données fraîches du post.
@@ -387,8 +580,16 @@ export async function getCurrentUser() {
 export async function getPostById(postId) {
   if (USE_MOCK) {
     const post = MOCK_POSTS.find((p) => p.id === postId);
-    if (!post) throw new Error('Publication introuvable');
-    return Promise.resolve(structuredClone(post));
+    // Une publication signalée n'existe pas pour les autres utilisateurs.
+    if (!post || !isVisibleToCurrentUser(post)) {
+      throw new Error('Publication introuvable');
+    }
+    return Promise.resolve(
+      structuredClone({
+        ...post,
+        saved: MOCK_SAVED_POSTS.some((savedPost) => savedPost.id === postId),
+      }),
+    );
   }
   try {
     const response = await fetch(`${API_BASE_URL}/posts/${postId}`);
@@ -446,6 +647,8 @@ export async function republishPost(postId) {
  * @param {Object} profileData Données à mettre à jour.
  * @param {string} profileData.username Nom d'utilisateur.
  * @param {string=} profileData.name Nom complet.
+ * @param {string=} profileData.gender Genre ('unspecified', 'female', 'male' ou 'other').
+ * @param {boolean=} profileData.showGender Afficher le genre sur le profil.
  * @param {string=} profileData.bio Biographie.
  * @param {string} profileData.avatar URL ou data URL de la photo.
  * @return {Promise<Object>} Utilisateur mis à jour.
@@ -458,6 +661,8 @@ export async function updateProfile(profileData) {
     currentUser.username = profileData.username;
     currentUser.avatar = profileData.avatar;
     if (profileData.name !== undefined) currentUser.name = profileData.name;
+    if (profileData.gender !== undefined) currentUser.gender = profileData.gender;
+    if (profileData.showGender !== undefined) currentUser.showGender = profileData.showGender;
     if (profileData.bio !== undefined) currentUser.bio = profileData.bio;
     return Promise.resolve({
       success: true,
@@ -488,7 +693,9 @@ export async function updateProfile(profileData) {
  */
 export async function getTrendingPosts() {
   if (USE_MOCK) {
-    return Promise.resolve(structuredClone(MOCK_TRENDING_POSTS));
+    return Promise.resolve(
+      structuredClone(MOCK_TRENDING_POSTS.filter(isVisibleToCurrentUser)),
+    );
   }
   try {
     const response = await fetch(`${API_BASE_URL}/posts/trending`);

@@ -58,7 +58,8 @@ function updateActiveNav(currentRoute) {
  * @param {string} hash Hash de l'URL.
  */
 async function navigate(hash) {
-  const route = ROUTES[hash] || ROUTES[DEFAULT_ROUTE];
+  const routeHash = hash.split('?')[0];
+  const route = ROUTES[routeHash] || ROUTES[DEFAULT_ROUTE];
   const appView = document.getElementById('app-view');
   const header = document.getElementById('app-header');
 

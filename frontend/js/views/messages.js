@@ -6,6 +6,7 @@
  */
 
 import { getConversations, sendMessage } from '../api.js';
+import { moderateImageFile, preloadModeration } from '../moderation.js';
 
 let currentConversationId = null;
 let conversationsData = [];
@@ -34,6 +35,23 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = String(text);
   return div.innerHTML;
+}
+
+/**
+ * Affiche une notification toast.
+ * @param {string} message Message à afficher.
+ * @param {boolean} isError Indique s'il s'agit d'une alerte.
+ */
+function showToast(message, isError = false) {
+  const notif = document.createElement('div');
+  notif.className = 'toast-notification' + (isError ? ' toast-error' : '');
+  notif.textContent = message;
+  document.body.appendChild(notif);
+  requestAnimationFrame(() => notif.classList.add('toast-visible'));
+  setTimeout(() => {
+    notif.classList.remove('toast-visible');
+    notif.addEventListener('transitionend', () => notif.remove(), {once: true});
+  }, 4000);
 }
 
 /**
@@ -706,32 +724,55 @@ export async function mount() {
     document.getElementById('emoji-picker').classList.remove('active');
   });
 
-  // Upload d'image
+  // Upload d'image : analysée et censurée avant l'envoi
   const imageUploadInput = document.getElementById('image-upload-input');
   const btnUploadImage = document.getElementById('btn-upload-image');
 
+  if (socketConnected) preloadModeration().catch(() => {});
+
   btnUploadImage.addEventListener('click', () => imageUploadInput.click());
-  imageUploadInput.addEventListener('change', (e) => {
+  imageUploadInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (!file || !currentConversationId) return;
+    imageUploadInput.value = '';
+    if (!file || !currentConversationId || !socketConnected || !socket) return;
 
     const currentUser = getCurrentPseudo();
+    const idGroupe = currentConversationId;
 
-    if (socketConnected && socket) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target.result;
-        const extension = '.' + file.name.split('.').pop();
-        socket.emit('send_image', {
-          pseudonyme: currentUser,
-          idGroupe: currentConversationId,
-          imageBase64: base64,
-          extension: extension,
-        });
-      };
-      reader.readAsDataURL(file);
+    btnUploadImage.disabled = true;
+    btnUploadImage.textContent = '⏳';
+    let result;
+    try {
+      result = await moderateImageFile(file);
+    } catch (error) {
+      showToast(error.message, true);
+      return;
+    } finally {
+      btnUploadImage.disabled = false;
+      btnUploadImage.textContent = '📎';
     }
-    imageUploadInput.value = '';
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      socket.emit('send_image', {
+        pseudonyme: currentUser,
+        idGroupe,
+        imageBase64: event.target.result,
+        extension: '.' + result.file.name.split('.').pop(),
+      });
+    };
+    reader.readAsDataURL(result.file);
+
+    if (result.detections.length > 0) {
+      showToast(
+        "⚠️ Votre contenu enfreint peut-être nos règles d'utilisation",
+        true,
+      );
+    }
+
+    if (!result.gestureDetectionAvailable) {
+      showToast('⚠ Gestes non vérifiés : WebGL indisponible', true);
+    }
   });
 
   // --- Emoji picker ---

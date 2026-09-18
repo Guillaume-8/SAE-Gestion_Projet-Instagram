@@ -11,6 +11,7 @@ import {
   republishPost,
   reportPost,
   addComment,
+  toggleSavedPost,
 } from './api.js';
 import { showPostModal } from './post-modal.js';
 import { attachMediaFallback } from './media-fallback.js';
@@ -27,6 +28,33 @@ function escapeHtml(text) {
 }
 
 /**
+ * Construit le lien vers le profil d'un utilisateur.
+ * @param {string} username Nom d'utilisateur.
+ * @return {string} Hash de la route du profil.
+ */
+function getProfileHref(username) {
+  return `#/profile?user=${encodeURIComponent(username)}`;
+}
+
+/**
+ * Génère une légende en transformant les hashtags et les mentions en liens.
+ * @param {string} caption Légende de la publication.
+ * @return {string} Légende sécurisée et interactive.
+ */
+function createCaptionHtml(caption) {
+  return escapeHtml(caption)
+    .replace(
+      /(^|\s)(#[\p{L}\p{N}_]+)/gu,
+      '$1<a class="caption-hashtag" href="#/explore?tag=$2">$2</a>',
+    )
+    .replace(
+      /(^|\s)@([\p{L}\p{N}_.]*[\p{L}\p{N}_])/gu,
+      (match, prefix, username) =>
+        `${prefix}<a class="caption-mention" href="${getProfileHref(username)}">@${username}</a>`,
+    );
+}
+
+/**
  * Génère le balisage HTML d'un commentaire.
  * @param {Object} comment Objet représentant le commentaire.
  * @return {string} Chaîne HTML du commentaire.
@@ -34,7 +62,7 @@ function escapeHtml(text) {
 function createCommentElement(comment) {
   return `
     <div class="comment-item" data-comment-id="${comment.id}">
-      <span class="comment-author">${escapeHtml(comment.author)}</span>
+      <a class="comment-author" href="${getProfileHref(comment.author)}">${escapeHtml(comment.author)}</a>
       <span class="comment-text">${escapeHtml(comment.text)}</span>
       <button class="btn-comment-like" title="J'aime ce commentaire">👍</button>
       <button class="btn-comment-dislike" title="Je n'aime pas ce commentaire">👎</button>
@@ -61,10 +89,10 @@ function createPostElement(post) {
   return `
     <article class="post-card" data-post-id="${post.id}">
       <header class="post-header">
-        <div class="post-user">
-          <img src="${post.avatar}" alt="${post.author}" class="avatar">
+        <a class="post-user" href="${getProfileHref(post.author)}" title="Voir le profil de ${escapeHtml(post.author)}">
+          <img src="${post.avatar}" alt="${escapeHtml(post.author)}" class="avatar">
           <span class="username">${escapeHtml(post.author)}</span>
-        </div>
+        </a>
         <button class="btn-report" title="Signaler la publication">Signaler</button>
       </header>
 
@@ -82,6 +110,7 @@ function createPostElement(post) {
           <span class="dislike-count">${post.dislikesCount}</span>
         </button>
         <button class="action-btn btn-republish" title="Republier">🔄 Republier</button>
+        <button class="action-btn btn-save${post.saved ? ' active' : ''}" title="Enregistrer">🔖</button>
         <button class="action-btn btn-comments-toggle" title="Commentaires">
           💬 <span class="comments-count">${commentsCount}</span>
         </button>
@@ -90,7 +119,7 @@ function createPostElement(post) {
       <div class="post-body">
         <div class="post-likes"><span class="like-count">${post.likesCount}</span> J'aime</div>
         <p class="post-caption">
-          <strong>${escapeHtml(post.author)}</strong> ${escapeHtml(post.caption)}
+          <a class="post-author-link" href="${getProfileHref(post.author)}"><strong>${escapeHtml(post.author)}</strong></a> ${createCaptionHtml(post.caption)}
         </p>
         <button class="btn-view-comments">
           Voir les ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}
@@ -181,6 +210,26 @@ async function handleRepublish(postId) {
   } catch (error) {
     console.error('Erreur lors de la republication :', error);
     showNotification('Échec de la republication', true);
+  }
+}
+
+/**
+ * Gère l'enregistrement ou le retrait d'une publication.
+ * @param {HTMLElement} article Élément <article> de la publication.
+ * @param {number} postId Identifiant de la publication.
+ */
+async function handleSave(article, postId) {
+  const saveBtn = article.querySelector('.btn-save');
+  const saved = !saveBtn.classList.contains('active');
+  saveBtn.disabled = true;
+
+  try {
+    await toggleSavedPost(postId, saved);
+    saveBtn.classList.toggle('active', saved);
+  } catch (error) {
+    console.error("Erreur lors de l'enregistrement :", error);
+  } finally {
+    saveBtn.disabled = false;
   }
 }
 
@@ -341,6 +390,11 @@ function setupEventDelegation(container) {
 
     if (event.target.closest('.btn-republish')) {
       handleRepublish(postId);
+      return;
+    }
+
+    if (event.target.closest('.btn-save')) {
+      handleSave(article, postId);
       return;
     }
 

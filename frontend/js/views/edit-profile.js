@@ -1,10 +1,14 @@
 /**
  * @fileoverview Vue d'édition du profil utilisateur.
- * Permet de modifier le nom d'utilisateur, le nom complet, la bio
+ * Permet de modifier le nom d'utilisateur, le nom complet, le genre, la bio
  * et la photo de profil (via URL ou fichier local).
  */
 
 import { getCurrentUser, updateProfile } from '../api.js';
+import { moderateImageFile } from '../moderation.js';
+
+// Ignore le résultat d'une analyse si un autre fichier a été choisi entre-temps.
+let avatarSelectionCounter = 0;
 
 /**
  * Rend le squelette HTML de la vue Edit Profile.
@@ -25,6 +29,20 @@ export function render() {
           <div class="form-group">
             <label for="input-name">Nom complet</label>
             <input type="text" id="input-name" placeholder="Votre nom et prénom">
+          </div>
+
+          <div class="form-group">
+            <label for="input-gender">Genre</label>
+            <select id="input-gender">
+              <option value="unspecified">Je préfère ne pas le préciser</option>
+              <option value="female">Femme</option>
+              <option value="male">Homme</option>
+              <option value="other">Autre</option>
+            </select>
+            <label class="form-checkbox" for="input-show-gender">
+              <input type="checkbox" id="input-show-gender">
+              Afficher mon genre sur mon profil
+            </label>
           </div>
 
           <div class="form-group">
@@ -73,12 +91,23 @@ async function loadUserData() {
     const user = await getCurrentUser();
     document.getElementById('input-username').value = user.username;
     document.getElementById('input-name').value = user.name || '';
+    document.getElementById('input-gender').value = user.gender || 'unspecified';
+    document.getElementById('input-show-gender').checked = Boolean(user.showGender);
+    updateShowGenderState();
     document.getElementById('input-bio').value = user.bio || '';
     document.getElementById('input-avatar').value = user.avatar;
     document.getElementById('avatar-preview').src = user.avatar;
   } catch (error) {
     console.error('Erreur de chargement du profil:', error);
   }
+}
+
+/**
+ * Désactive l'option d'affichage du genre lorsqu'aucun genre n'est précisé.
+ */
+function updateShowGenderState() {
+  const gender = document.getElementById('input-gender').value;
+  document.getElementById('input-show-gender').disabled = gender === 'unspecified';
 }
 
 /**
@@ -109,8 +138,9 @@ function handleAvatarFileSelect() {
   const fileInput = document.getElementById('input-avatar-file');
   const fileNameSpan = document.getElementById('avatar-file-name');
   const urlInput = document.getElementById('input-avatar');
+  const submitBtn = document.querySelector('#edit-profile-form button[type="submit"]');
 
-  fileInput.addEventListener('change', (e) => {
+  fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -119,6 +149,23 @@ function handleAvatarFileSelect() {
       fileInput.value = '';
       return;
     }
+
+    const selection = ++avatarSelectionCounter;
+    fileNameSpan.textContent = "🔍 Analyse de l'image...";
+    submitBtn.disabled = true;
+    let result;
+    try {
+      result = await moderateImageFile(file);
+    } catch (error) {
+      if (selection !== avatarSelectionCounter) return;
+      fileNameSpan.textContent = '';
+      fileInput.value = '';
+      alert(error.message);
+      return;
+    } finally {
+      if (selection === avatarSelectionCounter) submitBtn.disabled = false;
+    }
+    if (selection !== avatarSelectionCounter) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -129,9 +176,13 @@ function handleAvatarFileSelect() {
       const preview = document.getElementById('avatar-preview');
       preview.src = dataUrl;
       // Affiche le nom du fichier choisi
-      fileNameSpan.textContent = '📄 ' + file.name;
+      fileNameSpan.textContent = '📄 ' + file.name +
+        (result.detections.length > 0
+          ? " — ⚠️ enfreint peut-être nos règles d'utilisation"
+          : '') +
+        (result.gestureDetectionAvailable ? '' : ' — ⚠ gestes non vérifiés');
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(result.file);
   });
 
   document.getElementById('btn-avatar-file').addEventListener('click', () => {
@@ -148,6 +199,9 @@ async function handleEditSubmit(event) {
 
   const username = document.getElementById('input-username').value.trim();
   const name = document.getElementById('input-name').value.trim();
+  const gender = document.getElementById('input-gender').value;
+  const showGender =
+    gender !== 'unspecified' && document.getElementById('input-show-gender').checked;
   const bio = document.getElementById('input-bio').value.trim();
   const avatar = document.getElementById('input-avatar').value.trim();
   const errorEl = document.getElementById('edit-error');
@@ -165,7 +219,7 @@ async function handleEditSubmit(event) {
       throw new Error("La photo de profil est obligatoire (URL ou fichier)");
     }
 
-    await updateProfile({username, name, bio, avatar});
+    await updateProfile({username, name, gender, showGender, bio, avatar});
 
     // Redirection vers le profil
     window.location.hash = '#/profile';
@@ -184,6 +238,7 @@ async function handleEditSubmit(event) {
 export async function mount() {
   await loadUserData();
 
+  document.getElementById('input-gender').addEventListener('change', updateShowGenderState);
   document.getElementById('input-avatar').addEventListener('input', updateAvatarPreview);
   handleAvatarFileSelect();
   document.getElementById('edit-profile-form').addEventListener('submit', handleEditSubmit);

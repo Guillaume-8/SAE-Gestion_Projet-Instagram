@@ -1,0 +1,10 @@
+# Fins de ligne uniformes (LF) pour tout le monde, quel que soit l'OS.
+# Sans ça, un fichier édité sous Windows (CRLF) apparaît comme "100% différent"
+# lors d'une fusion avec un fichier édité sous Linux/Mac (LF) — c'est ce qui
+# est arrivé ici et qui a rendu la fusion de ce commit particulièrement dure.
+* text=auto eol=lf
+*.onnx binary
+*.wasm binary
+*.jpg binary
+*.png binary
+*.db binary

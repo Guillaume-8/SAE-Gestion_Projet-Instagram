@@ -3,10 +3,15 @@
  */
 
 import { createPost } from '../api.js';
+import { moderateImageFile, preloadModeration } from '../moderation.js';
 
 let selectedFile = null;
 let selectedMediaType = null;
+// Zones repérées par l'analyse, transmises à la création de la publication.
+let selectedDetections = [];
 let mediaPreviewUrl = null;
+// Invalide une analyse en cours si l'utilisateur change de fichier ou de vue.
+let selectionCounter = 0;
 
 /**
  * Rend le squelette HTML de la vue Publication.
@@ -90,6 +95,7 @@ export function render() {
             </div>
           </div>
 
+          <p class="field-hint" id="publish-moderation" hidden></p>
           <p class="publish-error" id="publish-error" hidden></p>
 
           <div class="publish-actions">
@@ -105,11 +111,13 @@ export function render() {
 }
 
 /**
- * Gère la sélection d'un fichier (input ou drag & drop).
+ * Gère la sélection d'un fichier (input ou drag & drop). Les images sont
+ * analysées, et censurées si besoin, avant de pouvoir être publiées.
  * @param {File} file Fichier sélectionné.
  */
-function handleFileSelect(file) {
+async function handleFileSelect(file) {
   const errorEl = document.getElementById('publish-error');
+  const statusEl = document.getElementById('publish-moderation');
   const publishBtn = document.getElementById('btn-publish');
   const placeholder = document.getElementById('upload-placeholder');
   const preview = document.getElementById('upload-preview');
@@ -130,13 +138,50 @@ function handleFileSelect(file) {
     return;
   }
 
-  selectedFile = file;
-  selectedMediaType = file.type.startsWith('video/') ? 'video' : 'image';
+  const selection = ++selectionCounter;
+  const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+  selectedFile = null;
+  publishBtn.disabled = true;
+
+  let mediaFile = file;
+  if (mediaType === 'image') {
+    statusEl.textContent = "🔍 Analyse de l'image en cours...";
+    statusEl.hidden = false;
+    try {
+      const result = await moderateImageFile(file);
+      if (selection !== selectionCounter) return;
+      mediaFile = result.file;
+      // Les zones repérées suivent jusqu'à la publication : elles déclenchent le
+      // signalement automatique côté API (voir createPost).
+      selectedDetections = result.detections;
+      // Sans WebGL, seule la nudité a pu être analysée : on le dit plutôt que de
+      // laisser croire à une vérification complète.
+      const reserve = result.gestureDetectionAvailable
+        ? ''
+        : ' (gestes non vérifiés : WebGL indisponible)';
+      statusEl.textContent = (result.detections.length > 0
+        ? '⚠️ Votre contenu enfreint peut-être nos règles d\'utilisation. ' +
+          'Vous pouvez le publier, mais il sera vérifié par un modérateur et ne ' +
+          'sera visible que par vous en attendant.'
+        : '✅ Image analysée : rien à signaler') + reserve;
+    } catch (error) {
+      if (selection !== selectionCounter) return;
+      resetMediaSelection();
+      errorEl.textContent = error.message;
+      errorEl.hidden = false;
+      return;
+    }
+  } else {
+    statusEl.hidden = true;
+  }
+
+  selectedFile = mediaFile;
+  selectedMediaType = mediaType;
 
   if (mediaPreviewUrl) {
     URL.revokeObjectURL(mediaPreviewUrl);
   }
-  mediaPreviewUrl = URL.createObjectURL(file);
+  mediaPreviewUrl = URL.createObjectURL(mediaFile);
 
   if (selectedMediaType === 'video') {
     preview.innerHTML = '<video controls src="' + mediaPreviewUrl + '"></video>';
@@ -154,8 +199,11 @@ function handleFileSelect(file) {
  * Réinitialise la sélection de média.
  */
 function resetMediaSelection() {
+  selectionCounter++;
   selectedFile = null;
   selectedMediaType = null;
+  selectedDetections = [];
+  document.getElementById('publish-moderation').hidden = true;
 
   if (mediaPreviewUrl) {
     URL.revokeObjectURL(mediaPreviewUrl);
@@ -216,15 +264,24 @@ async function handlePublishSubmit() {
   publishBtn.disabled = true;
   publishBtn.textContent = 'Publication...';
 
+  const signalee = selectedDetections.length > 0;
+
   try {
     await createPost({
       mediaFile: selectedFile,
       mediaType: selectedMediaType,
       caption: fullCaption,
       visibility: visibility,
+      moderationDetections: selectedDetections,
     });
 
-    showNotification('Publication créée avec succès !');
+    showNotification(
+      signalee
+        ? 'Publication envoyée pour vérification : elle n\'est visible que par ' +
+          'vous en attendant la décision d\'un modérateur.'
+        : 'Publication créée avec succès !',
+      signalee,
+    );
 
     document.getElementById('publish-form').reset();
     document.getElementById('char-count').textContent = '0';
@@ -252,6 +309,9 @@ export function mount() {
   const form = document.getElementById('publish-form');
   const caption = document.getElementById('publish-caption');
   const charCount = document.getElementById('char-count');
+
+  selectionCounter++;
+  preloadModeration().catch(() => {});
 
   uploadZone.addEventListener('click', (e) => {
     if (e.target.closest('#upload-preview')) return;

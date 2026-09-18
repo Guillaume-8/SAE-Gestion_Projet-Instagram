@@ -2,7 +2,7 @@
  * @fileoverview Modal pour afficher les détails d'une publication.
  */
 
-import { toggleLike, toggleDislike, sharePost, republishPost, reportPost, getPostById } from './api.js';
+import { toggleLike, toggleDislike, toggleSavedPost, sharePost, republishPost, reportPost, getPostById } from './api.js';
 import { attachMediaFallback } from './media-fallback.js';
 
 /**
@@ -14,6 +14,34 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = String(text);
   return div.innerHTML;
+}
+
+/**
+ * Construit le lien vers le profil d'un utilisateur.
+ * @param {string} username Nom d'utilisateur.
+ * @return {string} Hash de la route du profil.
+ */
+function getProfileHref(username) {
+  return `#/profile?user=${encodeURIComponent(username)}`;
+}
+
+/**
+ * Génère le HTML d'un commentaire du modal.
+ * @param {Object} comment Données du commentaire.
+ * @return {string} HTML du commentaire.
+ */
+function createModalCommentHtml(comment) {
+  return `
+    <div class="modal-comment" data-comment-id="${comment.id}">
+      <a class="comment-author" href="${getProfileHref(comment.author)}">${escapeHtml(comment.author)}</a>
+      <span class="comment-text">${escapeHtml(comment.text)}</span>
+      <div class="comment-actions">
+        <button class="btn-comment-like" data-comment-id="${comment.id}" title="J'aime">👍</button>
+        <button class="btn-comment-dislike" data-comment-id="${comment.id}" title="Je n'aime pas">👎</button>
+        <button class="btn-comment-report" data-comment-id="${comment.id}" title="Signaler">🚩</button>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -70,26 +98,21 @@ function renderModal(post) {
           
           <div class="post-modal-sidebar">
             <div class="post-modal-header">
-              <img src="${post.avatar || ''}" alt="${escapeHtml(post.author || '')}" class="modal-avatar">
-              <span class="modal-author">${escapeHtml(post.author || '')}</span>
+              ${post.author
+                ? `<a class="modal-user-link" href="${getProfileHref(post.author)}" title="Voir le profil de ${escapeHtml(post.author)}">
+                    <img src="${post.avatar || ''}" alt="${escapeHtml(post.author)}" class="modal-avatar">
+                    <span class="modal-author">${escapeHtml(post.author)}</span>
+                  </a>`
+                : ''
+              }
             </div>
-            
+
             <div class="post-modal-caption">
               <p>${escapeHtml(post.caption || '')}</p>
             </div>
-            
+
             <div class="post-modal-comments" id="post-modal-comments">
-              ${(post.comments || []).map(comment => `
-                <div class="modal-comment" data-comment-id="${comment.id}">
-                  <span class="comment-author">${escapeHtml(comment.author)}</span>
-                  <span class="comment-text">${escapeHtml(comment.text)}</span>
-                  <div class="comment-actions">
-                    <button class="btn-comment-like" data-comment-id="${comment.id}" title="J'aime">👍</button>
-                    <button class="btn-comment-dislike" data-comment-id="${comment.id}" title="Je n'aime pas">👎</button>
-                    <button class="btn-comment-report" data-comment-id="${comment.id}" title="Signaler">🚩</button>
-                  </div>
-                </div>
-              `).join('')}
+              ${(post.comments || []).map(createModalCommentHtml).join('')}
             </div>
             
             <div class="post-modal-actions">
@@ -98,6 +121,9 @@ function renderModal(post) {
               </button>
               <button class="btn-modal-dislike" data-post-id="${post.id}" title="Je n'aime pas">
                 👎 <span class="modal-dislike-count">${post.dislikesCount || 0}</span>
+              </button>
+              <button class="btn-modal-save${post.saved ? ' active' : ''}" data-post-id="${post.id}" title="Enregistrer">
+                🔖 Enregistrer
               </button>
               <button class="btn-modal-republish" data-post-id="${post.id}" title="Republier">
                 🔄 Republier
@@ -139,23 +165,15 @@ function renderModal(post) {
       // Mettre à jour les états des boutons like/dislike
       const likeBtn = document.querySelector('.btn-modal-like');
       const dislikeBtn = document.querySelector('.btn-modal-dislike');
+      const saveBtn = document.querySelector('.btn-modal-save');
       if (likeBtn) likeBtn.classList.toggle('active', post.liked);
       if (dislikeBtn) dislikeBtn.classList.toggle('active', post.disliked);
+      if (saveBtn) saveBtn.classList.toggle('active', post.saved);
       
       // Mettre à jour les commentaires
       const commentsContainer = document.getElementById('post-modal-comments');
       if (commentsContainer) {
-        commentsContainer.innerHTML = (post.comments || []).map(comment => `
-          <div class="modal-comment" data-comment-id="${comment.id}">
-            <span class="comment-author">${escapeHtml(comment.author)}</span>
-            <span class="comment-text">${escapeHtml(comment.text)}</span>
-            <div class="comment-actions">
-              <button class="btn-comment-like" data-comment-id="${comment.id}" title="J'aime">👍</button>
-              <button class="btn-comment-dislike" data-comment-id="${comment.id}" title="Je n'aime pas">👎</button>
-              <button class="btn-comment-report" data-comment-id="${comment.id}" title="Signaler">🚩</button>
-            </div>
-          </div>
-        `).join('');
+        commentsContainer.innerHTML = (post.comments || []).map(createModalCommentHtml).join('');
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du modal:', error);
@@ -175,11 +193,16 @@ function renderModal(post) {
   
   // Fermer au clavier (Escape)
   document.addEventListener('keydown', handleEscapeKey);
+
+  // Fermer lors d'un changement de page (ex. clic sur un profil) :
+  // le modal est attaché au <body> et survivrait sinon au changement de vue.
+  window.addEventListener('hashchange', closePostModal);
   
   // Event listeners pour les boutons d'actions
   document.getElementById('post-modal-content').addEventListener('click', async (e) => {
     const likeBtn = e.target.closest('.btn-modal-like');
     const dislikeBtn = e.target.closest('.btn-modal-dislike');
+    const saveBtn = e.target.closest('.btn-modal-save');
     const republishBtn = e.target.closest('.btn-modal-republish');
     const reportBtn = e.target.closest('.btn-modal-report');
     const commentLikeBtn = e.target.closest('.btn-comment-like');
@@ -206,6 +229,22 @@ function renderModal(post) {
       }
     }
     
+    if (saveBtn) {
+      try {
+        const saved = !saveBtn.classList.contains('active');
+        await toggleSavedPost(post.id, saved);
+        saveBtn.classList.toggle('active', saved);
+        post.saved = saved;
+        window.dispatchEvent(
+          new CustomEvent('saved-post-changed', {
+            detail: {postId: post.id, saved},
+          }),
+        );
+      } catch (error) {
+        console.error("Erreur lors de l'enregistrement :", error);
+      }
+    }
+
     if (republishBtn) {
       try {
         await republishPost(post.id);
@@ -271,8 +310,9 @@ export function closePostModal() {
   const modal = document.getElementById('post-modal-overlay');
   if (modal) {
     modal.remove();
-    // Nettoyer l'écouteur de clavier
+    // Nettoyer les écouteurs globaux
     document.removeEventListener('keydown', handleEscapeKey);
+    window.removeEventListener('hashchange', closePostModal);
   }
 }
 

@@ -12,4 +12,13 @@ certs/
 *.key
 *.xdb
 
+# Généré par Docusaurus (documentation/)
+documentation/.docusaurus/
+documentation/build/
+
+# Images envoyées dans la messagerie (contenu utilisateur, pas du code)
+backend-messagerie/uploads/
+
+# Base de données locale : contient des données de test par poste de travail,
+# pas versionnée (déjà exclue côté branche GitHub d'origine).
 backend-messagerie/database_lifeinvader.db
