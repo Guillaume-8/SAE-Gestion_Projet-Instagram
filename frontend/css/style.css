@@ -1452,6 +1452,8 @@ body {
   height: calc(100vh - 60px);
   border-left: 1px solid var(--border-color);
   border-right: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
 }
 
 .conversations-sidebar {
@@ -1629,7 +1631,8 @@ body {
   max-width: 65%;
   padding: 10px 16px;
   border-radius: 20px;
-  background: var(--bg-color);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   font-size: 0.9rem;
   word-wrap: break-word;
   color: var(--text-main);
@@ -3620,3 +3623,45 @@ input:disabled + .slider {
 #notification-toast.show { transform: translateX(0); }
 #toast-title { font-size: 13px; font-weight: 600; }
 #toast-body { font-size: 12px; color: #a8a8a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+
+/* ============ CORRECTIONS MESSAGERIE v2.1 ============ */
+
+/* Bulles bien visibles sur les deux thèmes */
+.message-container.mine .message-bubble {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+}
+.message-container.mine .message-bubble p { color: #fff; }
+.message-container.other .message-bubble {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+.message-container.mine .message-time span { color: #fff; }
+
+/* Réponses citées lisibles dans les deux types de bulles */
+.message-container.other .reply-quote {
+  background: var(--bg-color);
+  border-left: 4px solid var(--border-color);
+}
+.message-container.other .reply-quote strong { color: var(--text-main); }
+.message-container.other .reply-quote span { color: var(--text-secondary); }
+
+/* Pseudos cliquables → profil */
+.msg-sender { cursor: pointer; }
+.msg-sender:hover { text-decoration: underline; }
+.group-member-item { cursor: pointer; }
+
+/* Bannière mode hors-ligne (serveur de messagerie éteint) */
+#messenger-offline-banner {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: #ff9500;
+  color: #000;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 16px;
+  z-index: 500;
+  text-align: center;
+}

@@ -30,6 +30,9 @@ let recordTimerInterval = null;
 let recordSeconds = 0;
 let cancelRecording = false;
 let gifSearchTimeout = null;
+let handlersInstalled = false;
+let currentConvMembers = [];
+let currentConvOtherUser = null;
 
 const EMOJIS_PER_PAGE = 30;
 const allEmojis = [
@@ -148,17 +151,17 @@ export function render() {
       <span id="toast-body">...</span>
     </div>
 
-    <div id="history-modal" class="modal-overlay">
-      <div class="modal-content">
-        <div class="modal-header">
-          <span>Historique des modifications</span>
-          <span class="modal-close" id="history-modal-close">&times;</span>
-        </div>
-        <div class="modal-body" id="history-modal-body" style="max-height:350px;overflow-y:auto;color:white;font-size:13px;display:flex;flex-direction:column;gap:10px;"></div>
-      </div>
-    </div>
-
     <div class="messages-page">
+      <div id="history-modal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <span>Historique des modifications</span>
+            <span class="modal-close" id="history-modal-close">&times;</span>
+          </div>
+          <div class="modal-body" id="history-modal-body" style="max-height:350px;overflow-y:auto;color:white;font-size:13px;display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+      </div>
+
       <aside class="conversations-sidebar" id="conversations-sidebar">
         <div class="sidebar-header">
           <h2>Messages</h2>
@@ -498,6 +501,11 @@ async function openConversation(convId) {
   if (!conv) return;
 
   currentConversationId = convId;
+  currentConvMembers = Array.isArray(conv.members) ? conv.members : [];
+  const isDM = conv.type === 'DM' || currentConvMembers.length === 2;
+  currentConvOtherUser = isDM
+    ? (currentConvMembers.find((m) => m.toLowerCase() !== getCurrentPseudo().toLowerCase()) || null)
+    : null;
   const displayName = getConvDisplayName(conv);
   const avatarUrl = getConvAvatar(conv);
 
@@ -639,7 +647,7 @@ function appendMessage(idMessage, sender, text, dateString, reactions = [], isEd
     replyHtml +
     contentHtml +
     '<span class="message-time" style="display:flex; justify-content:space-between; gap:10px;">' +
-    '<span>' + escapeHtml(sender) + '</span>' +
+    '<span class="msg-sender" data-user="' + escapeHtml(sender) + '" title="Voir le profil">' + escapeHtml(sender) + '</span>' +
     '<span style="display:flex; gap:5px; align-items:center;">' +
     (isEdited ? '<span class="edited-badge" data-history="' + idMessage + '" title="Voir l\'historique">(Modifié)</span>' : '') +
     '<span>' + timeStr + '</span>' +
@@ -650,6 +658,16 @@ function appendMessage(idMessage, sender, text, dateString, reactions = [], isEd
 
   div.dataset.text = text || '';
   div.dataset.date = dateString || '';
+  div.title = "Appui long (clic maintenu) : r\u00e9pondre, modifier ou supprimer";
+
+  div.querySelectorAll('.msg-image').forEach((img) => {
+    img.onerror = () => {
+      const note = document.createElement('span');
+      note.innerText = '\u26a0\ufe0f M\u00e9dia indisponible';
+      note.style.cssText = 'font-size:11px; color:var(--text-secondary); font-style:italic;';
+      img.replaceWith(note);
+    };
+  });
 
   // Long-press (souris + tactile) → options du message
   const isTextMsg = !(parsedText.startsWith('[IMAGE]:') || parsedText.startsWith('[VIDEO]:') || parsedText.startsWith('[AUDIO]:'));
@@ -871,10 +889,17 @@ async function openGroupDetails() {
 
     document.getElementById('group-members-count').innerText = 'Membres (' + details.membres.length + ')';
     document.getElementById('group-members-list').innerHTML = details.membres.map((m) =>
-      '<div class="group-member-item">' +
+      '<div class=\"group-member-item\" data-user=\"' + escapeHtml(m) + '\" title=\"Voir le profil\">' +
       '<img src="https://ui-avatars.com/api/?name=' + encodeURIComponent(m) + '&background=random" alt="">' +
       '<span>' + escapeHtml(m) + '</span></div>',
     ).join('');
+
+    const memberItems = document.querySelectorAll('#group-members-list .group-member-item');
+    memberItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        window.location.hash = '#/profile?user=' + encodeURIComponent(item.dataset.user);
+      });
+    });
 
     switchMediaTab('imgvid');
 
@@ -989,6 +1014,8 @@ function sendGif(url) {
       replyData: replyingTo,
     });
     clearReply();
+  } else {
+    showToast('Serveur de messagerie non connect\u00e9.', 'error');
   }
 }
 
@@ -1159,12 +1186,29 @@ function openLightbox(src) {
  */
 export async function mount() {
   tryConnectSocket();
+
+  // Bannière d'avertissement si le serveur de messagerie est éteint
+  // (sans elle, l'envoi échoue silencieusement et c'est incompréhensible).
+  if (!socketConnected) {
+    const page = document.querySelector('.messages-page');
+    if (page) {
+      const banner = document.createElement('div');
+      banner.id = 'messenger-offline-banner';
+      banner.innerHTML = '\u26a0\ufe0f Serveur de messagerie non connect\u00e9 \u2014 les messages ne seront ni envoy\u00e9s ni re\u00e7us. Lancez <b>node index.js</b> dans <b>backend-messagerie</b> (et <b>npm install</b> si n\u00e9cessaire).';
+      page.prepend(banner);
+    }
+  }
+
   await chargerConversations();
 
   const byId = (id) => document.getElementById(id);
 
   // ---------- Écouteurs Socket.io (temps réel) ----------
+  // Installés une seule fois : la vue peut être remontée par le routeur
+  // et chaque socket.on() supplémentaire dupliquerait les messages.
 
+  if (!handlersInstalled) {
+  handlersInstalled = true;
   if (socketConnected && socket) {
     socket.on('typing', (data) => {
       if (data.idGroupe === currentConversationId) {
@@ -1333,13 +1377,14 @@ export async function mount() {
     });
   }
 
-  // Remise à zéro du compteur d'non-lus quand la page redevient visible
+  // Remise à zéro du compteur de non-lus quand la page redevient visible
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       unreadCount = 0;
       document.title = 'LifeInvader - BUT R&T';
     }
   });
+  } // fin garde handlersInstalled
 
   // Ouvrir la première conversation automatiquement
   if (conversationsData.length > 0) {
@@ -1351,7 +1396,13 @@ export async function mount() {
   byId('currentUserInput').addEventListener('change', chargerConversations);
 
   // En-tête de chat → détails du groupe
-  byId('chat-header').addEventListener('click', openGroupDetails);
+  byId('chat-header').addEventListener('click', () => {
+    if (currentConvOtherUser) {
+      window.location.hash = '#/profile?user=' + encodeURIComponent(currentConvOtherUser);
+    } else {
+      openGroupDetails();
+    }
+  });
   byId('group-details-close').addEventListener('click', closeGroupDetails);
   byId('group-photo-edit').addEventListener('click', () => byId('group-photo-input').click());
   byId('group-photo-input').addEventListener('change', (event) => {
@@ -1486,9 +1537,7 @@ export async function mount() {
     if (!file || !currentConversationId) return;
 
     const currentUser = getCurrentPseudo();
-    if (!currentUser) return;
-
-    if (!socketConnected) return;
+    if (!currentUser || !currentConversationId) return;
 
     const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
 
@@ -1668,6 +1717,12 @@ export async function mount() {
       } else {
         sendReaction(msgId, emoji);
       }
+      return;
+    }
+
+    const senderSpan = e.target.closest('.msg-sender');
+    if (senderSpan && senderSpan.dataset.user) {
+      window.location.hash = '#/profile?user=' + encodeURIComponent(senderSpan.dataset.user);
       return;
     }
 

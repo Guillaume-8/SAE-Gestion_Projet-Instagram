@@ -2,14 +2,12 @@
 node_modules/
 
 # Médias uploadés par les utilisateurs (ne pas versionner)
-backend-api/uploads/*
-!backend-api/uploads/.gitkeep
+backend-messagerie/uploads/*
+!backend-messagerie/uploads/.gitkeep
 
 # Divers
 *.log
 .DS_Store
 Thumbs.db
-
 certs/
 .env
-
