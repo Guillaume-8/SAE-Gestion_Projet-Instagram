@@ -1,12 +1,25 @@
 // @ts-check
+import {themes as prismThemes} from 'prism-react-renderer';
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'InstaClone',
-  tagline: 'Documentation technique — SAÉ 5.02 | BUT R&T 3ème année',
-  url: 'https://localhost',
+  title: 'LifeInvader — Documentation Front-End',
+  tagline: 'SAÉ 5.02 · BUT R&T · Clone Instagram en Node.js',
+  favicon: 'img/favicon.ico',
+
+  url: 'https://docs.lifeinvader.local',
   baseUrl: '/',
+
+  organizationName: 'SAE-Gestion_Projet-Instagram',
+  projectName: 'lifeinvader-front',
+
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
+
+  i18n: {
+    defaultLocale: 'fr',
+    locales: ['fr'],
+  },
 
   presets: [
     [
@@ -14,12 +27,12 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: undefined,
+          sidebarPath: './sidebars.js',
+          routeBasePath: '/',
         },
         blog: false,
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: './src/css/custom.css',
         },
       }),
     ],
@@ -29,88 +42,27 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'InstaClone',
-        logo: {
-          alt: 'InstaClone Logo',
-          src: 'img/logo.png',
-        },
+        title: 'LifeInvader · Front',
         items: [
+          {type: 'docSidebar', sidebarId: 'front', position: 'left', label: 'Documentation'},
           {
-            type: 'docSidebar',
-            sidebarId: 'installationSidebar',
-            position: 'left',
-            label: 'Installation',
-          },
-          {
-            type: 'docSidebar',
-            sidebarId: 'utilisateurSidebar',
-            position: 'left',
-            label: 'Guide utilisateur',
-          },
-          {
-            type: 'docSidebar',
-            sidebarId: 'techniqueSidebar',
-            position: 'left',
-            label: 'Documentation technique',
-          },
-          {
-            type: 'docSidebar',
-            sidebarId: 'gestionProjetSidebar',
-            position: 'left',
-            label: 'Gestion de projet',
+            href: 'https://github.com/Guillaume-8/SAE-Gestion_Projet-Instagram',
+            label: 'Dépôt GitHub',
+            position: 'right',
           },
         ],
       },
       footer: {
         style: 'dark',
-        links: [
-          {
-            title: 'Documentation',
-            items: [
-              {
-                label: 'Installation',
-                to: '/docs/installation/prerequis',
-              },
-              {
-                label: 'Guide utilisateur',
-                to: '/docs/utilisateur/introduction',
-              },
-              {
-                label: 'Documentation technique',
-                to: '/docs/technique/architecture',
-              },
-            ],
-          },
-          {
-            title: 'Projet',
-            items: [
-              {
-                label: 'GitHub',
-                href: 'https://github.com/Guillaume-8/SAE-Gestion_Projet-Instagram',
-              },
-              {
-                label: 'Gestion de projet',
-                to: '/docs/gestion-projet/scrum',
-              },
-            ],
-          },
-          {
-            title: 'Équipe',
-            items: [
-              {
-                label: 'BUT R&T — IUT',
-                to: '/',
-              },
-              {
-                label: 'SAÉ 5.02',
-                to: '/',
-              },
-            ],
-          },
-        ],
-        copyright: `Copyright © ${new Date().getFullYear()} InstaClone — SAÉ 5.02 BUT R&T.`,
+        copyright: `SAÉ 5.02 — Documentation front-end LifeInvader (${new Date().getFullYear()}).`,
       },
+      prism: {
+        theme: prismThemes.github,
+        darkTheme: prismThemes.dracula,
+        additionalLanguages: ['bash', 'json', 'apacheconf', 'sql'],
+      },
+      tableOfContents: {minHeadingLevel: 2, maxHeadingLevel: 4},
     }),
 };
 
-module.exports = config;
+export default config;

@@ -1,70 +1,67 @@
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
-  // --- Barre latérale : Installation ---
-  installationSidebar: [
+  front: [
+    'intro',
     {
       type: 'category',
-      label: 'Installation',
+      label: 'Démarrage',
+      collapsed: false,
       items: [
-        'installation/prerequis',
-        'installation/front-end',
-        'installation/back-end',
-        'installation/database',
-        'installation/docker',
-        'installation/ssl',
+        'demarrage/prerequis',
+        'demarrage/lancement',
+        'demarrage/apache',
       ],
     },
-  ],
-
-  // --- Barre latérale : Guide utilisateur ---
-  utilisateurSidebar: [
     {
       type: 'category',
-      label: 'Guide utilisateur',
+      label: 'Architecture',
+      collapsed: false,
       items: [
-        'utilisateur/introduction',
-        'utilisateur/inscription-connexion',
-        'utilisateur/publications',
-        'utilisateur/interactions',
-        'utilisateur/messagerie',
-        'utilisateur/filtres',
-        'utilisateur/signalement',
+        'architecture/vue-ensemble',
+        'architecture/spa-router',
+        'architecture/arborescence',
+        'architecture/conventions',
       ],
     },
-  ],
-
-  // --- Barre latérale : Documentation technique ---
-  techniqueSidebar: [
     {
       type: 'category',
-      label: 'Documentation technique',
+      label: 'Développement',
+      collapsed: false,
       items: [
-        'technique/architecture',
-        'technique/front-end',
-        'technique/apache-config',
-        'technique/back-end',
-        'technique/api-reference',
-        'technique/database-schema',
-        'technique/websockets',
-        'technique/tests',
-        'technique/securite',
+        'developpement/api-client',
+        'developpement/vues',
+        'developpement/composants',
+        'developpement/styles-themes',
+        'developpement/messagerie',
       ],
     },
-  ],
-
-  // --- Barre latérale : Gestion de projet ---
-  gestionProjetSidebar: [
     {
       type: 'category',
-      label: 'Gestion de projet',
+      label: 'Référence',
       items: [
-        'gestion-projet/scrum',
-        'gestion-projet/trello',
-        'gestion-projet/git',
-        'gestion-projet/ia-usage',
+        'reference/endpoints-api',
+        'reference/endpoints-messagerie',
+        'reference/events-socket',
+        'reference/stockage-local',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Exploitation',
+      items: [
+        'exploitation/tests',
+        'exploitation/depannage',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Historique',
+      items: [
+        'historique/versions',
+        'historique/decisions',
       ],
     },
   ],
 };
 
-module.exports = sidebars;
+export default sidebars;

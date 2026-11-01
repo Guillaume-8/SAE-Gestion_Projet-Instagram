@@ -11,3 +11,4 @@ backend-messagerie/uploads/*
 Thumbs.db
 certs/
 .env
+documentation/.docusaurus
