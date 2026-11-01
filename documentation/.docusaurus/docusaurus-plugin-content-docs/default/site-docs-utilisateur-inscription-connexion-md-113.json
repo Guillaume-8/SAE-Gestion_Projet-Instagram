@@ -13,14 +13,5 @@
   "sidebarPosition": 2,
   "frontMatter": {
     "sidebar_position": 2
-  },
-  "sidebar": "utilisateurSidebar",
-  "previous": {
-    "title": "Introduction",
-    "permalink": "/docs/utilisateur/introduction"
-  },
-  "next": {
-    "title": "Publications",
-    "permalink": "/docs/utilisateur/publications"
   }
 }

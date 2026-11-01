@@ -13,14 +13,5 @@
   "sidebarPosition": 4,
   "frontMatter": {
     "sidebar_position": 4
-  },
-  "sidebar": "installationSidebar",
-  "previous": {
-    "title": "Installation du back-end",
-    "permalink": "/docs/installation/back-end"
-  },
-  "next": {
-    "title": "Lancement avec Docker",
-    "permalink": "/docs/installation/docker"
   }
 }

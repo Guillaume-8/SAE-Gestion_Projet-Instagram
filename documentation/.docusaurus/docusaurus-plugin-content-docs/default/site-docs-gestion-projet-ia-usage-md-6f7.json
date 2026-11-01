@@ -13,10 +13,5 @@
   "sidebarPosition": 4,
   "frontMatter": {
     "sidebar_position": 4
-  },
-  "sidebar": "gestionProjetSidebar",
-  "previous": {
-    "title": "Convention Git",
-    "permalink": "/docs/gestion-projet/git"
   }
 }

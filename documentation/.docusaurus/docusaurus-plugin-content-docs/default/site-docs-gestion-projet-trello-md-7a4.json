@@ -13,14 +13,5 @@
   "sidebarPosition": 2,
   "frontMatter": {
     "sidebar_position": 2
-  },
-  "sidebar": "gestionProjetSidebar",
-  "previous": {
-    "title": "Organisation SCRUM",
-    "permalink": "/docs/gestion-projet/scrum"
-  },
-  "next": {
-    "title": "Convention Git",
-    "permalink": "/docs/gestion-projet/git"
   }
 }

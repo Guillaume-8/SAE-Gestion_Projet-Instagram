@@ -42,122 +42,210 @@
       "plugin": "plugin---docusaurus-debugb-38-ad3"
     }
   },
-  "/docs-1d4": {
+  "/docs-523": {
     "__comp": "__comp---theme-docs-root-5-e-9-0b6",
     "__context": {
-      "plugin": "plugin---docsaba-d7c"
+      "plugin": "plugin---aba-d70"
     }
   },
-  "/docs-d0e": {
+  "/docs-143": {
     "__comp": "__comp---theme-doc-version-roota-7-b-5de",
     "__props": "__props---docs-005-788"
   },
-  "/docs-b52": {
+  "/docs-664": {
     "__comp": "__comp---theme-doc-roota-94-67a"
   },
-  "/docs/gestion-projet/git-4e7": {
+  "/docs/architecture/arborescence-fc5": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-gestion-projet-gitca-4-236"
+    "content": "content---architecture-arborescenceafc-8a1"
   },
-  "/docs/gestion-projet/ia-usage-934": {
+  "/docs/architecture/conventions-b3d": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-gestion-projet-ia-usage-6-f-7-643"
+    "content": "content---architecture-conventions-483-1c5"
   },
-  "/docs/gestion-projet/scrum-f68": {
+  "/docs/architecture/spa-router-b16": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-gestion-projet-scrum-145-5da"
+    "content": "content---architecture-spa-routerdba-882"
   },
-  "/docs/gestion-projet/trello-764": {
+  "/docs/architecture/vue-ensemble-d05": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-gestion-projet-trello-7-a-4-668"
+    "content": "content---architecture-vue-ensemble-1-d-2-dd0"
   },
-  "/docs/installation/back-end-e9e": {
+  "/docs/database_user/documentation-db-ad1": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-installation-back-end-4-df-cb6"
+    "content": "content---database-user-documentation-db-6-a-1-a8e"
   },
-  "/docs/installation/database-d34": {
+  "/docs/demarrage/apache-2dc": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-installation-database-66-f-569"
+    "content": "content---demarrage-apache-67-b-270"
   },
-  "/docs/installation/docker-d4c": {
+  "/docs/demarrage/lancement-527": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-installation-dockerac-0-932"
+    "content": "content---demarrage-lancement-557-bf0"
   },
-  "/docs/installation/front-end-3fd": {
+  "/docs/demarrage/prerequis-35a": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-installation-front-end-406-340"
+    "content": "content---demarrage-prerequis-1-cb-f70"
   },
-  "/docs/installation/prerequis-293": {
+  "/docs/developpement/api-client-bca": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-installation-prerequis-620-de3"
+    "content": "content---developpement-api-clientf-32-7eb"
   },
-  "/docs/installation/ssl-580": {
+  "/docs/developpement/composants-a1e": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-installation-sslabf-37a"
+    "content": "content---developpement-composants-8-a-8-1cc"
   },
-  "/docs/technique/apache-config-fad": {
+  "/docs/developpement/messagerie-3b0": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-apache-configfd-7-beb"
+    "content": "content---developpement-messagerie-4-d-1-5f1"
   },
-  "/docs/technique/api-reference-4c7": {
+  "/docs/developpement/styles-themes-887": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-api-reference-2-bc-e59"
+    "content": "content---developpement-styles-themes-1-e-2-687"
   },
-  "/docs/technique/architecture-c61": {
+  "/docs/developpement/vues-237": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-architecture-659-3a5"
+    "content": "content---developpement-vues-540-e8f"
   },
-  "/docs/technique/back-end-fbc": {
+  "/docs/exploitation/depannage-eeb": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-back-endb-6-d-e9d"
+    "content": "content---exploitation-depannage-125-019"
   },
-  "/docs/technique/database-schema-b21": {
+  "/docs/exploitation/tests-603": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-database-schema-782-c50"
+    "content": "content---exploitation-tests-264-177"
   },
-  "/docs/technique/front-end-4a6": {
+  "/docs/gestion-projet/git-16d": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-front-end-4-c-6-647"
+    "content": "content---gestion-projet-gitca-4-88f"
   },
-  "/docs/technique/securite-112": {
+  "/docs/gestion-projet/ia-usage-cb4": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-securite-68-f-1e7"
+    "content": "content---gestion-projet-ia-usage-6-f-7-83b"
   },
-  "/docs/technique/tests-649": {
+  "/docs/gestion-projet/scrum-c7a": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-testse-61-3cc"
+    "content": "content---gestion-projet-scrum-145-041"
   },
-  "/docs/technique/websockets-7be": {
+  "/docs/gestion-projet/trello-5cd": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-technique-websockets-93-f-34b"
+    "content": "content---gestion-projet-trello-7-a-4-90c"
   },
-  "/docs/utilisateur/filtres-3fb": {
+  "/docs/historique/decisions-db1": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-filtres-255-443"
+    "content": "content---historique-decisionsffa-e85"
   },
-  "/docs/utilisateur/inscription-connexion-3f6": {
+  "/docs/historique/versions-e76": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-inscription-connexion-113-711"
+    "content": "content---historique-versions-880-c00"
   },
-  "/docs/utilisateur/interactions-eb6": {
+  "/docs/installation/back-end-e7a": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-interactionsa-0-a-3b9"
+    "content": "content---installation-back-end-4-df-915"
   },
-  "/docs/utilisateur/introduction-5aa": {
+  "/docs/installation/database-788": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-introduction-826-7f6"
+    "content": "content---installation-database-66-f-db8"
   },
-  "/docs/utilisateur/messagerie-518": {
+  "/docs/installation/docker-b50": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-messageriedd-1-8f9"
+    "content": "content---installation-dockerac-0-85f"
   },
-  "/docs/utilisateur/publications-721": {
+  "/docs/installation/front-end-fc3": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-publicationsfba-463"
+    "content": "content---installation-front-end-406-84e"
   },
-  "/docs/utilisateur/signalement-970": {
+  "/docs/installation/prerequis-6bc": {
     "__comp": "__comp---theme-doc-item-178-a40",
-    "content": "content---docs-utilisateur-signalement-8-e-9-ed2"
+    "content": "content---installation-prerequis-620-659"
+  },
+  "/docs/installation/ssl-071": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---installation-sslabf-2bb"
+  },
+  "/docs/intro-853": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---intro-0-e-3-7b8"
+  },
+  "/docs/reference/endpoints-api-d71": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---reference-endpoints-apif-3-f-5bc"
+  },
+  "/docs/reference/endpoints-messagerie-173": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---reference-endpoints-messagerie-161-f20"
+  },
+  "/docs/reference/events-socket-a5c": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---reference-events-socket-075-c5b"
+  },
+  "/docs/reference/stockage-local-62b": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---reference-stockage-locald-96-7c2"
+  },
+  "/docs/technique/apache-config-e09": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-apache-configfd-7-114"
+  },
+  "/docs/technique/api-reference-eb1": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-api-reference-2-bc-c27"
+  },
+  "/docs/technique/architecture-84d": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-architecture-659-a58"
+  },
+  "/docs/technique/back-end-528": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-back-endb-6-d-8a6"
+  },
+  "/docs/technique/database-schema-b71": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-database-schema-782-d72"
+  },
+  "/docs/technique/front-end-736": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-front-end-4-c-6-b52"
+  },
+  "/docs/technique/securite-cb9": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-securite-68-f-a05"
+  },
+  "/docs/technique/tests-831": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-testse-61-d5c"
+  },
+  "/docs/technique/websockets-5f9": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---technique-websockets-93-f-1ec"
+  },
+  "/docs/utilisateur/filtres-f1c": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-filtres-255-cab"
+  },
+  "/docs/utilisateur/inscription-connexion-c5e": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-inscription-connexion-113-e75"
+  },
+  "/docs/utilisateur/interactions-4d0": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-interactionsa-0-a-879"
+  },
+  "/docs/utilisateur/introduction-3df": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-introduction-826-881"
+  },
+  "/docs/utilisateur/messagerie-1ac": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-messageriedd-1-888"
+  },
+  "/docs/utilisateur/publications-c9c": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-publicationsfba-56a"
+  },
+  "/docs/utilisateur/signalement-322": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---utilisateur-signalement-8-e-9-204"
   },
   "/-2e1": {
     "__comp": "__comp---site-src-pages-index-jsc-4-f-f99",

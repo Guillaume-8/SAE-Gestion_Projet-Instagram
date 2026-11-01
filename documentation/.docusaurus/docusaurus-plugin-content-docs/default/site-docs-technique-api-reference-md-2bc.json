@@ -13,14 +13,5 @@
   "sidebarPosition": 5,
   "frontMatter": {
     "sidebar_position": 5
-  },
-  "sidebar": "techniqueSidebar",
-  "previous": {
-    "title": "Documentation technique — Back-end",
-    "permalink": "/docs/technique/back-end"
-  },
-  "next": {
-    "title": "Schéma des bases de données",
-    "permalink": "/docs/technique/database-schema"
   }
 }

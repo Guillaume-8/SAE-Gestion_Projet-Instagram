@@ -13,10 +13,5 @@
   "sidebarPosition": 6,
   "frontMatter": {
     "sidebar_position": 6
-  },
-  "sidebar": "installationSidebar",
-  "previous": {
-    "title": "Lancement avec Docker",
-    "permalink": "/docs/installation/docker"
   }
 }

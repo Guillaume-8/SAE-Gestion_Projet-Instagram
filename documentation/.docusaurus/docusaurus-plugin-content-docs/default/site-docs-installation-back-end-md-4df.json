@@ -13,14 +13,5 @@
   "sidebarPosition": 3,
   "frontMatter": {
     "sidebar_position": 3
-  },
-  "sidebar": "installationSidebar",
-  "previous": {
-    "title": "Installation du front-end",
-    "permalink": "/docs/installation/front-end"
-  },
-  "next": {
-    "title": "Configuration des bases de données",
-    "permalink": "/docs/installation/database"
   }
 }

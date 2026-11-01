@@ -13,14 +13,5 @@
   "sidebarPosition": 7,
   "frontMatter": {
     "sidebar_position": 7
-  },
-  "sidebar": "techniqueSidebar",
-  "previous": {
-    "title": "Schéma des bases de données",
-    "permalink": "/docs/technique/database-schema"
-  },
-  "next": {
-    "title": "Procédures de tests",
-    "permalink": "/docs/technique/tests"
   }
 }

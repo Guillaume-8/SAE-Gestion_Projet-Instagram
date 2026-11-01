@@ -13,14 +13,5 @@
   "sidebarPosition": 6,
   "frontMatter": {
     "sidebar_position": 6
-  },
-  "sidebar": "techniqueSidebar",
-  "previous": {
-    "title": "Référence de l'API REST",
-    "permalink": "/docs/technique/api-reference"
-  },
-  "next": {
-    "title": "WebSockets (messagerie temps réel)",
-    "permalink": "/docs/technique/websockets"
   }
 }

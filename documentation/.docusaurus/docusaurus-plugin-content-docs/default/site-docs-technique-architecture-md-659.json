@@ -13,10 +13,5 @@
   "sidebarPosition": 1,
   "frontMatter": {
     "sidebar_position": 1
-  },
-  "sidebar": "techniqueSidebar",
-  "next": {
-    "title": "Documentation technique — Front-end",
-    "permalink": "/docs/technique/front-end"
   }
 }

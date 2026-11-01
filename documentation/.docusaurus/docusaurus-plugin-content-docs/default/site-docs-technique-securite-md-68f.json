@@ -13,10 +13,5 @@
   "sidebarPosition": 9,
   "frontMatter": {
     "sidebar_position": 9
-  },
-  "sidebar": "techniqueSidebar",
-  "previous": {
-    "title": "Procédures de tests",
-    "permalink": "/docs/technique/tests"
   }
 }

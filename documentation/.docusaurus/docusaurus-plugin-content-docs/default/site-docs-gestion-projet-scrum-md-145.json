@@ -13,10 +13,5 @@
   "sidebarPosition": 1,
   "frontMatter": {
     "sidebar_position": 1
-  },
-  "sidebar": "gestionProjetSidebar",
-  "next": {
-    "title": "Organisation Trello",
-    "permalink": "/docs/gestion-projet/trello"
   }
 }

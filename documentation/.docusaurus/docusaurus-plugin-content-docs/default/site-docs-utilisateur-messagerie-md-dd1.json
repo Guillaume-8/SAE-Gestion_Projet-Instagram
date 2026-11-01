@@ -13,14 +13,5 @@
   "sidebarPosition": 5,
   "frontMatter": {
     "sidebar_position": 5
-  },
-  "sidebar": "utilisateurSidebar",
-  "previous": {
-    "title": "Interactions",
-    "permalink": "/docs/utilisateur/interactions"
-  },
-  "next": {
-    "title": "Filtres et retouche photo",
-    "permalink": "/docs/utilisateur/filtres"
   }
 }

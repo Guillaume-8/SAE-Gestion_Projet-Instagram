@@ -13,14 +13,5 @@
   "sidebarPosition": 2,
   "frontMatter": {
     "sidebar_position": 2
-  },
-  "sidebar": "installationSidebar",
-  "previous": {
-    "title": "Prérequis",
-    "permalink": "/docs/installation/prerequis"
-  },
-  "next": {
-    "title": "Installation du back-end",
-    "permalink": "/docs/installation/back-end"
   }
 }

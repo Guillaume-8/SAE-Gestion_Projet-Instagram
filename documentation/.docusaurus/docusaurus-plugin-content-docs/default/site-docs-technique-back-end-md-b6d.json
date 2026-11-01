@@ -13,14 +13,5 @@
   "sidebarPosition": 4,
   "frontMatter": {
     "sidebar_position": 4
-  },
-  "sidebar": "techniqueSidebar",
-  "previous": {
-    "title": "Configuration Apache",
-    "permalink": "/docs/technique/apache-config"
-  },
-  "next": {
-    "title": "Référence de l'API REST",
-    "permalink": "/docs/technique/api-reference"
   }
 }

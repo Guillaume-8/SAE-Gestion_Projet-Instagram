@@ -13,14 +13,5 @@
   "sidebarPosition": 4,
   "frontMatter": {
     "sidebar_position": 4
-  },
-  "sidebar": "utilisateurSidebar",
-  "previous": {
-    "title": "Publications",
-    "permalink": "/docs/utilisateur/publications"
-  },
-  "next": {
-    "title": "Messagerie",
-    "permalink": "/docs/utilisateur/messagerie"
   }
 }

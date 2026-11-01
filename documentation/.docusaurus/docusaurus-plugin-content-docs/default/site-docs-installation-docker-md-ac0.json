@@ -13,14 +13,5 @@
   "sidebarPosition": 5,
   "frontMatter": {
     "sidebar_position": 5
-  },
-  "sidebar": "installationSidebar",
-  "previous": {
-    "title": "Configuration des bases de données",
-    "permalink": "/docs/installation/database"
-  },
-  "next": {
-    "title": "Configuration SSL / Certificats",
-    "permalink": "/docs/installation/ssl"
   }
 }

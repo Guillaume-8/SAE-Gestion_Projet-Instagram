@@ -13,14 +13,5 @@
   "sidebarPosition": 6,
   "frontMatter": {
     "sidebar_position": 6
-  },
-  "sidebar": "utilisateurSidebar",
-  "previous": {
-    "title": "Messagerie",
-    "permalink": "/docs/utilisateur/messagerie"
-  },
-  "next": {
-    "title": "Signalement et modération",
-    "permalink": "/docs/utilisateur/signalement"
   }
 }

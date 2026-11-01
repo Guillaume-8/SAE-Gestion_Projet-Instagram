@@ -8,166 +8,203 @@
           "label": "Next",
           "isLast": true,
           "path": "/docs",
-          "mainDocId": "installation/prerequis",
+          "mainDocId": "architecture/arborescence",
           "docs": [
             {
+              "id": "architecture/arborescence",
+              "path": "/docs/architecture/arborescence"
+            },
+            {
+              "id": "architecture/conventions",
+              "path": "/docs/architecture/conventions"
+            },
+            {
+              "id": "architecture/spa-router",
+              "path": "/docs/architecture/spa-router"
+            },
+            {
+              "id": "architecture/vue-ensemble",
+              "path": "/docs/architecture/vue-ensemble"
+            },
+            {
+              "id": "database_user/documentation-db",
+              "path": "/docs/database_user/documentation-db"
+            },
+            {
+              "id": "demarrage/apache",
+              "path": "/docs/demarrage/apache"
+            },
+            {
+              "id": "demarrage/lancement",
+              "path": "/docs/demarrage/lancement"
+            },
+            {
+              "id": "demarrage/prerequis",
+              "path": "/docs/demarrage/prerequis"
+            },
+            {
+              "id": "developpement/api-client",
+              "path": "/docs/developpement/api-client"
+            },
+            {
+              "id": "developpement/composants",
+              "path": "/docs/developpement/composants"
+            },
+            {
+              "id": "developpement/messagerie",
+              "path": "/docs/developpement/messagerie"
+            },
+            {
+              "id": "developpement/styles-themes",
+              "path": "/docs/developpement/styles-themes"
+            },
+            {
+              "id": "developpement/vues",
+              "path": "/docs/developpement/vues"
+            },
+            {
+              "id": "exploitation/depannage",
+              "path": "/docs/exploitation/depannage"
+            },
+            {
+              "id": "exploitation/tests",
+              "path": "/docs/exploitation/tests"
+            },
+            {
               "id": "gestion-projet/git",
-              "path": "/docs/gestion-projet/git",
-              "sidebar": "gestionProjetSidebar"
+              "path": "/docs/gestion-projet/git"
             },
             {
               "id": "gestion-projet/ia-usage",
-              "path": "/docs/gestion-projet/ia-usage",
-              "sidebar": "gestionProjetSidebar"
+              "path": "/docs/gestion-projet/ia-usage"
             },
             {
               "id": "gestion-projet/scrum",
-              "path": "/docs/gestion-projet/scrum",
-              "sidebar": "gestionProjetSidebar"
+              "path": "/docs/gestion-projet/scrum"
             },
             {
               "id": "gestion-projet/trello",
-              "path": "/docs/gestion-projet/trello",
-              "sidebar": "gestionProjetSidebar"
+              "path": "/docs/gestion-projet/trello"
+            },
+            {
+              "id": "historique/decisions",
+              "path": "/docs/historique/decisions"
+            },
+            {
+              "id": "historique/versions",
+              "path": "/docs/historique/versions"
             },
             {
               "id": "installation/back-end",
-              "path": "/docs/installation/back-end",
-              "sidebar": "installationSidebar"
+              "path": "/docs/installation/back-end"
             },
             {
               "id": "installation/database",
-              "path": "/docs/installation/database",
-              "sidebar": "installationSidebar"
+              "path": "/docs/installation/database"
             },
             {
               "id": "installation/docker",
-              "path": "/docs/installation/docker",
-              "sidebar": "installationSidebar"
+              "path": "/docs/installation/docker"
             },
             {
               "id": "installation/front-end",
-              "path": "/docs/installation/front-end",
-              "sidebar": "installationSidebar"
+              "path": "/docs/installation/front-end"
             },
             {
               "id": "installation/prerequis",
-              "path": "/docs/installation/prerequis",
-              "sidebar": "installationSidebar"
+              "path": "/docs/installation/prerequis"
             },
             {
               "id": "installation/ssl",
-              "path": "/docs/installation/ssl",
-              "sidebar": "installationSidebar"
+              "path": "/docs/installation/ssl"
+            },
+            {
+              "id": "intro",
+              "path": "/docs/intro"
+            },
+            {
+              "id": "reference/endpoints-api",
+              "path": "/docs/reference/endpoints-api"
+            },
+            {
+              "id": "reference/endpoints-messagerie",
+              "path": "/docs/reference/endpoints-messagerie"
+            },
+            {
+              "id": "reference/events-socket",
+              "path": "/docs/reference/events-socket"
+            },
+            {
+              "id": "reference/stockage-local",
+              "path": "/docs/reference/stockage-local"
             },
             {
               "id": "technique/apache-config",
-              "path": "/docs/technique/apache-config",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/apache-config"
             },
             {
               "id": "technique/api-reference",
-              "path": "/docs/technique/api-reference",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/api-reference"
             },
             {
               "id": "technique/architecture",
-              "path": "/docs/technique/architecture",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/architecture"
             },
             {
               "id": "technique/back-end",
-              "path": "/docs/technique/back-end",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/back-end"
             },
             {
               "id": "technique/database-schema",
-              "path": "/docs/technique/database-schema",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/database-schema"
             },
             {
               "id": "technique/front-end",
-              "path": "/docs/technique/front-end",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/front-end"
             },
             {
               "id": "technique/securite",
-              "path": "/docs/technique/securite",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/securite"
             },
             {
               "id": "technique/tests",
-              "path": "/docs/technique/tests",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/tests"
             },
             {
               "id": "technique/websockets",
-              "path": "/docs/technique/websockets",
-              "sidebar": "techniqueSidebar"
+              "path": "/docs/technique/websockets"
             },
             {
               "id": "utilisateur/filtres",
-              "path": "/docs/utilisateur/filtres",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/filtres"
             },
             {
               "id": "utilisateur/inscription-connexion",
-              "path": "/docs/utilisateur/inscription-connexion",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/inscription-connexion"
             },
             {
               "id": "utilisateur/interactions",
-              "path": "/docs/utilisateur/interactions",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/interactions"
             },
             {
               "id": "utilisateur/introduction",
-              "path": "/docs/utilisateur/introduction",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/introduction"
             },
             {
               "id": "utilisateur/messagerie",
-              "path": "/docs/utilisateur/messagerie",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/messagerie"
             },
             {
               "id": "utilisateur/publications",
-              "path": "/docs/utilisateur/publications",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/publications"
             },
             {
               "id": "utilisateur/signalement",
-              "path": "/docs/utilisateur/signalement",
-              "sidebar": "utilisateurSidebar"
+              "path": "/docs/utilisateur/signalement"
             }
           ],
           "draftIds": [],
-          "sidebars": {
-            "installationSidebar": {
-              "link": {
-                "path": "/docs/installation/prerequis",
-                "label": "installation/prerequis"
-              }
-            },
-            "utilisateurSidebar": {
-              "link": {
-                "path": "/docs/utilisateur/introduction",
-                "label": "utilisateur/introduction"
-              }
-            },
-            "techniqueSidebar": {
-              "link": {
-                "path": "/docs/technique/architecture",
-                "label": "technique/architecture"
-              }
-            },
-            "gestionProjetSidebar": {
-              "link": {
-                "path": "/docs/gestion-projet/scrum",
-                "label": "gestion-projet/scrum"
-              }
-            }
-          }
+          "sidebars": {}
         }
       ],
       "breadcrumbs": true
