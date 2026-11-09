@@ -37,6 +37,7 @@ import fs from 'fs';
 import {fileURLToPath} from 'url';
 import config from './config.js';
 import db from './db.js';
+import {extensionSure, nomFichierUnique} from './upload-utils.js';
 import {hashPassword, verifyPassword, signToken, verifyToken} from './auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -91,15 +92,30 @@ const upload = multer({
   storage: multer.diskStorage({
     destination: uploadsDir,
     filename: (req, file, cb) => {
-      const unique = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-      cb(null, unique + '_' + safe);
+      // Le nom d'origine n'est jamais conservé : UUID v4 + extension validée.
+      try {
+        const categorie = /^video\//.test(file.mimetype) ? 'video' : 'image';
+        cb(null, nomFichierUnique(file.originalname, file.mimetype, categorie));
+      } catch (err) {
+        cb(err);
+      }
     },
   }),
   limits: {fileSize: 20 * 1024 * 1024},
   fileFilter: (req, file, cb) => {
-    const ok = /^(image\/|video\/)/.test(file.mimetype);
-    cb(ok ? null : new Error('Type de fichier non autorisé'), ok);
+    const estMedia = /^(image\/|video\/)/.test(file.mimetype);
+    if (!estMedia) {
+      cb(new Error('Type de fichier non autorisé'));
+      return;
+    }
+    // Double contrôle : le MIME peut mentir, l'extension doit être autorisée.
+    try {
+      const categorie = /^video\//.test(file.mimetype) ? 'video' : 'image';
+      extensionSure(file.originalname, file.mimetype, categorie);
+      cb(null, true);
+    } catch (err) {
+      cb(err);
+    }
   },
 });
 

@@ -22,18 +22,31 @@ app.use(express.urlencoded({ limit: '200mb', extended: true }));
 app.use('/uploads', express.static(uploadsDir));
 
 const multer = require('multer');
+const {nomFichierUnique} = require('./upload-utils.js');
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir)
   },
   filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + '_' + Math.random().toString(36).substr(2, 9) + ext);
+    // Le nom d'origine n'est jamais conservé : UUID v4 + extension validée.
+    try {
+      const categorie = /^video\//.test(file.mimetype) ? 'video' : 'image';
+      cb(null, nomFichierUnique(file.originalname, file.mimetype, categorie));
+    } catch (err) {
+      cb(err);
+    }
   }
 });
-const upload = multer({ 
+const upload = multer({
   storage: storage,
-  limits: { fileSize: 200 * 1024 * 1024 } // 200 MB limit
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB limit
+  fileFilter: function (req, file, cb) {
+    if (!/^(image\/|video\/)/.test(file.mimetype)) {
+      cb(new Error('Type de fichier non autorisé'));
+      return;
+    }
+    cb(null, true);
+  }
 });
 
 app.post('/api/upload', (req, res) => {
@@ -305,7 +318,9 @@ io.on('connection', (socket) => {
   socket.on('send_media', async (data) => {
     try {
       const { pseudonyme, idGroupe, mediaBase64, extension, mediaType, replyData } = data;
-      const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
+      const categorie = mediaType === 'video' ? 'video' : 'image';
+      // L'extension vient du client : on la valide, on ne l'utilise jamais telle quelle.
+      const filename = nomFichierUnique('media' + (extension || ''), '', categorie);
       const filepath = path.join(__dirname, 'uploads', filename);
       
       const base64Data = mediaBase64.replace(/^data:(image|video)\/\w+;base64,/, "");
@@ -331,14 +346,15 @@ io.on('connection', (socket) => {
 
       io.to(`group_${idGroupe}`).emit('receive_message', msg);
     } catch (err) {
-      console.error(err);
+      console.error('send_media:', err.message);
+      socket.emit('message_error', {message: 'Média refusé : ' + err.message});
     }
   });
 
   socket.on('send_audio', async (data) => {
     try {
       const { pseudonyme, idGroupe, audioBase64, extension, replyData } = data;
-      const filename = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + extension;
+      const filename = nomFichierUnique('audio' + (extension || ''), '', 'audio');
       const filepath = path.join(__dirname, 'uploads', filename);
       
       const base64Data = audioBase64.replace(/^data:audio\/\w+(?:;\w+=\w+)?;base64,/, "");
@@ -363,7 +379,8 @@ io.on('connection', (socket) => {
 
       io.to(`group_${idGroupe}`).emit('receive_message', msg);
     } catch (err) {
-      console.error(err);
+      console.error('send_audio:', err.message);
+      socket.emit('message_error', {message: 'Message vocal refusé : ' + err.message});
     }
   });
 
