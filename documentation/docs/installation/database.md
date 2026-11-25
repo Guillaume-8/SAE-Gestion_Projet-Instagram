@@ -13,10 +13,6 @@ Cette page doit décrire :
 - Initialisation des bases
 :::
 
----
-sidebar_position: 2
----
-
 # Installation de la Base de Données (Médias, Interactions & Modération)
 
 :::info Périmètre de cette documentation
