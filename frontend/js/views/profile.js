@@ -4,8 +4,9 @@
  * utilisateur (#/profile?user=nom_utilisateur).
  */
 
-import { getCurrentUser, getUserProfile, getSavedPosts, getTaggedPosts } from '../api.js';
+import { getCurrentUser, getUserProfile, getSavedPosts, getTaggedPosts, getFriends } from '../api.js';
 import { showPostModal } from '../post-modal.js';
+import { buildFriendsListHtml } from '../friends-list.js';
 
 const PRIVACY_KEY = 'instaclone_privacy_settings';
 
@@ -141,6 +142,7 @@ function buildProfileHtml(user, isOwnProfile) {
           <span><strong>${user.postsCount}</strong> publications</span>
           <span><strong>${user.followersCount}</strong> abonnés</span>
           <span><strong>${user.followingCount}</strong> abonnements</span>
+          <button type="button" class="profile-stat-btn" id="btn-show-friends" title="Voir la liste d'amis"><strong>${user.friendsCount ?? 0}</strong> amis</button>
         </div>
         ${user.bio ? `<div class="profile-bio"><p>${escapeHtml(user.bio)}</p></div>` : ''}
       </div>
@@ -165,6 +167,62 @@ function buildProfileHtml(user, isOwnProfile) {
       ${buildPostsGridHtml(user.posts, user.username)}
     </div>
   `;
+}
+
+/**
+ * Ferme le modal de la liste d'amis.
+ */
+function closeFriendsModal() {
+  const overlay = document.getElementById('friends-modal-overlay');
+  if (overlay) overlay.remove();
+  document.removeEventListener('keydown', onFriendsModalKey);
+}
+
+/**
+ * Ferme le modal des amis avec la touche Échap.
+ * @param {KeyboardEvent} event Événement clavier.
+ */
+function onFriendsModalKey(event) {
+  if (event.key === 'Escape') closeFriendsModal();
+}
+
+/**
+ * Ouvre le modal listant les amis ; un clic sur un ami ouvre son profil.
+ * @param {string=} friendsOf Pseudonyme dont on liste les amis (vide : soi).
+ * @param {string} title Pseudonyme affiché dans le titre.
+ */
+async function openFriendsModal(friendsOf, title) {
+  closeFriendsModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'friends-modal-overlay';
+  overlay.id = 'friends-modal-overlay';
+  overlay.innerHTML = `
+    <div class="friends-modal" role="dialog" aria-label="Liste d'amis">
+      <div class="friends-modal-header">
+        <h3>Amis de ${escapeHtml(title)}</h3>
+        <button type="button" class="friends-modal-close" title="Fermer">✕</button>
+      </div>
+      <div class="friends-modal-body" id="friends-modal-body">Chargement...</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', onFriendsModalKey);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.closest('.friends-modal-close')) {
+      closeFriendsModal();
+      return;
+    }
+    const item = e.target.closest('.friends-list-item');
+    if (item) {
+      const name = item.dataset.username;
+      closeFriendsModal();
+      window.location.hash = `#/profile?user=${encodeURIComponent(name)}`;
+    }
+  });
+
+  const friends = await getFriends(friendsOf);
+  const body = document.getElementById('friends-modal-body');
+  if (body) body.innerHTML = buildFriendsListHtml(friends, "Pas encore d'amis.");
 }
 
 /**
@@ -238,6 +296,14 @@ export async function mount() {
         bindPostThumbs(posts);
       });
     });
+
+    // Liste d'amis du profil (modal cliquable)
+    const friendsBtn = container.querySelector('#btn-show-friends');
+    if (friendsBtn) {
+      friendsBtn.addEventListener('click', () => {
+        openFriendsModal(isOwnProfile ? undefined : user.username, user.username);
+      });
+    }
 
     // Bouton "Modifier le profil"
     const editBtn = container.querySelector('.btn-edit-profile');

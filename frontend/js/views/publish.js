@@ -2,7 +2,8 @@
  * @fileoverview Vue de création de publication (photo / vidéo).
  */
 
-import { createPost } from '../api.js';
+import { createPost, getFriends } from '../api.js';
+import { buildFriendsListHtml } from '../friends-list.js';
 import {showToast} from '../toast.js';
 import {addNotification} from '../notification.js';
 
@@ -79,6 +80,10 @@ export function render() {
                   </span>
                 </span>
               </label>
+            </div>
+            <div class="friends-visibility" id="friends-visibility" hidden>
+              <p class="friends-visibility-title">Amis qui pourront voir cette publication :</p>
+              <div id="friends-visibility-list">Chargement...</div>
             </div>
           </div>
 
@@ -281,4 +286,28 @@ export function mount() {
     e.preventDefault();
     handlePublishSubmit();
   });
+
+  // « Amis uniquement » : affiche la liste d'amis sous l'option.
+  const friendsBox = document.getElementById('friends-visibility');
+  const friendsListEl = document.getElementById('friends-visibility-list');
+  let friendsLoaded = false;
+  const syncFriendsVisibility = async () => {
+    const onlyFriends = document.querySelector(
+      'input[name="visibility"]:checked',
+    ).value === 'friends';
+    friendsBox.hidden = !onlyFriends;
+    if (onlyFriends && !friendsLoaded) {
+      friendsLoaded = true;
+      const friends = await getFriends();
+      friendsListEl.innerHTML = buildFriendsListHtml(
+        friends,
+        "Vous n'avez pas encore d'amis : personne ne verra cette publication.",
+      );
+    }
+  };
+  form.querySelectorAll('input[name="visibility"]').forEach((radio) => {
+    radio.addEventListener('change', syncFriendsVisibility);
+  });
+  // Le reset du formulaire (après publication) remet « Public ».
+  form.addEventListener('reset', () => setTimeout(syncFriendsVisibility, 0));
 }

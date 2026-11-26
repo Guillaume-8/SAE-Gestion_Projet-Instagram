@@ -4,6 +4,7 @@
 
 import { toggleLike, toggleDislike, toggleSavedPost, republishPost, reportPost, getPostById } from './api.js';
 import { attachMediaFallback } from './media-fallback.js';
+import { openReportDialog } from './report-dialog.js';
 import {showToast} from './toast.js';
 import {addNotification} from './notification.js';
 
@@ -16,6 +17,15 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = String(text);
   return div.innerHTML;
+}
+
+/**
+ * Libellé du bouton « Enregistrer » selon l'état de la publication.
+ * @param {boolean} saved Publication déjà enregistrée.
+ * @return {string} Texte du bouton.
+ */
+function saveButtonLabel(saved) {
+  return saved ? '🔖 Enregistrée' : '🔖 Enregistrer';
 }
 
 /**
@@ -102,11 +112,11 @@ function renderModal(post) {
                 👎 <span class="modal-dislike-count">${post.dislikesCount || 0}</span>
               </button>
               <button class="btn-modal-save${post.saved ? ' active' : ''}" data-post-id="${post.id}" title="Enregistrer">
-                🔖 Enregistrer
+                ${saveButtonLabel(post.saved)}
               </button>
-              <button class="btn-modal-republish" data-post-id="${post.id}" title="Republier">
+              ${post.republished ? '' : `<button class="btn-modal-republish" data-post-id="${post.id}" title="Republier">
                 🔄 Republier
-              </button>
+              </button>`}
               <button class="btn-modal-report" data-post-id="${post.id}" title="Signaler">
                 🚩 Signaler
               </button>
@@ -133,7 +143,9 @@ function renderModal(post) {
   async function updateModalData() {
     try {
       const freshPost = await getPostById(post.id);
-      post = freshPost;
+      // L'API réelle ne renvoie pas l'état « enregistré » : on garde le
+      // dernier état connu plutôt que de le perdre.
+      post = {...freshPost, saved: freshPost.saved ?? post.saved};
       
       // Mettre à jour les compteurs
       const likeCountSpan = document.querySelector('.modal-like-count');
@@ -145,9 +157,19 @@ function renderModal(post) {
       const likeBtn = document.querySelector('.btn-modal-like');
       const dislikeBtn = document.querySelector('.btn-modal-dislike');
       const saveBtn = document.querySelector('.btn-modal-save');
-      if (likeBtn) likeBtn.classList.toggle('active', post.liked);
-      if (dislikeBtn) dislikeBtn.classList.toggle('active', post.disliked);
-      if (saveBtn) saveBtn.classList.toggle('active', post.saved);
+      // Boolean() : classList.toggle(x, undefined) inverse l'état au lieu de
+      // le forcer (les boutons J'aime / Je n'aime pas passaient en rouge).
+      if (likeBtn) likeBtn.classList.toggle('active', Boolean(post.liked));
+      if (dislikeBtn) dislikeBtn.classList.toggle('active', Boolean(post.disliked));
+      if (saveBtn) {
+        saveBtn.classList.toggle('active', Boolean(post.saved));
+        saveBtn.textContent = saveButtonLabel(Boolean(post.saved));
+      }
+      // Publication déjà republiée : le bouton Republier disparaît.
+      if (post.republished) {
+        const republishBtn = document.querySelector('.btn-modal-republish');
+        if (republishBtn) republishBtn.remove();
+      }
       
       // Mettre à jour les commentaires
       const commentsContainer = document.getElementById('post-modal-comments');
@@ -238,6 +260,7 @@ function renderModal(post) {
         const saved = !saveBtn.classList.contains('active');
         await toggleSavedPost(post.id, saved);
         saveBtn.classList.toggle('active', saved);
+        saveBtn.textContent = saveButtonLabel(saved);
         if (saved) {
           addNotification('save', 'Vous avez enregistré une publication', {postId: post.id});
         }
@@ -257,6 +280,12 @@ function renderModal(post) {
         await republishPost(post.id);
         addNotification('republish', 'Vous avez republié une publication', {postId: post.id});
         showToast('Publication republiée avec succès !', 'success');
+        republishBtn.remove();
+        post.republished = true;
+        // Le fil affiché derrière le modal masque lui aussi le bouton.
+        window.dispatchEvent(
+          new CustomEvent('post-republished', {detail: {postId: post.id}}),
+        );
         await updateModalData();
       } catch (error) {
         console.error('Erreur republication:', error);
@@ -264,13 +293,11 @@ function renderModal(post) {
     }
     
     if (reportBtn) {
-      try {
-        await reportPost(post.id, 'Signalement depuis le modal');
-        addNotification('report', 'Vous avez signalé une publication', {postId: post.id});
-        showToast('Publication signalée.', 'success');
-      } catch (error) {
-        console.error('Erreur signalement:', error);
-      }
+      // Même menu de signalement (motifs + confirmation) que dans le fil.
+      openReportDialog(post.id, () => {
+        reportBtn.textContent = '🚩 Signalée ✓';
+        reportBtn.disabled = true;
+      });
     }
     
     // Actions sur les commentaires

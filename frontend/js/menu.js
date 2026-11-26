@@ -185,6 +185,17 @@ function openReportProblemDialog() {
           <input type="checkbox" id="problem-screenshot">
           <span>Joindre une capture d'écran</span>
         </label>
+        <div class="problem-image-box" id="problem-image-box" hidden>
+          <div class="problem-image-actions">
+            <button type="button" class="btn-problem-pick" id="btn-problem-pick">📁 Choisir une image</button>
+            <span class="problem-image-hint">ou collez-la (Ctrl+V)</span>
+          </div>
+          <input type="file" id="problem-image-input" accept="image/*" hidden>
+          <div class="problem-image-preview" id="problem-image-preview" hidden>
+            <img id="problem-image-img" alt="Aperçu de l'image jointe">
+            <button type="button" class="btn-problem-remove" id="btn-problem-remove" title="Retirer l'image">✕</button>
+          </div>
+        </div>
       </div>
       <div class="report-actions">
         <button class="btn-report-cancel">Annuler</button>
@@ -195,7 +206,59 @@ function openReportProblemDialog() {
 
   document.body.appendChild(overlay);
 
-  const closeDialog = () => overlay.remove();
+  // --- Image jointe : choix d'un fichier ou collage depuis le presse-papiers
+  const screenshotCheckbox = overlay.querySelector('#problem-screenshot');
+  const imageBox = overlay.querySelector('#problem-image-box');
+  const imageInput = overlay.querySelector('#problem-image-input');
+  const imagePreview = overlay.querySelector('#problem-image-preview');
+  const imageImg = overlay.querySelector('#problem-image-img');
+  let attachedImage = null;
+
+  const setImage = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      attachedImage = {name: file.name || 'capture.png', dataUrl: event.target.result};
+      imageImg.src = attachedImage.dataUrl;
+      imagePreview.hidden = false;
+      // Une image ajoutée coche l'option si ce n'était pas fait.
+      screenshotCheckbox.checked = true;
+      imageBox.hidden = false;
+    };
+    reader.readAsDataURL(file);
+  };
+  const clearImage = () => {
+    attachedImage = null;
+    imageImg.removeAttribute('src');
+    imagePreview.hidden = true;
+    imageInput.value = '';
+  };
+
+  screenshotCheckbox.addEventListener('change', () => {
+    imageBox.hidden = !screenshotCheckbox.checked;
+    if (!screenshotCheckbox.checked) clearImage();
+  });
+  overlay.querySelector('#btn-problem-pick').addEventListener('click', () => imageInput.click());
+  imageInput.addEventListener('change', () => setImage(imageInput.files[0]));
+  overlay.querySelector('#btn-problem-remove').addEventListener('click', clearImage);
+
+  // Collage (Ctrl+V) : actif tant que la boîte est ouverte.
+  const onPaste = (event) => {
+    const items = (event.clipboardData && event.clipboardData.items) || [];
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        event.preventDefault();
+        setImage(item.getAsFile());
+        return;
+      }
+    }
+  };
+  document.addEventListener('paste', onPaste);
+
+  const closeDialog = () => {
+    document.removeEventListener('paste', onPaste);
+    overlay.remove();
+  };
 
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeDialog();
@@ -210,7 +273,8 @@ function openReportProblemDialog() {
       return;
     }
     // TODO: envoyer à l'API quand elle sera prête
-    console.info('[MOCK] Problème signalé :', text);
+    console.info('[MOCK] Problème signalé :', text,
+        attachedImage ? `(image jointe : ${attachedImage.name})` : '');
     closeDialog();
     showToast('Problème signalé. Merci !');
   });

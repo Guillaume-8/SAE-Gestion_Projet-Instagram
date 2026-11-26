@@ -184,7 +184,6 @@ export function render() {
               <button class="settings-subitem" data-settings-action="share-link">Copier le lien du profil</button>
               <button class="settings-subitem" data-settings-action="share-social">Partager sur les réseaux sociaux</button>
               <button class="settings-subitem" data-settings-action="share-message">Partager par message</button>
-              <button class="settings-subitem" data-settings-action="share-embed">Intégrer (embed)</button>
             </div>
           </div>
         </section>
@@ -496,27 +495,6 @@ async function handleShareMessage() {
   });
 }
 
-/**
- * Ouvre un modal affichant un code d'intégration (embed) du profil.
- */
-async function handleShareEmbed() {
-  const user = await getCurrentUser();
-  const url = buildProfileShareUrl(user);
-  const embedCode = `<iframe src="${url}&embed=1" width="400" height="480" style="border:1px solid #dbdbdb;border-radius:12px;" loading="lazy"></iframe>`;
-
-  const body = `
-    <p class="settings-modal-hint">Intégrez votre profil sur un autre site avec ce code :</p>
-    <textarea id="embed-code-textarea" class="settings-code-textarea" rows="5" readonly>${escapeHtml(embedCode)}</textarea>
-    <button class="btn-primary" id="embed-copy-btn">Copier le code</button>
-  `;
-
-  const modalBody = openSettingsModal('Intégrer (embed)', body);
-  modalBody.querySelector('#embed-copy-btn').addEventListener('click', async () => {
-    const success = await copyToClipboard(embedCode);
-    showToast(success ? "Code d'intégration copié !" : 'Impossible de copier le code');
-  });
-}
-
 // ============================================================
 //  AIDE
 // ============================================================
@@ -760,13 +738,16 @@ function formatAccountStatus(status) {
 async function handleAccountStatusView() {
   const user = await getCurrentUser();
   const status = formatAccountStatus(user.accountStatus);
+  const {isPrivate} = getPrivacySettings();
 
   const body = `
     <div class="account-status-summary">
+      <img src="${escapeHtml(user.avatar)}" alt="Photo de profil de ${escapeHtml(user.username)}" class="account-status-avatar">
       <span class="account-status-badge ${status.className}">${status.label}</span>
       <p>@${escapeHtml(user.username)}</p>
     </div>
     <ul class="account-status-details">
+      <li><span>Visibilité du compte</span><strong id="account-visibility">${isPrivate ? '🔒 Privé' : '🌍 Public'}</strong></li>
       <li><span>E-mail</span><strong>${escapeHtml(user.email || '—')}</strong></li>
       <li><span>Membre depuis</span><strong>${escapeHtml(user.memberSince || '—')}</strong></li>
       <li><span>Dernière connexion</span><strong>${escapeHtml(user.lastLogin || '—')}</strong></li>
@@ -851,9 +832,6 @@ function handleSettingsAction(action) {
       break;
     case 'share-message':
       handleShareMessage();
-      break;
-    case 'share-embed':
-      handleShareEmbed();
       break;
 
     // Aide

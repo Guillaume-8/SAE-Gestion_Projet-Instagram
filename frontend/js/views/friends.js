@@ -2,7 +2,7 @@
  * @fileoverview Vue de gestion des amis / abonnements avec une interface style Instagram.
  */
 
-import { getUsers, getFriendsList } from '../api.js';
+import { getUsers, getFriendsList, getCurrentUser } from '../api.js';
 
 const FRIENDS_REMOVED_KEY = 'instaclone_removed_friends';
 
@@ -337,7 +337,7 @@ function renderFriendsList(friends) {
 
       return `
         <div class="ig-friend-item" data-pseudo="${pseudo}">
-          <div class="ig-user-info">
+          <div class="ig-user-info" data-open-profile="${pseudo}" style="cursor: pointer;" title="Voir le profil">
             <div class="ig-avatar-ring">
               <div class="ig-avatar" style="background: ${bgStyle};">
                 ${initial}
@@ -375,7 +375,12 @@ export async function mount() {
   }
 
   try {
-    const currentPseudo = localStorage.getItem('instaclone_user') || 'Moi';
+    let currentPseudo = localStorage.getItem('instaclone_user') || 'Moi';
+    try {
+      currentPseudo = (await getCurrentUser()).username || currentPseudo;
+    } catch (e) {
+      console.warn("Utilisateur courant indisponible :", e);
+    }
 
     // Récupération sécurisée avec gestion d'erreurs
     let rawUsers = [];
@@ -415,9 +420,15 @@ export async function mount() {
       });
     }
 
-    // Gestion de la suppression (Retirer un ami)
+    // Gestion de la suppression (Retirer un ami) et ouverture des profils
     if (container) {
       container.addEventListener('click', (e) => {
+        const profileLink = e.target.closest('[data-open-profile]');
+        if (profileLink && !e.target.closest('.btn-remove-friend')) {
+          window.location.hash =
+            `#/profile?user=${encodeURIComponent(profileLink.dataset.openProfile)}`;
+          return;
+        }
         const removeBtn = e.target.closest('.btn-remove-friend');
         if (!removeBtn) return;
 

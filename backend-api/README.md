@@ -14,6 +14,8 @@ MariaDB **PhotoVideo** au front-end. Écoute sur le **port 3001**
 | GET     | `/api/users`              | Liste des pseudonymes                      | Non  |
 | GET     | `/api/users/search?q=`    | Recherche d'utilisateurs                   | Non  |
 | GET     | `/api/users/:pseudonyme`  | Profil public + publications d'un utilisateur | Non |
+| GET     | `/api/users/me/friends`   | Amis de l'utilisateur connecté (demandes acceptées) | Oui |
+| GET     | `/api/users/:pseudonyme/friends` | Amis d'un utilisateur (demandes acceptées) | Non |
 | GET     | `/api/users/me`           | Profil complet + stats + publications      | Oui  |
 | PUT     | `/api/users/me`           | Mise à jour du profil                       | Oui  |
 | GET     | `/api/posts`              | Fil d'actualité (état like si connecté)    | Non  |
@@ -30,3 +32,12 @@ MariaDB **PhotoVideo** au front-end. Écoute sur le **port 3001**
 | POST    | `/api/posts/:id/comments` | Ajout d'un commentaire                     | Oui  |
 | GET     | `/api/hashtags`           | Hashtags avec compteurs (Contient_Tag)    | Non  |
 | GET     | `/api/users/media/...`    | Fichiers médias servis en statique         | Non  |
+
+## Notes
+
+- `PUT /api/users/me` accepte aussi `gender` (`male`, `female`, `other` ou vide)
+  et `showGender` (booléen : afficher ou non le genre sur le profil public).
+  Les colonnes `genre` et `afficher_genre` sont ajoutées automatiquement au
+  démarrage si elles n'existent pas (voir `database/migration-genre-visibilite.sql`).
+- Les publications renvoient `republished: true` si l'utilisateur connecté les a
+  déjà republiées ; `POST /api/posts/:id/republish` ne compte qu'une fois.

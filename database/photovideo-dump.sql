@@ -652,6 +652,8 @@ CREATE TABLE `Utilisateur` (
   `nombre_de_signalement` int(11) DEFAULT 0,
   `nombre_de_bannissement` int(11) DEFAULT 0,
   `role` varchar(20) DEFAULT 'user',
+  `genre` varchar(10) DEFAULT NULL,
+  `afficher_genre` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_utilisateur`),
   UNIQUE KEY `pseudonyme` (`pseudonyme`),
   UNIQUE KEY `email` (`email`)
@@ -666,11 +668,11 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `Utilisateur` WRITE;
 /*!40000 ALTER TABLE `Utilisateur` DISABLE KEYS */;
 INSERT INTO `Utilisateur` VALUES
-(1,'Lucas','Martin','PhantomJoker','lucas@mail.com','$2a$10$ac5Gqbr5kYag9XaVmSzkceB30sni.bSf35fmRkCgPWjKIQ7oWqASK',NULL,NULL,0,0,'user'),
-(2,'Yukiko','Amagi','YukikoInaba','chloe@mail.com','$2a$10$59OnaMhNHwhcwqewqtMMy.60UvTUIKioQ0FNbp.RkfuKQtTA0Wuvm',NULL,NULL,0,0,'user'),
-(3,'Thomas','Dubois','JojoSteelBall','thomas@mail.com','$2a$10$iFufA7kY5nKbmPSQLtGLPuCYKOSbM.g/8stMQjIamVYL2PZ/1buBm',NULL,NULL,0,0,'user'),
-(4,'Momo','Yaoyorozu','MomoCreation','sarah@mail.com','$2a$10$3ldNbVKWMKCC8MtENUHu1uNTf4tK2CIdbnl6tKLmmGdu3aQRPUpWG',NULL,NULL,0,0,'user'),
-(5,'Mitsuru','Kirijo','Imperatrice','mitsuru.kirijo@gekkoukan.edu','$2a$10$8dkLNMx6AqaPJfd703bar.5gbRq4VkRL4XVGz/xl9/S3C8fhCom5K',NULL,NULL,0,0,'admin');
+(1,'Lucas','Martin','PhantomJoker','lucas@mail.com','$2a$10$ac5Gqbr5kYag9XaVmSzkceB30sni.bSf35fmRkCgPWjKIQ7oWqASK',NULL,NULL,0,0,'user',NULL,0),
+(2,'Yukiko','Amagi','YukikoInaba','chloe@mail.com','$2a$10$59OnaMhNHwhcwqewqtMMy.60UvTUIKioQ0FNbp.RkfuKQtTA0Wuvm',NULL,NULL,0,0,'user',NULL,0),
+(3,'Thomas','Dubois','JojoSteelBall','thomas@mail.com','$2a$10$iFufA7kY5nKbmPSQLtGLPuCYKOSbM.g/8stMQjIamVYL2PZ/1buBm',NULL,NULL,0,0,'user',NULL,0),
+(4,'Momo','Yaoyorozu','MomoCreation','sarah@mail.com','$2a$10$3ldNbVKWMKCC8MtENUHu1uNTf4tK2CIdbnl6tKLmmGdu3aQRPUpWG',NULL,NULL,0,0,'user',NULL,0),
+(5,'Mitsuru','Kirijo','Imperatrice','mitsuru.kirijo@gekkoukan.edu','$2a$10$8dkLNMx6AqaPJfd703bar.5gbRq4VkRL4XVGz/xl9/S3C8fhCom5K',NULL,NULL,0,0,'admin',NULL,0);
 /*!40000 ALTER TABLE `Utilisateur` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;

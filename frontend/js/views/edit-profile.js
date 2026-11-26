@@ -4,7 +4,7 @@
  * et la photo de profil (via URL ou fichier local).
  */
 
-import { getCurrentUser, updateProfile } from '../api.js';
+import { getCurrentUser, updateProfile, DEFAULT_AVATAR } from '../api.js';
 import {showToast} from '../toast.js';
 
 /**
@@ -34,7 +34,21 @@ export function render() {
           </div>
 
           <div class="form-group">
-            <label for="input-avatar">Photo de profil (URL)</label>
+            <label for="input-gender">Genre</label>
+            <select id="input-gender">
+              <option value="">Non précisé</option>
+              <option value="female">Femme</option>
+              <option value="male">Homme</option>
+              <option value="other">Autre</option>
+            </select>
+            <label class="gender-visibility">
+              <input type="checkbox" id="input-show-gender">
+              <span>Afficher mon genre sur mon profil (sinon il reste privé)</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="input-avatar">Photo de profil (URL, facultative)</label>
             <input type="url" id="input-avatar" placeholder="https://example.com/photo.jpg">
           </div>
 
@@ -75,8 +89,12 @@ async function loadUserData() {
     document.getElementById('input-username').value = user.username;
     document.getElementById('input-name').value = user.name || '';
     document.getElementById('input-bio').value = user.bio || '';
-    document.getElementById('input-avatar').value = user.avatar;
-    document.getElementById('avatar-preview').src = user.avatar;
+    document.getElementById('input-gender').value = user.gender || '';
+    document.getElementById('input-show-gender').checked = Boolean(user.showGender);
+    // Pas de photo importée : champ vide, l'image par défaut sert d'aperçu.
+    const hasPhoto = user.avatar && user.avatar !== DEFAULT_AVATAR;
+    document.getElementById('input-avatar').value = hasPhoto ? user.avatar : '';
+    document.getElementById('avatar-preview').src = hasPhoto ? user.avatar : DEFAULT_AVATAR;
   } catch (error) {
     console.error('Erreur de chargement du profil:', error);
   }
@@ -91,14 +109,11 @@ function updateAvatarPreview() {
   const preview = document.getElementById('avatar-preview');
 
   preview.onerror = function() {
-    preview.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ccc" width="100" height="100"/%3E%3C/svg%3E';
+    preview.onerror = null;
+    preview.src = DEFAULT_AVATAR;
   };
 
-  if (avatarUrl) {
-    preview.src = avatarUrl;
-  } else {
-    preview.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ccc" width="100" height="100"/%3E%3C/svg%3E';
-  }
+  preview.src = avatarUrl || DEFAULT_AVATAR;
 }
 
 /**
@@ -151,6 +166,8 @@ async function handleEditSubmit(event) {
   const name = document.getElementById('input-name').value.trim();
   const bio = document.getElementById('input-bio').value.trim();
   const avatar = document.getElementById('input-avatar').value.trim();
+  const gender = document.getElementById('input-gender').value;
+  const showGender = document.getElementById('input-show-gender').checked;
   const errorEl = document.getElementById('edit-error');
   const submitBtn = event.target.querySelector('button[type="submit"]');
 
@@ -162,11 +179,8 @@ async function handleEditSubmit(event) {
     if (!username) {
       throw new Error("Le nom d'utilisateur est obligatoire");
     }
-    if (!avatar) {
-      throw new Error("La photo de profil est obligatoire (URL ou fichier)");
-    }
 
-    await updateProfile({username, name, bio, avatar});
+    await updateProfile({username, name, bio, avatar, gender, showGender});
 
     // Redirection vers le profil
     window.location.hash = '#/profile';

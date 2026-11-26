@@ -19,7 +19,6 @@ import {
   MOCK_HASHTAGS,
   MOCK_SAVED_POSTS,
   MOCK_ACTIVITY,
-  makeAvatar,
 } from './mock-data.js';
 
 /**
@@ -29,6 +28,13 @@ import {
 const USE_REAL_API = true;
 
 const API_BASE_URL = '/api';
+
+/**
+ * Image affichée quand un utilisateur n'a pas importé de photo de profil.
+ * Pour changer l'image, remplacer ce fichier (ou modifier ce chemin).
+ * @const {string}
+ */
+export const DEFAULT_AVATAR = 'assets/images/default-avatar.svg';
 
 // Variable globale pour stocker l'utilisateur actuellement connecté
 let currentUser = structuredClone(MOCK_USER);
@@ -114,8 +120,10 @@ async function apiFetch(path, options = {}) {
 function normalizeRealUser(user) {
   return {
     ...user,
-    avatar: user.avatar || makeAvatar(user.username || 'user'),
+    avatar: user.avatar || DEFAULT_AVATAR,
     bio: user.bio || '',
+    gender: user.gender || '',
+    showGender: Boolean(user.showGender),
   };
 }
 
@@ -145,7 +153,7 @@ function mapRealPost(row) {
   return {
     id: row.id,
     author: row.author,
-    avatar: row.avatar || makeAvatar(row.author || 'user'),
+    avatar: row.avatar || DEFAULT_AVATAR,
     mediaUrl: row.mediaUrl,
     isVideo: Boolean(row.isVideo),
     caption: row.caption || '',
@@ -153,6 +161,7 @@ function mapRealPost(row) {
     dislikesCount: row.dislikesCount || 0,
     liked: Boolean(row.liked),
     disliked: Boolean(row.disliked),
+    republished: Boolean(row.republished),
     visibility: row.visibility || 'public',
     comments: (row.comments || []).map((c) => ({
       id: c.id,
@@ -312,9 +321,9 @@ export async function toggleLike(postId, liked) {
   }
   return Promise.resolve({
     likesCount: post.likesCount,
-    liked: post.liked,
+    liked: Boolean(post.liked),
     dislikesCount: post.dislikesCount,
-    disliked: post.disliked,
+    disliked: Boolean(post.disliked),
   });
 }
 
@@ -363,9 +372,9 @@ export async function toggleDislike(postId, disliked) {
   }
   return Promise.resolve({
     likesCount: post.likesCount,
-    liked: post.liked,
+    liked: Boolean(post.liked),
     dislikesCount: post.dislikesCount,
-    disliked: post.disliked,
+    disliked: Boolean(post.disliked),
   });
 }
 
@@ -654,7 +663,10 @@ export async function getCurrentUser() {
   }
 
   // --- Repli mock ---
-  return Promise.resolve(structuredClone(currentUser));
+  return Promise.resolve(structuredClone({
+    ...currentUser,
+    friendsCount: mockFriendNames(currentUser.username).length,
+  }));
 }
 
 /**
@@ -718,6 +730,10 @@ export async function republishPost(postId) {
   // --- Repli mock ---
   const originalPost = MOCK_POSTS.find((p) => p.id === postId);
   if (!originalPost) throw new Error('Publication introuvable');
+  if (originalPost.republished) {
+    return Promise.resolve({success: true, republished: true, alreadyRepublished: true});
+  }
+  originalPost.republished = true;
   const newPost = {
     id: Date.now(),
     author: currentUser.username,
@@ -745,7 +761,10 @@ export async function republishPost(postId) {
  * @param {string} profileData.username Nom d'utilisateur.
  * @param {string=} profileData.name Nom complet.
  * @param {string=} profileData.bio Biographie.
- * @param {string} profileData.avatar URL ou data URL de la photo.
+ * @param {?string} profileData.avatar URL ou data URL de la photo
+ *     (vide : l'image par défaut est affichée).
+ * @param {string=} profileData.gender 'male', 'female', 'other' ou ''.
+ * @param {boolean=} profileData.showGender Afficher le genre sur le profil.
  * @return {Promise<Object>} Utilisateur mis à jour.
  */
 export async function updateProfile(profileData) {
@@ -768,7 +787,9 @@ export async function updateProfile(profileData) {
           prenom,
           nom,
           bio: profileData.bio || '',
-          photoProfil: profileData.avatar,
+          photoProfil: profileData.avatar || null,
+          gender: profileData.gender || '',
+          showGender: Boolean(profileData.showGender),
         }),
       });
       if (response.status === 401) {
@@ -791,13 +812,15 @@ export async function updateProfile(profileData) {
   }
 
   // --- Repli mock ---
-  if (!profileData.username || !profileData.avatar) {
+  if (!profileData.username) {
     throw new Error('Veuillez remplir tous les champs obligatoires');
   }
   currentUser.username = profileData.username;
-  currentUser.avatar = profileData.avatar;
+  currentUser.avatar = profileData.avatar || DEFAULT_AVATAR;
   if (profileData.name !== undefined) currentUser.name = profileData.name;
   if (profileData.bio !== undefined) currentUser.bio = profileData.bio;
+  currentUser.gender = profileData.gender || '';
+  currentUser.showGender = Boolean(profileData.showGender);
   return Promise.resolve({
     success: true,
     user: structuredClone(currentUser),
@@ -886,7 +909,7 @@ export async function searchAll(query) {
         const data = await response.json();
         users = data.users.map((u) => ({
           ...u,
-          avatar: u.avatar || makeAvatar(u.username),
+          avatar: u.avatar || DEFAULT_AVATAR,
         }));
       }
     } catch (error) {
@@ -1012,6 +1035,55 @@ export async function getFriendsList() {
 }
 
 /**
+ * Mode mock : pseudonymes des « amis » d'un utilisateur (les autres auteurs).
+ * @param {string} self Pseudonyme de l'utilisateur concerné.
+ * @return {Array<string>} Pseudonymes.
+ */
+function mockFriendNames(self) {
+  return [...new Set(MOCK_POSTS.map((p) => p.author))]
+    .filter((author) => author !== self);
+}
+
+/**
+ * Récupère la liste d'amis (demandes acceptées) d'un utilisateur.
+ * @param {string=} username Pseudonyme consulté ; sans argument, les amis
+ *     de l'utilisateur connecté.
+ * @return {Promise<Array<{username: string, avatar: string}>>} Amis.
+ */
+export async function getFriends(username) {
+  // --- API réelle (MariaDB) ---
+  if (await isRealApiAvailable()) {
+    try {
+      const response = username ?
+        await apiFetch(`/users/${encodeURIComponent(username)}/friends`) :
+        authToken ?
+          await apiFetch('/users/me/friends', {headers: authHeaders()}) :
+          null;
+      if (response && response.ok) {
+        const friends = await response.json();
+        return friends.map((f) => ({
+          username: f.username,
+          avatar: f.avatar || DEFAULT_AVATAR,
+        }));
+      }
+    } catch (error) {
+      if (error instanceof ApiUnavailable) {
+        realApiAvailable = false;
+      } else {
+        console.error("Échec du chargement de la liste d'amis :", error);
+      }
+    }
+  }
+
+  // --- Repli mock : les autres auteurs connus ---
+  const self = username || currentUser.username;
+  return mockFriendNames(self).map((author) => {
+    const post = MOCK_POSTS.find((p) => p.author === author);
+    return {username: author, avatar: (post && post.avatar) || DEFAULT_AVATAR};
+  });
+}
+
+/**
  * Récupère le profil public d'un utilisateur (ses publications,
  * statistiques…). Permet la consultation des profils d'autrui via
  * #/profile?user=pseudonyme.
@@ -1029,7 +1101,9 @@ export async function getUserProfile(username) {
         const user = await response.json();
         return {
           ...user,
-          avatar: user.avatar || makeAvatar(user.username || 'user'),
+          avatar: user.avatar || DEFAULT_AVATAR,
+          gender: user.gender || '',
+          showGender: Boolean(user.showGender),
           posts: (user.posts || []).map((p) => ({...p})),
         };
       }
@@ -1064,7 +1138,7 @@ export async function getUserProfile(username) {
   const avatar =
     (postWithAvatar && postWithAvatar.avatar) ||
     (conversation && conversation.avatar) ||
-    makeAvatar(username);
+    DEFAULT_AVATAR;
 
   return Promise.resolve(
     structuredClone({
@@ -1072,9 +1146,12 @@ export async function getUserProfile(username) {
       name: '',
       avatar,
       bio: '',
+      gender: '',
+      showGender: false,
       postsCount: posts.length,
       followersCount: 0,
       followingCount: 0,
+      friendsCount: mockFriendNames(username).length,
       posts,
     }),
   );

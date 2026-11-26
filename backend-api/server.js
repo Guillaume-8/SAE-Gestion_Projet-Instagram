@@ -12,6 +12,8 @@
  *   GET  /api/users/search?q=      Recherche d'utilisateurs (public)
  *   GET  /api/users/me             Profil complet + statistiques (auth)
  *   PUT  /api/users/me             Mise à jour du profil (auth)
+ *   GET  /api/users/me/friends     Liste d'amis de l'utilisateur connecté (auth)
+ *   GET  /api/users/:pseudonyme/friends  Liste d'amis d'un utilisateur (public)
  *
  * Endpoints Publications / Commentaires / Signalements :
  *   GET  /api/posts                Fil d'actualité (public, état like si auth)
@@ -137,8 +139,74 @@ function userToFront(row, extras = {}) {
     name: name || row.pseudonyme,
     avatar: row.photo_profil || null,
     bio: row.bio || '',
+    gender: row.genre || '',
+    showGender: Boolean(row.afficher_genre),
     ...extras,
   };
+}
+
+/**
+ * Valeurs de genre acceptées en base (colonne Utilisateur.genre).
+ * @const {Set<string>}
+ */
+const GENRES_AUTORISES = new Set(['male', 'female', 'other']);
+
+/**
+ * S'assure que les colonnes ajoutées après le dump initial existent
+ * (genre et visibilité du genre). Idempotent : MariaDB ignore
+ * l'ajout si la colonne est déjà là, ce qui évite de réimporter le dump.
+ * @return {Promise<void>}
+ */
+async function ensureSchema() {
+  const migrations = [
+    'ALTER TABLE Utilisateur ADD COLUMN IF NOT EXISTS genre VARCHAR(10) DEFAULT NULL',
+    'ALTER TABLE Utilisateur ADD COLUMN IF NOT EXISTS afficher_genre TINYINT(1) NOT NULL DEFAULT 0',
+  ];
+  for (const sql of migrations) {
+    try {
+      await db.query(sql);
+    } catch (err) {
+      console.warn('Migration ignorée :', err.message);
+    }
+  }
+}
+
+/**
+ * Compte les amis (demandes acceptées, dans les deux sens).
+ * @param {number} userId Identifiant de l'utilisateur.
+ * @return {Promise<number>} Nombre d'amis.
+ */
+async function countFriends(userId) {
+  const [[row]] = await db.query(
+    `SELECT COUNT(DISTINCT CASE WHEN id_demandeur = ? THEN id_receveur
+                                ELSE id_demandeur END) AS c
+     FROM Ami
+     WHERE statut = 'accepte' AND (id_demandeur = ? OR id_receveur = ?)`,
+    [userId, userId, userId],
+  );
+  return row.c;
+}
+
+/**
+ * Liste les amis d'un utilisateur (demandes acceptées, dans les deux sens).
+ * @param {number} userId Identifiant de l'utilisateur.
+ * @return {Promise<Array<{username: string, avatar: ?string}>>} Amis.
+ */
+async function listFriends(userId) {
+  const [rows] = await db.query(
+    `SELECT DISTINCT u.pseudonyme, u.photo_profil
+     FROM Ami a
+     JOIN Utilisateur u ON u.id_utilisateur =
+          CASE WHEN a.id_demandeur = ? THEN a.id_receveur
+               ELSE a.id_demandeur END
+     WHERE a.statut = 'accepte' AND (a.id_demandeur = ? OR a.id_receveur = ?)
+     ORDER BY u.pseudonyme`,
+    [userId, userId, userId],
+  );
+  return rows.map((r) => ({
+    username: r.pseudonyme,
+    avatar: r.photo_profil || null,
+  }));
 }
 
 /**
@@ -199,6 +267,7 @@ function rowToFrontPost(row) {
     dislikesCount: row.dislikesCount,
     liked: false,
     disliked: false,
+    republished: false,
     comments: [],
     hashtags: row.hashtagsStr ? row.hashtagsStr.split(' ') : [],
   };
@@ -261,6 +330,28 @@ async function attachUserLikes(posts, userId) {
 }
 
 /**
+ * Indique, pour chaque publication, si l'utilisateur courant l'a déjà
+ * republiée (table Repartager) : le front masque alors « Republier ».
+ * @param {Array<Object>} posts Publications (mutées en place).
+ * @param {?number} userId Identifiant utilisateur (null si anonyme).
+ */
+async function attachUserRepublished(posts, userId) {
+  if (!userId || posts.length === 0) return;
+  const ids = posts.map((p) => p.id);
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await db.query(
+    `SELECT id_publication AS postId
+     FROM Repartager
+     WHERE id_utilisateur = ? AND id_publication IN (${placeholders})`,
+    [userId, ...ids],
+  );
+  const done = new Set(rows.map((r) => r.postId));
+  for (const post of posts) {
+    post.republished = done.has(post.id);
+  }
+}
+
+/**
  * Exécute une requête de sélection de publications et la met en forme.
  * @param {string} suffix Clause WHERE/ORDER/LIMIT à concaténer.
  * @param {Array<*>} params Paramètres de la requête.
@@ -272,6 +363,7 @@ async function queryPosts(suffix, params, userId) {
   const posts = rows.map(rowToFrontPost);
   await attachComments(posts);
   await attachUserLikes(posts, userId);
+  await attachUserRepublished(posts, userId);
   return posts;
 }
 
@@ -448,7 +540,9 @@ app.get('/api/users/me', authRequired, async (req, res) => {
       return;
     }
 
-    const stats = {postsCount: 0, followersCount: 0, followingCount: 0};
+    const stats = {
+      postsCount: 0, followersCount: 0, followingCount: 0, friendsCount: 0,
+    };
     try {
       const [[p]] = await db.query(
         'SELECT COUNT(*) AS c FROM Publication WHERE id_utilisateur = ?',
@@ -465,6 +559,7 @@ app.get('/api/users/me', authRequired, async (req, res) => {
       stats.postsCount = p.c;
       stats.followersCount = f.c;
       stats.followingCount = g.c;
+      stats.friendsCount = await countFriends(req.userId);
     } catch (statErr) {
       console.warn('Statistiques indisponibles :', statErr.message);
     }
@@ -499,7 +594,8 @@ app.get('/api/users/me', authRequired, async (req, res) => {
 
 app.put('/api/users/me', authRequired, async (req, res) => {
   try {
-    const {pseudonyme, prenom, nom, bio, photoProfil} = req.body || {};
+    const {pseudonyme, prenom, nom, bio, photoProfil, gender, showGender} =
+        req.body || {};
 
     if (!pseudonyme) {
       res.status(400).json({error: 'Le pseudonyme est obligatoire'});
@@ -521,14 +617,27 @@ app.put('/api/users/me', authRequired, async (req, res) => {
       return;
     }
 
+    // Genre : valeur connue ou vide (non renseigné) ; visibilité 0/1.
+    const genre = gender === undefined ?
+      user.genre || null :
+      (GENRES_AUTORISES.has(gender) ? gender : null);
+    const afficherGenre = showGender === undefined ?
+      (user.afficher_genre ? 1 : 0) :
+      (showGender ? 1 : 0);
+
     await db.query(
-      'UPDATE Utilisateur SET pseudonyme = ?, prenom = ?, nom = ?, bio = ?, photo_profil = ? WHERE id_utilisateur = ?',
+      `UPDATE Utilisateur
+       SET pseudonyme = ?, prenom = ?, nom = ?, bio = ?, photo_profil = ?,
+           genre = ?, afficher_genre = ?
+       WHERE id_utilisateur = ?`,
       [
         pseudonyme,
         prenom !== undefined ? prenom : user.prenom,
         nom !== undefined ? nom : user.nom,
         bio !== undefined ? bio : user.bio || '',
         photoProfil !== undefined ? photoProfil : user.photo_profil || null,
+        genre,
+        afficherGenre,
         req.userId,
       ],
     );
@@ -541,9 +650,38 @@ app.put('/api/users/me', authRequired, async (req, res) => {
   }
 });
 
+/** GET /api/users/me/friends — amis de l'utilisateur connecté. */
+app.get('/api/users/me/friends', authRequired, async (req, res) => {
+  try {
+    res.json(await listFriends(req.userId));
+  } catch (err) {
+    console.error('Erreur liste d\'amis :', err.message);
+    res.status(500).json({error: 'Erreur serveur'});
+  }
+});
+
 // ============================================================
 //  PROFIL PUBLIC D'UN UTILISATEUR
 // ============================================================
+
+/** GET /api/users/:pseudonyme/friends — amis d'un utilisateur. */
+app.get('/api/users/:pseudonyme/friends', async (req, res) => {
+  try {
+    const pseudo = String(req.params.pseudonyme || '').trim();
+    const [rows] = await db.query(
+      'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ?',
+      [pseudo],
+    );
+    if (rows.length === 0) {
+      res.status(404).json({error: 'Utilisateur introuvable'});
+      return;
+    }
+    res.json(await listFriends(rows[0].id_utilisateur));
+  } catch (err) {
+    console.error('Erreur liste d\'amis :', err.message);
+    res.status(500).json({error: 'Erreur serveur'});
+  }
+});
 
 /** GET /api/users/:pseudonyme — profil public + publications. */
 app.get('/api/users/:pseudonyme', async (req, res) => {
@@ -593,14 +731,19 @@ app.get('/api/users/:pseudonyme', async (req, res) => {
       console.warn('Publications indisponibles :', postErr.message);
     }
 
+    // Le genre n'est exposé que si son propriétaire a choisi de l'afficher.
+    const genderVisible = Boolean(user.afficher_genre) && Boolean(user.genre);
     res.json({
       username: user.pseudonyme,
       name: [user.prenom, user.nom].filter(Boolean).join(' ').trim(),
       avatar: user.photo_profil || null,
       bio: user.bio || '',
+      gender: genderVisible ? user.genre : '',
+      showGender: genderVisible,
       postsCount: p.c,
       followersCount: f.c,
       followingCount: g.c,
+      friendsCount: await countFriends(user.id_utilisateur),
       posts,
     });
   } catch (err) {
@@ -816,15 +959,20 @@ app.post('/api/posts/:id/share', authOptional, async (req, res) => {
 app.post('/api/posts/:id/republish', authRequired, async (req, res) => {
   try {
     const postId = parseInt(req.params.id, 10);
-    await db.query(
+    const [inserted] = await db.query(
       'INSERT IGNORE INTO Repartager (id_utilisateur, id_publication, date_partage) VALUES (?, ?, NOW())',
       [req.userId, postId],
     );
-    await db.query(
-      'UPDATE Publication SET nombre_repost = nombre_repost + 1 WHERE id_publication = ?',
-      [postId],
-    );
-    res.json({success: true});
+    // Une publication ne se republie qu'une fois par utilisateur : le
+    // compteur n'augmente que si la ligne vient réellement d'être créée.
+    const alreadyRepublished = inserted.affectedRows === 0;
+    if (!alreadyRepublished) {
+      await db.query(
+        'UPDATE Publication SET nombre_repost = nombre_repost + 1 WHERE id_publication = ?',
+        [postId],
+      );
+    }
+    res.json({success: true, republished: true, alreadyRepublished});
   } catch (err) {
     console.error('Erreur republication :', err.message);
     res.status(500).json({error: 'Erreur serveur'});
@@ -931,6 +1079,8 @@ app.get('/api/hashtags', async (req, res) => {
 // Médias servis en statique (chemin sous /api/users pour passer
 // par le même proxy Apache que l'API).
 app.use('/api/users/media', express.static(uploadsDir));
+
+await ensureSchema();
 
 app.listen(config.port, () => {
   console.log(`API InstaClone démarrée sur http://localhost:${config.port}`);

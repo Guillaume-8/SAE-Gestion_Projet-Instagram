@@ -9,11 +9,11 @@ import {
   toggleDislike,
   sharePost,
   republishPost,
-  reportPost,
   addComment,
   toggleSavedPost,
 } from './api.js';
 import { showPostModal } from './post-modal.js';
+import { openReportDialog } from './report-dialog.js';
 import { attachMediaFallback } from './media-fallback.js';
 import {showToast} from './toast.js';
 import {addNotification} from './notification.js';
@@ -40,6 +40,16 @@ function createCaptionHtml(caption) {
     /(^|\s)(#[\p{L}\p{N}_]+)/gu,
     '$1<a class="caption-hashtag" href="#/explore?tag=$2">$2</a>',
   );
+}
+
+/**
+ * Libellé du bouton d'accès aux commentaires.
+ * @param {number} count Nombre de commentaires.
+ * @return {string} « Pas de commentaire » s'il n'y en a aucun.
+ */
+function commentsLabel(count) {
+  if (count === 0) return 'Pas de commentaire';
+  return `Voir les ${count} commentaire${count > 1 ? 's' : ''}`;
 }
 
 /**
@@ -97,7 +107,7 @@ function createPostElement(post) {
           <span class="action-icon">👎</span>
           <span class="dislike-count">${post.dislikesCount}</span>
         </button>
-        <button class="action-btn btn-republish" title="Republier">🔄 Republier</button>
+        ${post.republished ? '' : '<button class="action-btn btn-republish" title="Republier">🔄 Republier</button>'}
         <button class="action-btn btn-save${post.saved ? ' active' : ''}" title="Enregistrer">🔖</button>
         <button class="action-btn btn-comments-toggle" title="Commentaires">
           💬 <span class="comments-count">${commentsCount}</span>
@@ -110,7 +120,7 @@ function createPostElement(post) {
           <strong>${escapeHtml(post.author)}</strong> ${createCaptionHtml(post.caption)}
         </p>
         <button class="btn-view-comments">
-          Voir les ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}
+          ${commentsLabel(commentsCount)}
         </button>
         <time class="post-time">${post.createdAt}</time>
       </div>
@@ -150,7 +160,8 @@ async function handleLike(article, postId) {
     const result = await toggleLike(postId, newLikedState);
     article.querySelector('.like-count').textContent = result.likesCount;
     const dislikeBtn = article.querySelector('.btn-dislike');
-    dislikeBtn.classList.toggle('active', result.disliked);
+    // Boolean() : toggle(x, undefined) inverserait l'état au lieu de le forcer.
+    dislikeBtn.classList.toggle('active', Boolean(result.disliked));
     article.querySelector('.dislike-count').textContent = result.dislikesCount;
 
     const postAuthor = article.dataset.author;
@@ -200,7 +211,7 @@ async function handleDislike(article, postId) {
       );
     }
     const likeBtn = article.querySelector('.btn-like');
-    likeBtn.classList.toggle('active', result.liked);
+    likeBtn.classList.toggle('active', Boolean(result.liked));
     article.querySelector('.like-count').textContent = result.likesCount;
   } catch (error) {
     dislikeBtn.classList.toggle('active', isCurrentlyDisliked);
@@ -212,14 +223,21 @@ async function handleDislike(article, postId) {
 
 /**
  * Gère le clic sur le bouton "Republier" d'une publication.
+ * Une fois republiée, la publication n'affiche plus le bouton.
+ * @param {HTMLElement} article Élément <article> de la publication.
  * @param {number} postId Identifiant de la publication.
  */
-async function handleRepublish(postId) {
+async function handleRepublish(article, postId) {
+  const republishBtn = article.querySelector('.btn-republish');
+  if (republishBtn) republishBtn.disabled = true;
+
   try {
     await republishPost(postId);
     addNotification('republish', 'Vous avez republié une publication', {postId});
     showToast('Publication republiée avec succès !', 'success');
+    if (republishBtn) republishBtn.remove();
   } catch (error) {
+    if (republishBtn) republishBtn.disabled = false;
     console.error('Erreur lors de la republication :', error);
     showToast('Échec de la republication', 'error');
   }
@@ -249,70 +267,16 @@ async function handleSave(article, postId) {
 }
 
 /**
- * Gère le clic sur le bouton "Signaler" d'une publication.
+ * Gère le clic sur le bouton "Signaler" d'une publication : ouvre le menu
+ * de signalement partagé avec le modal de détail.
  * @param {HTMLElement} article Élément <article> de la publication.
  * @param {number} postId Identifiant de la publication.
  */
-async function handleReport(article, postId) {
-  const reasons = [
-    'Contenu inapproprié',
-    'Spam ou arnaque',
-    'Harcèlement ou discours haineux',
-    'Faux compte ou usurpation d\'identité',
-  ];
-
-  const overlay = document.createElement('div');
-  overlay.className = 'report-overlay';
-  overlay.innerHTML = `
-    <div class="report-dialog">
-      <h3>Signaler cette publication</h3>
-      <p class="report-subtitle">Indiquez le motif du signalement :</p>
-      <div class="report-reasons">
-        ${reasons
-          .map(
-            (reason, index) => `
-          <label class="report-reason">
-            <input type="radio" name="report-reason" value="${escapeHtml(reason)}" ${index === 0 ? 'checked' : ''}>
-            <span>${escapeHtml(reason)}</span>
-          </label>
-        `,
-          )
-          .join('')}
-      </div>
-      <div class="report-actions">
-        <button class="btn-report-cancel">Annuler</button>
-        <button class="btn-report-confirm">Confirmer le signalement</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  const closeDialog = () => overlay.remove();
-
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeDialog();
-  });
-
-  overlay.querySelector('.btn-report-cancel').addEventListener('click', closeDialog);
-
-  overlay.querySelector('.btn-report-confirm').addEventListener('click', async () => {
-    const selectedReason = overlay.querySelector(
-      'input[name="report-reason"]:checked',
-    ).value;
-
-    closeDialog();
-
-    try {
-      await reportPost(postId, selectedReason);
-      addNotification('report', 'Vous avez signalé une publication', {postId});
-      showToast('Publication signalée. Merci pour votre contribution.');
-      article.querySelector('.btn-report').textContent = 'Signalée ✓';
-      article.querySelector('.btn-report').disabled = true;
-    } catch (error) {
-      console.error('Erreur lors du signalement :', error);
-      showToast('Échec du signalement', 'error');
-    }
+function handleReport(article, postId) {
+  openReportDialog(postId, () => {
+    const reportBtn = article.querySelector('.btn-report');
+    reportBtn.textContent = 'Signalée ✓';
+    reportBtn.disabled = true;
   });
 }
 
@@ -355,7 +319,7 @@ async function handleAddComment(article, postId, text) {
 
     const viewBtn = article.querySelector('.btn-view-comments');
     if (viewBtn) {
-      viewBtn.textContent = `Voir les ${newCount} commentaire${newCount > 1 ? 's' : ''}`;
+      viewBtn.textContent = commentsLabel(newCount);
     }
 
     input.value = '';
@@ -393,7 +357,7 @@ function setupEventDelegation(container) {
     }
 
     if (event.target.closest('.btn-republish')) {
-      handleRepublish(postId);
+      handleRepublish(article, postId);
       return;
     }
 
@@ -449,12 +413,27 @@ export function render() {
   return `<div class="feed-container"><section id="posts-container" class="posts-list"></section></div>`;
 }
 
+/** Écouteur courant de « post-republished » (évite l'accumulation). */
+let republishedListener = null;
+
 /**
  * Monte la vue : récupère les publications et installe les listeners.
  */
 export async function mount() {
   const container = document.getElementById('posts-container');
   if (!container) return;
+
+  // Republication depuis le modal : retire le bouton de la carte du fil.
+  if (republishedListener) {
+    window.removeEventListener('post-republished', republishedListener);
+  }
+  republishedListener = (event) => {
+    const btn = container.querySelector(
+      `.post-card[data-post-id="${event.detail.postId}"] .btn-republish`,
+    );
+    if (btn) btn.remove();
+  };
+  window.addEventListener('post-republished', republishedListener);
 
   const posts = await getFeedPosts();
   container.innerHTML = posts.map(createPostElement).join('');
