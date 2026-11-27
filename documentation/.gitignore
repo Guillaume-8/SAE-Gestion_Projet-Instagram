@@ -1,9 +1,0 @@
-node_modules/
-build/
-.docusaurus/
-.env
-*.log
-.DS_Store
-*:Zone.Identifier
-
-certs/

@@ -1,6 +1,13 @@
 ---
 sidebar_position: 4
 ---
+:::warning Page en cours de mise à jour
+Cette page décrit l'**ancienne base SQLite** des publications. Depuis la fusion,
+la base des publications est **MariaDB `PhotoVideo`** (voir
+[Architecture globale](../technique/architecture.md), `database/photovideo-dump.sql`
+et `database/migration-genre-visibilite.sql`). Seule la **messagerie** utilise
+encore SQLite (`database_lifeinvader.db`).
+:::
 
 # Configuration des bases de données
 

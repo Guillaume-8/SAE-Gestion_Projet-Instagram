@@ -51,23 +51,29 @@ sudo systemctl restart apache2
 | **Docker** | 24.x | Conteneurisation de l'application |
 | **Docker Compose** | 2.20+ | Orchestration multi-conteneurs (front + back + DB) |
 
-## Base de données
+## Bases de données
+
+Le projet utilise **deux bases**, une par serveur Node :
 
 | Outil | Rôle |
 |---|---|
-| **SQLite 3** | Base de données embarquée (fichier `.db`) |
-| **sqlite3** (CLI) | Inspection manuelle des bases |
+| **MariaDB 10.11+** | Base `PhotoVideo` de l'API (utilisateurs, publications, commentaires, amis) |
+| **SQLite 3** | Base `database_lifeinvader.db` de la messagerie (conversations, messages) |
+| **mariadb** / **mysql** (CLI) | Import du dump et inspection |
+| **sqlite3** (CLI) | Inspection de la base de la messagerie |
 
-SQLite ne nécessite pas de serveur séparé — le fichier de base de données est stocké localement.
+MariaDB doit tourner en service (`sudo service mariadb start` sous WSL) ;
+SQLite ne nécessite aucun serveur, la base est un simple fichier.
 
 ## Vérification rapide
 
 ```bash
-node --version    # v18.x ou supérieur
-npm --version     # 9.x ou supérieur
-git --version     # 2.34 ou supérieur
-apache2 -v        # Server version: Apache/2.4.x
-docker --version  # Docker version 24.x
+node --version      # v20.x ou v22.x
+npm --version       # 10.x ou supérieur
+git --version       # 2.34 ou supérieur
+apache2 -v          # Server version: Apache/2.4.x
+mariadb --version   # 10.11 ou supérieur
+sqlite3 --version   # 3.x
 ```
 
 Si tous les outils répondent correctement, vous pouvez passer à l'[installation du front-end](./front-end).
