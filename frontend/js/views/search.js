@@ -199,10 +199,11 @@ export async function mount() {
 
   // Interactions par délégation (un seul listener)
   resultsContainer.addEventListener('click', (e) => {
-    // Clic sur un compte → profil
+    // Clic sur un compte → profil de ce compte
     const userRow = e.target.closest('.search-result-user');
     if (userRow) {
-      window.location.hash = '#/profile';
+      window.location.hash =
+        '#/profile?user=' + encodeURIComponent(userRow.dataset.username);
       return;
     }
 

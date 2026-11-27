@@ -4,8 +4,12 @@
  * doigt d'honneur via MediaPipe Hands (voir vendor/gesture-guard.js).
  * Tout s'exécute dans le navigateur.
  *
- * L'image n'est JAMAIS modifiée : l'analyse sert uniquement à signaler la
- * publication pour qu'un modérateur l'examine (voir createPost dans api.js).
+ * Le fichier d'origine n'est jamais modifié. Quand des zones sont repérées, une
+ * copie où elles sont pixellisées est aussi fournie (`censoredFile`) :
+ *   - publication : on garde l'original, la publication est signalée et masquée
+ *     jusqu'à l'avis d'un modérateur (voir createPost dans api.js) ;
+ *   - photo de profil et messagerie : pas de modérateur derrière, c'est la copie
+ *     pixellisée qui est envoyée.
  */
 
 const NUDITY_GUARD_URL = 'js/vendor/nudity-guard.js';
@@ -22,6 +26,8 @@ const GESTURE_BOX_MARGIN = 30;
 // Le détecteur ramène de toute façon l'image à 320 px ; une photo de smartphone
 // en pleine résolution coûterait cher à redessiner pour rien.
 const MAX_IMAGE_SIDE = 1600;
+// Qualité JPEG de la copie pixellisée.
+const CENSORED_JPEG_QUALITY = 0.92;
 // Délai au-delà duquel on considère l'analyse perdue. MediaPipe s'appuie sur
 // WebGL, et un contexte perdu (GPU saturé, mise en veille, pilote qui redémarre)
 // laisse l'attente en suspens : sans ce garde-fou, l'interface reste bloquée sur
@@ -198,12 +204,13 @@ export function preloadModeration() {
 }
 
 /**
- * Analyse une image (nudité + doigt d'honneur) sans la modifier.
+ * Analyse une image (nudité + doigt d'honneur).
  * @param {File} file Image choisie par l'utilisateur.
- * @return {Promise<{file: File, detections: Array<Object>,
- *     gestureDetectionAvailable: boolean}>} Le fichier d'origine, inchangé, et
- *     les zones repérées. `gestureDetectionAvailable` vaut false si seule la
- *     nudité a pu être analysée.
+ * @return {Promise<{file: File, censoredFile: ?File, detections: Array<Object>,
+ *     gestureDetectionAvailable: boolean}>} Le fichier d'origine, inchangé ;
+ *     une copie où les zones repérées sont pixellisées (null si rien n'a été
+ *     repéré) ; les zones repérées. `gestureDetectionAvailable` vaut false si
+ *     seule la nudité a pu être analysée.
  */
 export function moderateImageFile(file) {
   const run = analysisQueue.then(() => analyzeImage(file));
@@ -331,9 +338,44 @@ async function analyzeImage(file) {
     zones: detections.map((d) => ({label: d.label, score: d.score.toFixed(2)})),
   });
 
-  // L'image est renvoyée telle quelle : c'est la publication qui sera signalée
-  // et masquée aux autres utilisateurs, pas le média qui est retouché.
-  return {file, detections, gestureDetectionAvailable};
+  const censoredFile = detections.length > 0
+    ? await buildCensoredFile(file, canvas, detections)
+    : null;
+
+  return {file, censoredFile, detections, gestureDetectionAvailable};
+}
+
+/**
+ * Pixellise les zones repérées sur [canvas] et en fait un nouveau fichier.
+ *
+ * Le PNG reste en PNG (transparence conservée) ; tout le reste (JPEG, WebP,
+ * GIF…) devient du JPEG. L'image sort à la taille du canvas d'analyse, donc
+ * au plus MAX_IMAGE_SIDE px de côté.
+ *
+ * @param {File} file Fichier d'origine (pour le nom et le type).
+ * @param {HTMLCanvasElement} canvas Image analysée ; elle est modifiée.
+ * @param {Array<Object>} detections Zones à pixelliser, en pixels du canvas.
+ * @return {Promise<File>} La copie pixellisée.
+ */
+async function buildCensoredFile(file, canvas, detections) {
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
+  for (const zone of detections) window.pixelateBox(ctx, zone);
+
+  const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (result) => result
+        ? resolve(result)
+        : reject(new Error('Pixellisation impossible')),
+      type,
+      CENSORED_JPEG_QUALITY,
+    );
+  });
+  const baseName = file.name.replace(/\.[^.]*$/, '') || 'image';
+  return new File([blob], baseName + (type === 'image/png' ? '.png' : '.jpg'), {
+    type,
+    lastModified: Date.now(),
+  });
 }
 
 /**

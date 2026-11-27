@@ -167,6 +167,10 @@ function handleAvatarFileSelect() {
     }
     if (selection !== avatarSelectionCounter) return;
 
+    // Pas de modérateur pour les photos de profil : si quelque chose a été
+    // repéré, c'est la version pixellisée qui devient l'avatar.
+    const avatarFile = result.censoredFile || result.file;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
@@ -177,12 +181,12 @@ function handleAvatarFileSelect() {
       preview.src = dataUrl;
       // Affiche le nom du fichier choisi
       fileNameSpan.textContent = '📄 ' + file.name +
-        (result.detections.length > 0
-          ? " — ⚠️ enfreint peut-être nos règles d'utilisation"
+        (result.censoredFile
+          ? ' — ⚠️ contenu sensible détecté : image pixellisée'
           : '') +
         (result.gestureDetectionAvailable ? '' : ' — ⚠ gestes non vérifiés');
     };
-    reader.readAsDataURL(result.file);
+    reader.readAsDataURL(avatarFile);
   });
 
   document.getElementById('btn-avatar-file').addEventListener('click', () => {

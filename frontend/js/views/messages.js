@@ -752,22 +752,23 @@ export async function mount() {
       btnUploadImage.textContent = '📎';
     }
 
+    // Pas de modérateur pour la messagerie : si quelque chose a été repéré,
+    // c'est la version pixellisée qui part.
+    const imageFile = result.censoredFile || result.file;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       socket.emit('send_image', {
         pseudonyme: currentUser,
         idGroupe,
         imageBase64: event.target.result,
-        extension: '.' + result.file.name.split('.').pop(),
+        extension: '.' + imageFile.name.split('.').pop(),
       });
     };
-    reader.readAsDataURL(result.file);
+    reader.readAsDataURL(imageFile);
 
-    if (result.detections.length > 0) {
-      showToast(
-        "⚠️ Votre contenu enfreint peut-être nos règles d'utilisation",
-        true,
-      );
+    if (result.censoredFile) {
+      showToast('⚠️ Contenu sensible détecté : image pixellisée', true);
     }
 
     if (!result.gestureDetectionAvailable) {

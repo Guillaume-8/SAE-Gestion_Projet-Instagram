@@ -197,7 +197,16 @@ function renderModal(post) {
   // Fermer lors d'un changement de page (ex. clic sur un profil) :
   // le modal est attaché au <body> et survivrait sinon au changement de vue.
   window.addEventListener('hashchange', closePostModal);
-  
+
+  // Un lien vers la page déjà affichée (ex. le nom de l'auteur quand on est
+  // sur son profil) ne change pas le hash : sans ça, le modal resterait ouvert.
+  overlay.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href^="#/"]');
+    if (link && link.getAttribute('href') === window.location.hash) {
+      closePostModal();
+    }
+  });
+
   // Event listeners pour les boutons d'actions
   document.getElementById('post-modal-content').addEventListener('click', async (e) => {
     const likeBtn = e.target.closest('.btn-modal-like');

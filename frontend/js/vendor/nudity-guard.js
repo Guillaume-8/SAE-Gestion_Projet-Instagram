@@ -68,6 +68,8 @@ const NUDENET_IOU_THRESHOLD = 0.45;
 const NUDENET_BOX_PADDING = 12;
 
 const PIXELATE_TILE_SIZE = 16;
+// Nombre de carreaux au plus sur le petit côté d'une zone pixellisée.
+const PIXELATE_TILES_ACROSS = 6;
 
 var nudeNetSession = null;
 var nudeNetReady = false;
@@ -281,8 +283,11 @@ function boundingBoxOf(landmarks, imgWidth, imgHeight, marginX, marginY) {
 
 /**
  * Pixellise une boîte du canvas [ctx]. Ne relit les pixels que dans cette zone,
- * pas toute l'image. La taille des pixels s'adapte à la résolution de la photo :
- * une tuile fixe serait invisible (donc inefficace) sur une capture haute résolution.
+ * pas toute l'image. Chaque carreau prend la couleur moyenne des pixels qu'il
+ * recouvre.
+ * La taille des carreaux dépend de la photo et de la zone : avec une taille
+ * fixe, les carreaux sont invisibles sur une photo en haute résolution, et sur
+ * une main en gros plan on reconnaissait encore le geste.
  */
 function pixelateBox(ctx, box) {
   const x0 = Math.max(0, Math.floor(box.minX)),
@@ -293,7 +298,8 @@ function pixelateBox(ctx, box) {
 
   const tileSize = Math.max(
     PIXELATE_TILE_SIZE,
-    Math.round(Math.min(ctx.canvas.width, ctx.canvas.height) / 30)
+    Math.round(Math.min(ctx.canvas.width, ctx.canvas.height) / 30),
+    Math.round(Math.min(w, h) / PIXELATE_TILES_ACROSS)
   );
 
   let imageData;
@@ -307,12 +313,26 @@ function pixelateBox(ctx, box) {
     stride = imageData.width;
 
   for (let ty = 0; ty < h; ty += tileSize) {
+    const tileH = Math.min(tileSize, h - ty);
     for (let tx = 0; tx < w; tx += tileSize) {
-      const px = Math.min(stride - 1, tx),
-        py = Math.min(imageData.height - 1, ty);
-      const idx = (py * stride + px) * 4;
-      ctx.fillStyle = `rgb(${data[idx]},${data[idx + 1]},${data[idx + 2]})`;
-      ctx.fillRect(x0 + tx, y0 + ty, tileSize + 0.5, tileSize + 0.5);
+      const tileW = Math.min(tileSize, w - tx);
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let y = ty; y < ty + tileH; y++) {
+        for (let x = tx; x < tx + tileW; x++) {
+          const idx = (y * stride + x) * 4;
+          r += data[idx];
+          g += data[idx + 1];
+          b += data[idx + 2];
+          a += data[idx + 3];
+        }
+      }
+      const n = tileW * tileH;
+      ctx.fillStyle =
+        `rgba(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)},${a / n / 255})`;
+      // clearRect d'abord : sur un PNG transparent, fillRect se mélangerait au
+      // pixel d'origine au lieu de le remplacer.
+      ctx.clearRect(x0 + tx, y0 + ty, tileW, tileH);
+      ctx.fillRect(x0 + tx, y0 + ty, tileW, tileH);
     }
   }
 }

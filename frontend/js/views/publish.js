@@ -112,7 +112,8 @@ export function render() {
 
 /**
  * Gère la sélection d'un fichier (input ou drag & drop). Les images sont
- * analysées, et censurées si besoin, avant de pouvoir être publiées.
+ * analysées avant de pouvoir être publiées ; si quelque chose est repéré, la
+ * publication est signalée et masquée jusqu'à l'avis d'un modérateur.
  * @param {File} file Fichier sélectionné.
  */
 async function handleFileSelect(file) {
