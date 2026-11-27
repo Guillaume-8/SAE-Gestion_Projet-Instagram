@@ -7,6 +7,7 @@
 import { getCurrentUser, getUserProfile, getSavedPosts, getTaggedPosts, getFriends } from '../api.js';
 import { showPostModal } from '../post-modal.js';
 import { buildFriendsListHtml } from '../friends-list.js';
+import { attachMediaFallback } from '../media-fallback.js';
 
 const PRIVACY_KEY = 'instaclone_privacy_settings';
 
@@ -292,6 +293,7 @@ export async function mount() {
 
         const grid = container.querySelector('.profile-grid');
         grid.innerHTML = buildPostsGridHtml(posts, user.username);
+        attachMediaFallback(grid);
 
         bindPostThumbs(posts);
       });

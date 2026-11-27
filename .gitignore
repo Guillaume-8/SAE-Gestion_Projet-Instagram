@@ -1,14 +1,16 @@
 # Dépendances
 node_modules/
 
-# Médias uploadés par les utilisateurs (ne pas versionner)
+# Médias générés par les utilisateurs (messagerie) — jamais versionnés
 backend-messagerie/uploads/*
 !backend-messagerie/uploads/.gitkeep
+
+# Certificats et secrets locaux
+certs/
+.env
 
 # Divers
 *.log
 .DS_Store
-Thumbs.db
-certs/
-.env
-documentation/.docusaurus
+*:Zone.Identifier
+documentation/.docusaurus/

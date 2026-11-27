@@ -485,7 +485,7 @@ INSERT INTO `Publication` VALUES
 (2,'Journée calme et studieuse à l\'auberge Amagi, le service géré par Yukiko est toujours au top.','amagi_inn.jpg',NULL,'2026-05-06 08:00:00',1,1,0,0,0,0,2),
 (3,'On attend toujours Steel Ball Run en anime dans de bonnes conditions sur la plateforme...','sbr_netflix.jpg',NULL,'2026-06-11 19:45:00',1,1,1,1,0,0,3),
 (4,'Petite création de canon plasma pour contrer les crises de colère de Bakugo en cours de soutien.','momo_mha.jpg',NULL,'2026-08-15 14:10:00',1,1,0,0,0,0,4),
-(5,'C\'est un scandale absolu ! La politique de PlayStation pour 2028 signe la mort du jeu physique. Refusons le tout dématérialisé !',NULL,'nodisk_rant.mp4','2026-09-14 16:15:00',1,0,0,0,0,1,3),
+(5,'C\'est un scandale absolu ! La politique de PlayStation pour 2028 signe la mort du jeu physique. Refusons le tout dématérialisé !','nodisk_rant.jpg',NULL,'2026-09-14 16:15:00',1,0,0,0,0,1,3),
 (6,'Opération d\'exploration du Tartare prévue ce soir. Préparez vos Evokers.','tartarus_gate.jpg',NULL,'2026-09-15 08:00:00',1,0,0,0,0,0,5);
 /*!40000 ALTER TABLE `Publication` ENABLE KEYS */;
 UNLOCK TABLES;
