@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Démo filtres — LifeInvader</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #121212; color: #eee; padding: 24px; }
+    canvas { max-width: 100%; border-radius: 8px; margin: 16px 0; display: block; }
+    button { margin: 2px; padding: 6px 10px; border-radius: 8px; border: 1px solid #444; background: #1e1e1e; color: #eee; cursor: pointer; }
+    button:hover { border-color: #0095f6; }
+    p { color: #aaa; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Démo isolée — filtres Canvas</h1>
+  <p>Module de Tanguy &amp; Jonathan, conservé tel quel. Dans l'application, les filtres sont intégrés à la page « Publier ».</p>
+  <input type="file" id="imageInput" accept="image/*">
+<canvas id="previewCanvas"></canvas>
+
+<button onclick="resetToOriginal()">Original</button>
+<button onclick="selectFilter('grayscale')">Noir & blanc</button>
+<button onclick="selectFilter('sepia')">Sépia</button>
+<button onclick="selectFilter('highContrast')">Contraste</button>
+<button onclick="selectFilter('brightness')">Luminosité</button>
+<button onclick="selectFilter('invert')">Négatif</button>
+<button onclick="selectFilter('saturate')">Saturation</button>
+<button onclick="selectFilter('warm')">Chaud</button>
+<button onclick="publishImage()">Publier</button>
+
+<script src="filters.js"></script>
+</body>
+</html>

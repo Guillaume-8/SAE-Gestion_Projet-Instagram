@@ -164,8 +164,9 @@ en production, et préférer un utilisateur MariaDB dédié plutôt que `root`.
 (`#/profile?user=pseudo`), édition, genre et visibilité du genre, compte privé.
 
 **Publications** — fil d'actualité, tendances, recherche, publication avec
-photo ou vidéo (upload multipart + progression), like, dislike, commentaires,
-repartage (une fois par utilisateur), signalement avec motifs, hashtags.
+photo ou vidéo (upload multipart + progression), **7 filtres photo appliqués
+avant envoi**, like, dislike, commentaires, repartage (une fois par
+utilisateur), signalement avec motifs, hashtags.
 
 **Social** — abonnements, amis (demandes acceptées, compteur), suggestions,
 notifications (cloche, badge, toasts, temps réel).
@@ -190,6 +191,7 @@ quand l'API est indisponible.
 │   ├── instaclone.conf         # VirtualHost Apache
 │   ├── css/style.css           # styles + thèmes
 │   ├── assets/images/posts/    # images de démonstration (mock)
+│   ├── demo-filtres/           # démo isolée du module de filtres
 │   └── js/
 │       ├── router.js           # routeur par hash
 │       ├── api.js              # client API + repli mock
@@ -199,6 +201,7 @@ quand l'API est indisponible.
 │       ├── friends-list.js     # rendu partagé d'une liste d'amis
 │       ├── notification.js     # socket partagé + notifications
 │       ├── media-fallback.js   # repli des médias introuvables
+│       ├── filters.js          # filtres photo (Canvas, avant publication)
 │       ├── toast.js · menu.js · image-helper.js · mock-data.js
 │       └── views/              # 12 vues (login, profile, messages, …)
 ├── backend-api/

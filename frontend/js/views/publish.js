@@ -6,10 +6,20 @@ import { createPost, getFriends } from '../api.js';
 import { buildFriendsListHtml } from '../friends-list.js';
 import {showToast} from '../toast.js';
 import {addNotification} from '../notification.js';
+import {
+  FILTRES, chargerImage, dessinerFiltre, creerVignette, exporterBlob,
+} from '../filters.js';
 
 let selectedFile = null;
 let selectedMediaType = null;
 let mediaPreviewUrl = null;
+
+/** Pixels de l'image d'origine (sans filtre), base de chaque rendu. */
+let imageOrigine = null;
+/** Canvas d'aperçu de l'image, filtré ou non. */
+let canvasApercu = null;
+/** Filtre actuellement sélectionné ('original' par défaut). */
+let filtreCourant = 'original';
 
 /**
  * Rend le squelette HTML de la vue Publication.
@@ -87,14 +97,12 @@ export function render() {
             </div>
           </div>
 
-          <div class="form-field">
-            <label>Filtres et retouche</label>
-            <div class="filters-placeholder" id="filters-placeholder">
-              <span class="filters-info">
-                ✨ Les filtres et retouches photo seront disponibles ici
-                (en cours de développement par Tanguy & Jonathan)
-              </span>
-            </div>
+          <div class="form-field" id="filters-field" hidden>
+            <label>Filtres</label>
+            <div class="filter-strip" id="filters-strip"></div>
+            <span class="field-hint">
+              Le filtre choisi est appliqué à l'image publiée.
+            </span>
           </div>
 
           <p class="publish-error" id="publish-error" hidden></p>
@@ -112,10 +120,90 @@ export function render() {
 }
 
 /**
+ * Affiche une image dans un canvas et construit la bande de filtres.
+ *
+ * L'image est redimensionnée (1080 px maximum) avant affichage : les
+ * filtres parcourent les pixels, un clic reste donc instantané.
+ *
+ * @param {File} fichier Image sélectionnée.
+ * @param {HTMLElement} preview Conteneur d'aperçu.
+ * @return {Promise<void>}
+ */
+async function afficherImageAvecFiltres(fichier, preview) {
+  const {canvas, imageData} = await chargerImage(fichier, 1080);
+
+  imageOrigine = imageData;
+  filtreCourant = 'original';
+  canvasApercu = canvas;
+  canvas.id = 'publish-canvas';
+  canvas.className = 'publish-canvas';
+
+  preview.innerHTML = '';
+  preview.appendChild(canvas);
+
+  construireVignettes(imageData);
+  document.getElementById('filters-field').hidden = false;
+}
+
+/**
+ * Construit la bande de vignettes (une par filtre) sous l'aperçu.
+ *
+ * @param {ImageData} origine Pixels de l'image d'origine.
+ * @return {void}
+ */
+function construireVignettes(origine) {
+  const bande = document.getElementById('filters-strip');
+  bande.innerHTML = '';
+
+  FILTRES.forEach((filtre) => {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'filter-thumb' +
+      (filtre.id === 'original' ? ' active' : '');
+    bouton.dataset.filter = filtre.id;
+    bouton.title = filtre.label;
+
+    bouton.appendChild(creerVignette(origine, filtre.id));
+
+    const libelle = document.createElement('span');
+    libelle.className = 'filter-thumb-label';
+    libelle.textContent = filtre.label;
+    bouton.appendChild(libelle);
+
+    bouton.addEventListener('click', () => {
+      filtreCourant = filtre.id;
+      if (canvasApercu && imageOrigine) {
+        dessinerFiltre(canvasApercu, imageOrigine, filtre.id);
+      }
+      bande.querySelectorAll('.filter-thumb').forEach((autre) => {
+        autre.classList.toggle('active', autre === bouton);
+      });
+    });
+
+    bande.appendChild(bouton);
+  });
+}
+
+/**
+ * Masque la bande de filtres (vidéo, ou sélection réinitialisée).
+ * @return {void}
+ */
+function masquerFiltres() {
+  const champ = document.getElementById('filters-field');
+  if (champ) champ.hidden = true;
+  const bande = document.getElementById('filters-strip');
+  if (bande) bande.innerHTML = '';
+  imageOrigine = null;
+  canvasApercu = null;
+  filtreCourant = 'original';
+}
+
+/**
  * Gère la sélection d'un fichier (input ou drag & drop).
  * @param {File} file Fichier sélectionné.
+ * @return {Promise<void>}
  */
-function handleFileSelect(file) {
+async function handleFileSelect(file) {
   const errorEl = document.getElementById('publish-error');
   const publishBtn = document.getElementById('btn-publish');
   const placeholder = document.getElementById('upload-placeholder');
@@ -147,8 +235,17 @@ function handleFileSelect(file) {
 
   if (selectedMediaType === 'video') {
     preview.innerHTML = '<video controls src="' + mediaPreviewUrl + '"></video>';
+    masquerFiltres();
   } else {
-    preview.innerHTML = '<img src="' + mediaPreviewUrl + '" alt="Aperçu de la publication">';
+    try {
+      await afficherImageAvecFiltres(file, preview);
+    } catch (erreur) {
+      errorEl.textContent = erreur.message ||
+        'Impossible de préparer cette image.';
+      errorEl.hidden = false;
+      resetMediaSelection();
+      return;
+    }
   }
 
   placeholder.classList.add('hidden');
@@ -174,6 +271,7 @@ function resetMediaSelection() {
   const changeBtn = document.getElementById('btn-change-media');
   const publishBtn = document.getElementById('btn-publish');
 
+  masquerFiltres();
   preview.innerHTML = '';
   placeholder.classList.remove('hidden');
   preview.classList.add('hidden');
@@ -203,8 +301,16 @@ async function handlePublishSubmit() {
   publishBtn.textContent = 'Publication...';
 
   try {
+    // Image filtrée : on envoie le rendu du canvas, pas le fichier d'origine.
+    let mediaFile = selectedFile;
+    if (selectedMediaType === 'image' && filtreCourant !== 'original' &&
+        canvasApercu) {
+      const blob = await exporterBlob(canvasApercu);
+      mediaFile = new File([blob], 'publication.jpg', {type: 'image/jpeg'});
+    }
+
     await createPost({
-      mediaFile: selectedFile,
+      mediaFile: mediaFile,
       mediaType: selectedMediaType,
       caption: fullCaption,
       visibility: visibility,
