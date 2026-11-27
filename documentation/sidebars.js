@@ -33,6 +33,7 @@ const sidebars = {
         'developpement/composants',
         'developpement/styles-themes',
         'developpement/messagerie',
+        'developpement/censure-et-profils',
       ],
     },
     {
