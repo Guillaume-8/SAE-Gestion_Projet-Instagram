@@ -2,7 +2,10 @@
  * @fileoverview Modal pour afficher les détails d'une publication.
  */
 
-import { toggleLike, toggleDislike, toggleSavedPost, republishPost, reportPost, getPostById } from './api.js';
+import {
+  toggleLike, toggleDislike, toggleSavedPost, republishPost, reportPost,
+  getPostById, DEFAULT_AVATAR,
+} from './api.js';
 import { attachMediaFallback } from './media-fallback.js';
 import { openReportDialog } from './report-dialog.js';
 import {showToast} from './toast.js';
@@ -14,9 +17,12 @@ import {addNotification} from './notification.js';
  * @return {string} Texte échappé.
  */
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -82,7 +88,7 @@ function renderModal(post) {
           
           <div class="post-modal-sidebar">
             <div class="post-modal-header">
-              <img src="${post.avatar || ''}" alt="${escapeHtml(post.author || '')}" class="modal-avatar">
+              <img src="${escapeHtml(post.avatar || DEFAULT_AVATAR)}" alt="${escapeHtml(post.author || '')}" class="modal-avatar">
               <span class="modal-author">${escapeHtml(post.author || '')}</span>
             </div>
             

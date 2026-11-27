@@ -769,12 +769,30 @@ export async function republishPost(postId) {
  */
 export async function updateProfile(profileData) {
   // --- API réelle (MariaDB) ---
-  if (authToken && (await isRealApiAvailable())) {
+  if (await isRealApiAvailable()) {
+    // API joignable mais aucun jeton : l'utilisateur n'est pas connecté.
+    // Enregistrer en mémoire donnerait un faux succès, on refuse.
+    if (!authToken) {
+      throw new Error('Vous devez être connecté pour modifier votre profil.');
+    }
+
     try {
-      // Découpe le nom complet en prénom + nom pour la base.
-      const parts = (profileData.name || '').trim().split(/\s+/);
-      const prenom = parts.shift() || profileData.username;
-      const nom = parts.join(' ');
+      // Le nom complet est facultatif : s'il est vide, on n'envoie ni prénom
+      // ni nom, pour ne pas écraser les valeurs existantes en base.
+      const nomComplet = (profileData.name || '').trim();
+      const corps = {
+        pseudonyme: profileData.username,
+        bio: profileData.bio || '',
+        photoProfil: profileData.avatar || null,
+        gender: profileData.gender || '',
+        showGender: Boolean(profileData.showGender),
+      };
+
+      if (nomComplet) {
+        const parts = nomComplet.split(/\s+/);
+        corps.prenom = parts.shift();
+        corps.nom = parts.join(' ');
+      }
 
       const response = await apiFetch('/users/me', {
         method: 'PUT',
@@ -782,28 +800,24 @@ export async function updateProfile(profileData) {
           'Content-Type': 'application/json',
           ...authHeaders(),
         },
-        body: JSON.stringify({
-          pseudonyme: profileData.username,
-          prenom,
-          nom,
-          bio: profileData.bio || '',
-          photoProfil: profileData.avatar || null,
-          gender: profileData.gender || '',
-          showGender: Boolean(profileData.showGender),
-        }),
+        body: JSON.stringify(corps),
       });
+
       if (response.status === 401) {
-        setAuthToken(null); // jeton expiré : repli mock
-      } else if (response.status === 409) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Ce nom d\u2019utilisateur est déjà pris');
-      } else if (response.ok) {
-        const data = await response.json();
-        currentUser = normalizeRealUser(data.user);
-        return {success: true, user: structuredClone(currentUser)};
-      } else {
-        throw new Error(`Erreur: ${response.status}`);
+        setAuthToken(null);
+        throw new Error(
+          'Votre session a expiré. Reconnectez-vous pour enregistrer vos modifications.',
+        );
       }
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Erreur ${response.status}`);
+      }
+
+      const data = await response.json();
+      currentUser = normalizeRealUser(data.user);
+      return {success: true, user: structuredClone(currentUser)};
     } catch (error) {
       if (!(error instanceof ApiUnavailable)) throw error;
       console.warn('API indisponible — repli mock pour la mise à jour');

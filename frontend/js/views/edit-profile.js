@@ -50,6 +50,7 @@ export function render() {
           <div class="form-group">
             <label for="input-avatar">Photo de profil (URL, facultative)</label>
             <input type="url" id="input-avatar" placeholder="https://example.com/photo.jpg">
+            <span class="form-hint">Les images importées sont redimensionnées en 512 px.</span>
           </div>
 
           <div class="form-group">
@@ -117,16 +118,70 @@ function updateAvatarPreview() {
 }
 
 /**
+ * Côté maximum de l'avatar enregistré, en pixels.
+ * Au-delà, l'image est réduite : un avatar de 4 Mo alourdirait chaque
+ * réponse de l'API (le fil transporte l'avatar de chaque auteur).
+ * @const {number}
+ */
+const TAILLE_MAX_AVATAR = 512;
+
+/**
+ * Taille maximale acceptée pour un data URL d'avatar (≈ 200 Ko).
+ * @const {number}
+ */
+const TAILLE_MAX_DATA_URL = 300000;
+
+/**
+ * Lit un fichier image, le redimensionne dans un canvas et renvoie un
+ * data URL compressé.
+ *
+ * @param {File} fichier Image choisie par l'utilisateur.
+ * @return {Promise<string>} Data URL prêt à être enregistré.
+ */
+function redimensionnerImage(fichier) {
+  return new Promise((resolve, reject) => {
+    const lecteur = new FileReader();
+
+    lecteur.onerror = () => reject(new Error('Impossible de lire ce fichier.'));
+    lecteur.onload = () => {
+      const image = new Image();
+
+      image.onerror = () => reject(new Error('Ce fichier n\u2019est pas une image valide.'));
+      image.onload = () => {
+        const ratio = Math.min(1, TAILLE_MAX_AVATAR / Math.max(image.width, image.height));
+        const largeur = Math.max(1, Math.round(image.width * ratio));
+        const hauteur = Math.max(1, Math.round(image.height * ratio));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = largeur;
+        canvas.height = hauteur;
+        canvas.getContext('2d').drawImage(image, 0, 0, largeur, hauteur);
+
+        // PNG conservé pour la transparence, JPEG sinon (plus léger).
+        const format = fichier.type === 'image/png' || fichier.type === 'image/gif' ?
+          'image/png' : 'image/jpeg';
+
+        resolve(canvas.toDataURL(format, 0.85));
+      };
+
+      image.src = lecteur.result;
+    };
+
+    lecteur.readAsDataURL(fichier);
+  });
+}
+
+/**
  * Gère la sélection d'un fichier image local pour l'avatar.
- * Convertit l'image en data URL (base64) pour la prévisualisation
- * et l'enregistrement.
+ * L'image est redimensionnée puis convertie en data URL, qui sera
+ * enregistré en base.
  */
 function handleAvatarFileSelect() {
   const fileInput = document.getElementById('input-avatar-file');
   const fileNameSpan = document.getElementById('avatar-file-name');
   const urlInput = document.getElementById('input-avatar');
 
-  fileInput.addEventListener('change', (e) => {
+  fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -136,18 +191,24 @@ function handleAvatarFileSelect() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target.result;
-      // Injecte le data URL dans le champ URL (c'est ce qui sera enregistré)
+    try {
+      const dataUrl = await redimensionnerImage(file);
+
+      if (dataUrl.length > TAILLE_MAX_DATA_URL) {
+        showToast('Image trop lourde même après compression. Choisissez-en une autre.', 'error');
+        fileInput.value = '';
+        return;
+      }
+
+      // Le data URL compressé est ce qui sera enregistré en base.
       urlInput.value = dataUrl;
-      // Met à jour la prévisualisation
-      const preview = document.getElementById('avatar-preview');
-      preview.src = dataUrl;
-      // Affiche le nom du fichier choisi
-      fileNameSpan.textContent = '📄 ' + file.name;
-    };
-    reader.readAsDataURL(file);
+      document.getElementById('avatar-preview').src = dataUrl;
+      fileNameSpan.textContent = '📄 ' + file.name +
+        ' (redimensionnée, ' + Math.round(dataUrl.length / 1024) + ' Ko)';
+    } catch (erreur) {
+      showToast(erreur.message, 'error');
+      fileInput.value = '';
+    }
   });
 
   document.getElementById('btn-avatar-file').addEventListener('click', () => {
@@ -178,6 +239,19 @@ async function handleEditSubmit(event) {
   try {
     if (!username) {
       throw new Error("Le nom d'utilisateur est obligatoire");
+    }
+    if (username.length > 50) {
+      throw new Error("Le nom d'utilisateur ne peut pas dépasser 50 caractères");
+    }
+    if (!/^[\p{L}\p{N}._-]+$/u.test(username)) {
+      throw new Error("Le nom d'utilisateur ne peut contenir que des lettres, " +
+        'chiffres, points, tirets et underscores');
+    }
+    if (bio.length > 500) {
+      throw new Error('La biographie ne peut pas dépasser 500 caractères');
+    }
+    if (avatar && !/^(https?:\/\/[^\s"'<>]+|data:image\/(png|jpe?g|webp|gif);base64,)/i.test(avatar)) {
+      throw new Error('La photo de profil doit être une URL http(s) ou une image importée');
     }
 
     await updateProfile({username, name, bio, avatar, gender, showGender});

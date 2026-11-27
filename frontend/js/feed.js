@@ -10,7 +10,7 @@ import {
   sharePost,
   republishPost,
   addComment,
-  toggleSavedPost,
+  toggleSavedPost, DEFAULT_AVATAR,
 } from './api.js';
 import { showPostModal } from './post-modal.js';
 import { openReportDialog } from './report-dialog.js';
@@ -24,9 +24,12 @@ import {addNotification} from './notification.js';
  * @return {string} Texte échappé.
  */
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -88,7 +91,7 @@ function createPostElement(post) {
     <article class="post-card" data-post-id="${post.id}" data-author="${escapeHtml(post.author)}">
       <header class="post-header">
         <div class="post-user">
-          <img src="${post.avatar}" alt="${post.author}" class="avatar">
+          <img src="${escapeHtml(post.avatar || DEFAULT_AVATAR)}" alt="${escapeHtml(post.author)}" class="avatar">
           <span class="username">${escapeHtml(post.author)}</span>
         </div>
         <button class="btn-report" title="Signaler la publication">Signaler</button>

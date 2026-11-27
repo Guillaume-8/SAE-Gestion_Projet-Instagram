@@ -13,4 +13,3 @@ certs/
 *.log
 .DS_Store
 *:Zone.Identifier
-documentation/.docusaurus/

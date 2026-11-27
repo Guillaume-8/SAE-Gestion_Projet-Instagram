@@ -6,7 +6,7 @@
  * - Clic sur une publication → modal de détail.
  */
 
-import { searchAll } from '../api.js';
+import { searchAll, DEFAULT_AVATAR } from '../api.js';
 import { showPostModal } from '../post-modal.js';
 import { attachMediaFallback } from '../media-fallback.js';
 
@@ -19,9 +19,12 @@ const SEARCH_DEBOUNCE_MS = 200;
  * @return {string} Texte échappé.
  */
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -63,7 +66,7 @@ export function render() {
 function createUserResultHtml(user) {
   return `
     <div class="search-result-user" data-username="${escapeHtml(user.username)}">
-      <img src="${user.avatar}" alt="${escapeHtml(user.username)}" class="search-result-avatar">
+      <img src="${escapeHtml(user.avatar || DEFAULT_AVATAR)}" alt="${escapeHtml(user.username)}" class="search-result-avatar">
       <div class="search-result-user-info">
         <span class="search-result-username">${escapeHtml(user.username)}</span>
         <span class="search-result-subtitle">${user.postsCount} publication${user.postsCount > 1 ? 's' : ''}</span>

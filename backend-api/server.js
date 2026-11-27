@@ -152,6 +152,81 @@ function userToFront(row, extras = {}) {
 const GENRES_AUTORISES = new Set(['male', 'female', 'other']);
 
 /**
+ * Limites de longueur des champs du profil (alignées sur le schéma).
+ * @const {Object<string, number>}
+ */
+const LIMITES_PROFIL = {
+  pseudonyme: 50,
+  prenom: 50,
+  nom: 50,
+  bio: 500,
+  avatar: 300000,
+};
+
+/**
+ * Schémas d'URL acceptés pour la photo de profil.
+ * On refuse tout le reste : une chaîne libre permettrait d'injecter des
+ * attributs HTML (XSS stocké) dans les pages qui affichent l'avatar.
+ * @const {RegExp}
+ */
+const AVATAR_URL_VALIDE = /^(https?:\/\/[^\s"'<>]+|data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+)$/i;
+
+/**
+ * Valide les champs du profil avant l'UPDATE.
+ *
+ * @param {Object} champs Champs reçus du client.
+ * @param {Object} utilisateur Ligne actuelle (pour les valeurs par défaut).
+ * @return {{erreur: ?string, valeurs: Object}} Message d'erreur éventuel et
+ *     valeurs normalisées à écrire.
+ */
+function validerProfil(champs, utilisateur) {
+  const erreurs = [];
+
+  const pseudonyme = String(champs.pseudonyme || '').trim();
+  if (!pseudonyme) {
+    erreurs.push('Le pseudonyme est obligatoire');
+  } else if (pseudonyme.length > LIMITES_PROFIL.pseudonyme) {
+    erreurs.push('Le pseudonyme ne peut pas dépasser ' +
+      LIMITES_PROFIL.pseudonyme + ' caractères');
+  } else if (!/^[\p{L}\p{N}._-]+$/u.test(pseudonyme)) {
+    erreurs.push('Le pseudonyme ne peut contenir que des lettres, chiffres, ' +
+      'points, tirets et underscores');
+  }
+
+  const texte = (valeur, defaut, limite, libelle) => {
+    if (valeur === undefined) return defaut;
+    const propre = String(valeur).replace(/[\u0000-\u001f\u007f]/g, '').trim();
+    if (propre.length > limite) {
+      erreurs.push(libelle + ' ne peut pas dépasser ' + limite + ' caractères');
+    }
+    return propre;
+  };
+
+  const prenom = texte(champs.prenom, utilisateur.prenom, LIMITES_PROFIL.prenom, 'Le prénom');
+  const nom = texte(champs.nom, utilisateur.nom, LIMITES_PROFIL.nom, 'Le nom');
+  const bio = texte(champs.bio, utilisateur.bio || '', LIMITES_PROFIL.bio, 'La biographie');
+
+  let photoProfil = utilisateur.photo_profil || null;
+  if (champs.photoProfil !== undefined) {
+    const brut = champs.photoProfil === null ? '' : String(champs.photoProfil).trim();
+    if (brut === '') {
+      photoProfil = null;
+    } else if (brut.length > LIMITES_PROFIL.avatar) {
+      erreurs.push('La photo de profil est trop volumineuse (200 Ko maximum)');
+    } else if (!AVATAR_URL_VALIDE.test(brut)) {
+      erreurs.push('La photo de profil doit être une URL http(s) ou une image importée');
+    } else {
+      photoProfil = brut;
+    }
+  }
+
+  return {
+    erreur: erreurs.length ? erreurs[0] : null,
+    valeurs: {pseudonyme, prenom, nom, bio, photoProfil},
+  };
+}
+
+/**
  * S'assure que les colonnes ajoutées après le dump initial existent
  * (genre et visibilité du genre). Idempotent : MariaDB ignore
  * l'ajout si la colonne est déjà là, ce qui évite de réimporter le dump.
@@ -597,23 +672,26 @@ app.put('/api/users/me', authRequired, async (req, res) => {
     const {pseudonyme, prenom, nom, bio, photoProfil, gender, showGender} =
         req.body || {};
 
-    if (!pseudonyme) {
-      res.status(400).json({error: 'Le pseudonyme est obligatoire'});
+    const user = await findUserById(req.userId);
+    if (!user) {
+      res.status(404).json({error: 'Utilisateur introuvable'});
+      return;
+    }
+
+    // Validation centralisée : longueurs, caractères, schéma de l'avatar.
+    const validation = validerProfil(
+      {pseudonyme, prenom, nom, bio, photoProfil}, user);
+    if (validation.erreur) {
+      res.status(400).json({error: validation.erreur});
       return;
     }
 
     const [taken] = await db.query(
       'SELECT id_utilisateur FROM Utilisateur WHERE pseudonyme = ? AND id_utilisateur != ?',
-      [pseudonyme, req.userId],
+      [validation.valeurs.pseudonyme, req.userId],
     );
     if (taken.length > 0) {
       res.status(409).json({error: 'Ce nom d\'utilisateur est déjà pris'});
-      return;
-    }
-
-    const user = await findUserById(req.userId);
-    if (!user) {
-      res.status(404).json({error: 'Utilisateur introuvable'});
       return;
     }
 
@@ -631,11 +709,11 @@ app.put('/api/users/me', authRequired, async (req, res) => {
            genre = ?, afficher_genre = ?
        WHERE id_utilisateur = ?`,
       [
-        pseudonyme,
-        prenom !== undefined ? prenom : user.prenom,
-        nom !== undefined ? nom : user.nom,
-        bio !== undefined ? bio : user.bio || '',
-        photoProfil !== undefined ? photoProfil : user.photo_profil || null,
+        validation.valeurs.pseudonyme,
+        validation.valeurs.prenom,
+        validation.valeurs.nom,
+        validation.valeurs.bio,
+        validation.valeurs.photoProfil,
         genre,
         afficherGenre,
         req.userId,

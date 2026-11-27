@@ -4,7 +4,10 @@
  * utilisateur (#/profile?user=nom_utilisateur).
  */
 
-import { getCurrentUser, getUserProfile, getSavedPosts, getTaggedPosts, getFriends } from '../api.js';
+import {
+  getCurrentUser, getUserProfile, getSavedPosts, getTaggedPosts, getFriends,
+  DEFAULT_AVATAR,
+} from '../api.js';
 import { showPostModal } from '../post-modal.js';
 import { buildFriendsListHtml } from '../friends-list.js';
 import { attachMediaFallback } from '../media-fallback.js';
@@ -26,9 +29,12 @@ function getPrivacySettings() {
  * @return {string} Texte échappé.
  */
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -70,7 +76,7 @@ function buildPostsGridHtml(posts, username) {
       <div class="profile-post-thumb" data-post-id="${post.id}">
         ${post.isVideo
           ? `<video src="${post.mediaUrl}" muted preload="metadata"></video>`
-          : `<img src="${post.mediaUrl}" alt="Publication de ${escapeHtml(username)}">`
+          : `<img src="${escapeHtml(post.mediaUrl)}" alt="Publication de ${escapeHtml(username)}">`
         }
         ${post.isVideo ? '<span class="media-badge">🎬</span>' : ''}
       </div>
@@ -94,7 +100,7 @@ function buildProfileHtml(user, isOwnProfile) {
     return `
       <div class="profile-header">
         <div class="profile-avatar-section">
-          <img src="${user.avatar}" alt="${escapeHtml(user.username)}" class="profile-avatar">
+          <img src="${escapeHtml(user.avatar || DEFAULT_AVATAR)}" alt="${escapeHtml(user.username)}" class="profile-avatar">
         </div>
         <div class="profile-info">
           <div class="profile-top-row">
@@ -124,7 +130,7 @@ function buildProfileHtml(user, isOwnProfile) {
   return `
     <div class="profile-header">
       <div class="profile-avatar-section">
-        <img src="${user.avatar}" alt="${escapeHtml(user.username)}" class="profile-avatar">
+        <img src="${escapeHtml(user.avatar || DEFAULT_AVATAR)}" alt="${escapeHtml(user.username)}" class="profile-avatar">
       </div>
       <div class="profile-info">
         <div class="profile-top-row">

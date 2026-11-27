@@ -84,9 +84,12 @@ function savePrivacySettings(settings) {
  * @return {string} Texte échappé.
  */
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text == null ? '' : text);
-  return div.innerHTML;
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -466,7 +469,7 @@ async function handleShareMessage() {
       <div class="share-conversation-list">
         ${conversations.map((conv) => `
           <div class="share-conversation-item" data-conversation-id="${conv.id}">
-            <img src="${conv.avatar}" alt="${escapeHtml(conv.name)}" class="share-conversation-avatar">
+            <img src="${escapeHtml(conv.avatar || '')}" alt="${escapeHtml(conv.name)}" class="share-conversation-avatar">
             <span class="share-conversation-name">${escapeHtml(conv.name)}</span>
             <button class="btn-primary share-conversation-send-btn" data-conversation-id="${conv.id}">Envoyer</button>
           </div>
